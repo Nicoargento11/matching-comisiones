@@ -5,6 +5,9 @@ import { resolve } from 'path'
 config({ path: resolve(__dirname, '.env') })
 
 export default defineConfig({
+  migrations: {
+    seed: 'ts-node ./prisma/seed.ts',
+  },
   datasource: {
     url: process.env.DIRECT_URL,
   },

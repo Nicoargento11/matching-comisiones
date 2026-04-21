@@ -18,6 +18,10 @@ import { MensajesService } from './mensajes.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
 import { CreateConversacionDto } from './dto/create-conversacion.dto';
 import { MarcarLeidoDto } from './dto/marcar-leido.dto';
+import {
+  CurrentUser,
+  CurrentUserClaims,
+} from '../../common/decorators/current-user.decorator';
 
 @ApiTags('Mensajes')
 @Controller()
@@ -34,6 +38,16 @@ export class MensajesController {
   })
   crearConversacion(@Body() dto: CreateConversacionDto) {
     return this.mensajesService.crearConversacion(dto);
+  }
+
+  @Get('conversaciones/mis-conversaciones')
+  @ApiOperation({ summary: 'Obtener conversaciones del usuario autenticado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de conversaciones con último mensaje',
+  })
+  getMisConversaciones(@CurrentUser() user: CurrentUserClaims) {
+    return this.mensajesService.getMisConversaciones(user.sub);
   }
 
   @Get('conversaciones/:id_conversacion')

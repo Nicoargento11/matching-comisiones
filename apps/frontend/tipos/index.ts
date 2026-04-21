@@ -103,6 +103,33 @@ export interface Mensaje {
   creado_en: string // ISO datetime
 }
 
+export interface MensajeAPI {
+  id_mensaje: number
+  contenido: string
+  creado_en: string
+  emisor: {
+    id_usuario: number
+    nombre_usuario: string
+    apellido_usuario: string
+  }
+}
+
+export interface ParticipanteConversacion {
+  ultimo_leido: string | null
+  usuario: {
+    id_usuario: number
+    nombre_usuario: string
+    apellido_usuario: string
+  }
+}
+
+export interface Conversacion {
+  id_conversacion: number
+  creada_en: string
+  participantes: ParticipanteConversacion[]
+  mensajes: { contenido: string; creado_en: string }[]
+}
+
 export interface PerfilEstudiante {
   usuario: Usuario
   comisiones: Comision[]

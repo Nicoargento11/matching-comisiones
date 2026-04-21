@@ -23,7 +23,9 @@ export class MensajesService {
       select: { id_conversacion: true },
     });
     if (existente) {
-      throw new ConflictException('Ya existe una conversación entre estos usuarios');
+      throw new ConflictException(
+        'Ya existe una conversación entre estos usuarios',
+      );
     }
     return this.prisma.conversacion.create({
       data: {
@@ -88,7 +90,9 @@ export class MensajesService {
       },
     });
     if (!conversacion) {
-      throw new NotFoundException(`No existe conversación con id=${idConversacion}`);
+      throw new NotFoundException(
+        `No existe conversación con id=${idConversacion}`,
+      );
     }
     return conversacion;
   }
@@ -103,7 +107,9 @@ export class MensajesService {
       },
     });
     if (!participante) {
-      throw new NotFoundException('El usuario no pertenece a esta conversación');
+      throw new NotFoundException(
+        'El usuario no pertenece a esta conversación',
+      );
     }
     return this.prisma.conversacionParticipante.update({
       where: {
@@ -122,7 +128,9 @@ export class MensajesService {
       where: { id_conversacion: idConversacion },
     });
     if (!conversacion) {
-      throw new NotFoundException(`No existe conversación con id=${idConversacion}`);
+      throw new NotFoundException(
+        `No existe conversación con id=${idConversacion}`,
+      );
     }
     return this.prisma.mensaje.findMany({
       where: { id_conversacion: idConversacion },
@@ -142,12 +150,49 @@ export class MensajesService {
     });
   }
 
+  async getMisConversaciones(supabaseAuthId: string) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { supabase_auth_id: supabaseAuthId },
+      select: { id_usuario: true },
+    });
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    return this.prisma.conversacion.findMany({
+      where: { participantes: { some: { id_usuario: usuario.id_usuario } } },
+      orderBy: { creada_en: 'desc' },
+      select: {
+        id_conversacion: true,
+        creada_en: true,
+        participantes: {
+          select: {
+            ultimo_leido: true,
+            usuario: {
+              select: {
+                id_usuario: true,
+                nombre_usuario: true,
+                apellido_usuario: true,
+              },
+            },
+          },
+        },
+        mensajes: {
+          orderBy: { creado_en: 'desc' },
+          take: 1,
+          select: { contenido: true, creado_en: true },
+        },
+      },
+    });
+  }
+
   async enviarMensaje(dto: CreateMensajeDto) {
     const conversacion = await this.prisma.conversacion.findUnique({
       where: { id_conversacion: dto.id_conversacion },
     });
     if (!conversacion) {
-      throw new NotFoundException(`No existe conversación con id=${dto.id_conversacion}`);
+      throw new NotFoundException(
+        `No existe conversación con id=${dto.id_conversacion}`,
+      );
     }
     return this.prisma.mensaje.create({
       data: {
