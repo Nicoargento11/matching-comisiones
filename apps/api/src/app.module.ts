@@ -13,9 +13,6 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
 import { ProfesoresModule } from './modules/profesores/profesores.module';
 import { MensajesModule } from './modules/mensajes/mensajes.module';
 import { validationSchema } from './config/validation.schema';
-import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard } from './common/guards/auth/auth.guard';
-
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validationSchema }),
@@ -31,8 +28,6 @@ import { AuthGuard } from './common/guards/auth/auth.guard';
     MensajesModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-  ],
+  providers: [AppService],
 })
 export class AppModule {}

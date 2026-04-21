@@ -23,6 +23,20 @@ export class UsuariosService {
     }
     return estudiante;
   }
+  //obtener todos los estudiantes
+  async ObtenerEstudiantes() {
+    return this.prisma.usuario.findMany({
+      select: {
+        id_usuario: true,
+        dni: true,
+        nombre_usuario: true,
+        apellido_usuario: true,
+        correo: true,
+        activo: true,
+        fecha_registro: true,
+      },
+    });
+  }
 
   async ObtenerPrimerEstudianteUsuarioId() {
     const estudiante = await this.prisma.usuarioComision.findFirst({
