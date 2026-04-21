@@ -37,6 +37,18 @@ const comisionSelect = {
       },
     },
   },
+  eventos: {
+    select: {
+      id_evento: true,
+      titulo: true,
+      descripcion: true,
+      tipo_evento: true,
+      fecha_inicio: true,
+      fecha_fin: true,
+      origen: true,
+    },
+    orderBy: { fecha_inicio: 'asc' as const },
+  },
 };
 
 @Injectable()
