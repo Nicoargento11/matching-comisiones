@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* dark mode controlado SOLO por la clase .dark en html */
+/* esta linea reemplaza el comportamiento por defecto de tailwind (media query del sistema) */
+@custom-variant dark (.dark &);
+
+/* tema claro por defecto */
+:root {
+  color-scheme: light;
+  --sic-bg:     #f9fafb; /* gray-50  */
+  --sic-text:   #111827; /* gray-900 */
+}
+
+/* tema oscuro activado por la clase .dark en el elemento html */
+.dark {
+  color-scheme: dark;
+  --sic-bg:     #030712; /* gray-950 */
+  --sic-text:   #f3f4f6; /* gray-100 */
+}
+
+body {
+  /* el fondo y texto del body se controlan por CSS variables no por clases de tailwind */
+  /* esto garantiza que el sistema operativo oscuro no interfiera */
+  background-color: var(--sic-bg);
+  color: var(--sic-text);
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
+}
