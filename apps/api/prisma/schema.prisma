@@ -1,0 +1,349 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoInscripcion {
+  ACTIVO
+  BAJA
+  PENDIENTE
+}
+
+enum TipoNotificacion {
+  SISTEMA
+  INTERCAMBIO
+  COMPROBANTE
+}
+
+enum TipoEvento {
+  CLASE
+  PARCIAL
+  ENTREGA_TP
+  OTRO
+}
+
+enum OrigenEvento {
+  PROFESOR
+  ALUMNO
+  SISTEMA
+}
+
+enum PrioridadTarea {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+enum CanalRecordatorio {
+  APP
+  EMAIL
+}
+
+model Usuario {
+  id_usuario                Int                        @id @default(autoincrement())
+  dni                       Int                        @unique
+  nombre_usuario            String
+  apellido_usuario          String
+  correo                    String                     @unique
+  contrasena                String
+  activo                    Boolean                    @default(true)
+  fecha_registro            DateTime                   @default(now())
+  // Si usan Supabase Auth, esto te sirve para mapear claim `sub`
+  supabase_auth_id          String?                    @unique @db.Uuid
+  roles                     RolUsuario[]
+  comisiones                UsuarioComision[]
+  notificaciones            Notificacion[]
+  eventos                   Evento[]
+  tareas                    Tarea[]
+  conversacionParticipantes ConversacionParticipante[]
+  mensajes                  Mensaje[]
+
+  @@map("usuario")
+}
+
+model Rol {
+  id_rol     Int          @id @default(autoincrement())
+  nombre_rol String       @unique
+  usuarios   RolUsuario[]
+
+  @@map("rol")
+}
+
+model RolUsuario {
+  id_usuario Int
+  id_rol     Int
+  usuario    Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  rol        Rol     @relation(fields: [id_rol], references: [id_rol], onDelete: Cascade)
+
+  @@id([id_usuario, id_rol])
+  @@map("rol_usuario")
+}
+
+model Facultad {
+  id_facultad     Int       @id @default(autoincrement())
+  nombre_facultad String    @unique
+  carreras        Carrera[]
+
+  @@map("facultad")
+}
+
+model Carrera {
+  id_carrera     Int       @id @default(autoincrement())
+  nombre_carrera String
+  id_facultad    Int
+  facultad       Facultad  @relation(fields: [id_facultad], references: [id_facultad], onDelete: Restrict)
+  materias       Materia[]
+
+  @@unique([nombre_carrera, id_facultad])
+  @@map("carrera")
+}
+
+model Materia {
+  id_materia     Int        @id @default(autoincrement())
+  nombre_materia String
+  id_carrera     Int
+  carrera        Carrera    @relation(fields: [id_carrera], references: [id_carrera], onDelete: Restrict)
+  comisiones     Comision[]
+  eventos        Evento[]
+  tareas         Tarea[]
+
+  @@unique([nombre_materia, id_carrera])
+  @@map("materia")
+}
+
+model Profesor {
+  id_profesor     Int        @id @default(autoincrement())
+  nombre_profesor String
+  comisiones      Comision[]
+
+  @@map("profesor")
+}
+
+model Comision {
+  id_comision     Int               @id @default(autoincrement())
+  numero_comision Int?
+  nombre_comision String?
+  cupo_maximo     Int
+  fecha_fin       DateTime?
+  id_profesor     Int
+  id_materia      Int
+  profesor        Profesor          @relation(fields: [id_profesor], references: [id_profesor], onDelete: Restrict)
+  materia         Materia           @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
+  usuarios        UsuarioComision[]
+  horarios        HorarioComision[]
+  eventos         Evento[]
+
+  @@map("comision")
+}
+
+model UsuarioComision {
+  id_usuario          Int
+  id_comision         Int
+  estado              EstadoInscripcion @default(ACTIVO)
+  usuario             Usuario           @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  comision            Comision          @relation(fields: [id_comision], references: [id_comision], onDelete: Cascade)
+  intercambiosOfrece  Intercambio[]     @relation("OfertaUsuarioComision")
+  intercambiosDestino Intercambio[]     @relation("DestinoUsuarioComision")
+
+  @@id([id_usuario, id_comision])
+  @@map("usuario_comision")
+}
+
+model Estado {
+  id_estado     Int           @id @default(autoincrement())
+  nombre_estado String        @unique
+  intercambios  Intercambio[]
+
+  @@map("estado")
+}
+
+model Intercambio {
+  id_intercambio      Int             @id @default(autoincrement())
+  fecha_solicitud     DateTime        @default(now())
+  id_estado           Int
+  id_usuario_ofrece   Int
+  id_comision_ofrece  Int
+  id_usuario_destino  Int
+  id_comision_destino Int
+  estado              Estado          @relation(fields: [id_estado], references: [id_estado], onDelete: Restrict)
+  ofrece              UsuarioComision @relation("OfertaUsuarioComision", fields: [id_usuario_ofrece, id_comision_ofrece], references: [id_usuario, id_comision], onDelete: Restrict)
+  destino             UsuarioComision @relation("DestinoUsuarioComision", fields: [id_usuario_destino, id_comision_destino], references: [id_usuario, id_comision], onDelete: Restrict)
+  comprobante         Comprobante?
+
+  @@index([id_estado])
+  @@index([id_usuario_ofrece, id_comision_ofrece])
+  @@index([id_usuario_destino, id_comision_destino])
+  @@map("intercambio")
+}
+
+model Dia {
+  numero_dia Int               @id
+  nombre_dia String            @unique
+  horarios   HorarioComision[]
+
+  @@map("dia")
+}
+
+model Modalidad {
+  id_modalidad     Int               @id @default(autoincrement())
+  nombre_modalidad String            @unique
+  horarios         HorarioComision[]
+
+  @@map("modalidad")
+}
+
+model Aula {
+  id_aula   Int               @id @default(autoincrement())
+  nombre    String            @unique
+  capacidad Int?
+  horarios  HorarioComision[]
+
+  @@map("aula")
+}
+
+model HorarioComision {
+  id_horario_comision Int       @id @default(autoincrement())
+  hora_inicio         String // "HH:mm"
+  hora_fin            String // "HH:mm"
+  id_comision         Int
+  numero_dia          Int
+  id_modalidad        Int
+  id_aula             Int?
+  comision            Comision  @relation(fields: [id_comision], references: [id_comision], onDelete: Cascade)
+  dia                 Dia       @relation(fields: [numero_dia], references: [numero_dia], onDelete: Restrict)
+  modalidad           Modalidad @relation(fields: [id_modalidad], references: [id_modalidad], onDelete: Restrict)
+  aula                Aula?     @relation(fields: [id_aula], references: [id_aula], onDelete: SetNull)
+
+  @@index([id_comision])
+  @@map("horario_comision")
+}
+
+model Comprobante {
+  id_comprobante   Int            @id @default(autoincrement())
+  fecha_generacion DateTime       @default(now())
+  archivo_pdf_url  String
+  id_intercambio   Int            @unique
+  intercambio      Intercambio    @relation(fields: [id_intercambio], references: [id_intercambio], onDelete: Cascade)
+  notificaciones   Notificacion[]
+
+  @@map("comprobante")
+}
+
+model Notificacion {
+  id_notificacion Int              @id @default(autoincrement())
+  tipo            TipoNotificacion
+  mensaje         String
+  fecha           DateTime         @default(now())
+  leida           Boolean          @default(false)
+  id_usuario      Int
+  id_comprobante  Int?
+  usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  comprobante     Comprobante?     @relation(fields: [id_comprobante], references: [id_comprobante], onDelete: SetNull)
+
+  @@index([id_usuario, leida])
+  @@map("notificacion")
+}
+
+model Evento {
+  id_evento     Int                  @id @default(autoincrement())
+  titulo        String
+  descripcion   String?
+  tipo_evento   TipoEvento
+  fecha_inicio  DateTime
+  fecha_fin     DateTime
+  origen        OrigenEvento
+  id_usuario    Int
+  id_materia    Int
+  id_comision   Int
+  usuario       Usuario              @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  materia       Materia              @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
+  comision      Comision             @relation(fields: [id_comision], references: [id_comision], onDelete: Restrict)
+  tareas        Tarea[]
+  recordatorios RecordatorioEvento[]
+
+  @@index([id_usuario, fecha_inicio])
+  @@index([id_comision, fecha_inicio])
+  @@map("evento")
+}
+
+model ColumnaTablero {
+  id_columna    Int     @id @default(autoincrement())
+  nombre        String
+  orden_columna Int
+  tareas        Tarea[]
+
+  @@unique([nombre, orden_columna])
+  @@map("columna_tablero")
+}
+
+model Tarea {
+  id_tarea          Int            @id @default(autoincrement())
+  titulo            String
+  descripcion       String?
+  prioridad         PrioridadTarea
+  fecha_vencimiento DateTime?
+  estimacion_min    Int?
+  id_usuario        Int
+  id_columna        Int
+  id_evento         Int?
+  id_materia        Int?
+  usuario           Usuario        @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  columna           ColumnaTablero @relation(fields: [id_columna], references: [id_columna], onDelete: Restrict)
+  evento            Evento?        @relation(fields: [id_evento], references: [id_evento], onDelete: SetNull)
+  materia           Materia?       @relation(fields: [id_materia], references: [id_materia], onDelete: SetNull)
+
+  @@index([id_usuario, fecha_vencimiento])
+  @@map("tarea")
+}
+
+model Conversacion {
+  id_conversacion Int                        @id @default(autoincrement())
+  creada_en       DateTime                   @default(now())
+  participantes   ConversacionParticipante[]
+  mensajes        Mensaje[]
+
+  @@map("conversacion")
+}
+
+model ConversacionParticipante {
+  id_conversacion Int
+  id_usuario      Int
+  ultimo_leido    DateTime?
+  conversacion    Conversacion @relation(fields: [id_conversacion], references: [id_conversacion], onDelete: Cascade)
+  usuario         Usuario      @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+
+  @@id([id_conversacion, id_usuario])
+  @@map("conversacion_participante")
+}
+
+model Mensaje {
+  id_mensaje        Int          @id @default(autoincrement())
+  contenido         String
+  creado_en         DateTime     @default(now())
+  id_conversacion   Int
+  id_usuario_emisor Int
+  conversacion      Conversacion @relation(fields: [id_conversacion], references: [id_conversacion], onDelete: Cascade)
+  emisor            Usuario      @relation(fields: [id_usuario_emisor], references: [id_usuario], onDelete: Cascade)
+
+  @@index([id_conversacion, creado_en])
+  @@map("mensaje")
+}
+
+model RecordatorioEvento {
+  id_recordatorio Int               @id @default(autoincrement())
+  minutos_antes   Int
+  canal           CanalRecordatorio
+  id_evento       Int
+  evento          Evento            @relation(fields: [id_evento], references: [id_evento], onDelete: Cascade)
+
+  @@index([id_evento])
+  @@map("recordatorio_evento")
+}
