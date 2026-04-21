@@ -24,6 +24,26 @@ export class UsuariosService {
     return estudiante;
   }
 
+  async ObtenerPrimerEstudianteUsuarioId() {
+    const estudiante = await this.prisma.usuarioComision.findFirst({
+      select: { id_usuario: true },
+    });
+    if (!estudiante) {
+      throw new NotFoundException('No hay estudiantes en la base de datos');
+    }
+    return estudiante.id_usuario;
+  }
+
+  async ObtenerPrimerProfesorUsuarioId() {
+    const profesor = await this.prisma.comision.findFirst({
+      select: { id_usuario_profesor: true },
+    });
+    if (!profesor) {
+      throw new NotFoundException('No hay profesores en la base de datos');
+    }
+    return profesor.id_usuario_profesor;
+  }
+
   async ObtenerComisionesDeEstudiante(idUsuario: number) {
     const usuario = await this.prisma.usuario.findUnique({
       where: { id_usuario: idUsuario },
@@ -52,8 +72,21 @@ export class UsuariosService {
             },
             profesor: {
               select: {
-                id_profesor: true,
-                nombre_profesor: true,
+                id_usuario: true,
+                nombre_usuario: true,
+                apellido_usuario: true,
+                correo: true,
+              },
+            },
+            horarios: {
+              select: {
+                id_horario_comision: true,
+                hora_inicio: true,
+                hora_fin: true,
+                formato: true,
+                dia: { select: { numero_dia: true, nombre_dia: true } },
+                modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+                aula: { select: { id_aula: true, nombre: true } },
               },
             },
           },

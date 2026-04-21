@@ -6,14 +6,14 @@ export class ProfesoresController {
   constructor(private readonly profesoresService: ProfesoresService) {}
 
   // Endpoint para obtener las comisiones de un profesor
-  @Get(':id_profesor/comisiones')
-  getComisiones(@Param('id_profesor', ParseIntPipe) idProfesor: number) {
-    return this.profesoresService.obtenerComisiones(idProfesor);
+  @Get(':id_usuario/comisiones')
+  getComisiones(@Param('id_usuario', ParseIntPipe) idUsuario: number) {
+    return this.profesoresService.obtenerComisiones(idUsuario);
   }
 
-  // Endpoint para obtener la comisión de un profesor
-  @Get(':id_profesor/comision')
-  getComision(@Param('id_profesor', ParseIntPipe) idProfesor: number) {
-    return this.profesoresService.obtenerComision(idProfesor);
+  // Endpoint para obtener la comision de un profesor
+  @Get(':id_usuario/comision')
+  getComision(@Param('id_usuario', ParseIntPipe) idUsuario: number) {
+    return this.profesoresService.obtenerComision(idUsuario);
   }
 }

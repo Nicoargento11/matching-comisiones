@@ -11,6 +11,17 @@ export class UsuariosController {
     return user;
   }
 
+  // Endpoints dinámicos para obtener el primer usuario válido según BD real (para evitar IDs hardcodeados temporalmente)
+  @Get('mock/estudiante')
+  ObtenerPrimerEstudiante() {
+    return this.usuariosService.ObtenerPrimerEstudianteUsuarioId();
+  }
+
+  @Get('mock/profesor')
+  ObtenerPrimerProfesor() {
+    return this.usuariosService.ObtenerPrimerProfesorUsuarioId();
+  }
+
   // Endpoint para obtener los datos de un estudiante por su ID
   @Get(':id_usuario')
   ObtenerEstudiante(@Param('id_usuario', ParseIntPipe) idUsuario: number) {

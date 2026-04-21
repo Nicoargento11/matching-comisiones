@@ -47,6 +47,12 @@ enum CanalRecordatorio {
   EMAIL
 }
 
+enum FormatoClase {
+  TEORICO
+  PRACTICO
+  TEORICO_PRACTICO
+}
+
 model Usuario {
   id_usuario                Int                        @id @default(autoincrement())
   dni                       Int                        @unique
@@ -65,6 +71,7 @@ model Usuario {
   tareas                    Tarea[]
   conversacionParticipantes ConversacionParticipante[]
   mensajes                  Mensaje[]
+  comisiones_como_profesor  Comision[]                 @relation("ProfesorComision")
 
   @@map("usuario")
 }
@@ -119,24 +126,16 @@ model Materia {
   @@map("materia")
 }
 
-model Profesor {
-  id_profesor     Int        @id @default(autoincrement())
-  nombre_profesor String
-  comisiones      Comision[]
-
-  @@map("profesor")
-}
-
 model Comision {
   id_comision     Int               @id @default(autoincrement())
   numero_comision Int?
   nombre_comision String?
   cupo_maximo     Int
   fecha_fin       DateTime?
-  id_profesor     Int
-  id_materia      Int
-  profesor        Profesor          @relation(fields: [id_profesor], references: [id_profesor], onDelete: Restrict)
-  materia         Materia           @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
+  id_usuario_profesor  Int
+  id_materia           Int
+  profesor             Usuario           @relation("ProfesorComision", fields: [id_usuario_profesor], references: [id_usuario])
+  materia              Materia           @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
   usuarios        UsuarioComision[]
   horarios        HorarioComision[]
   eventos         Evento[]
@@ -210,13 +209,14 @@ model Aula {
 }
 
 model HorarioComision {
-  id_horario_comision Int       @id @default(autoincrement())
+  id_horario_comision Int          @id @default(autoincrement())
   hora_inicio         String // "HH:mm"
   hora_fin            String // "HH:mm"
   id_comision         Int
   numero_dia          Int
   id_modalidad        Int
   id_aula             Int?
+  formato             FormatoClase @default(TEORICO_PRACTICO)
   comision            Comision  @relation(fields: [id_comision], references: [id_comision], onDelete: Cascade)
   dia                 Dia       @relation(fields: [numero_dia], references: [numero_dia], onDelete: Restrict)
   modalidad           Modalidad @relation(fields: [id_modalidad], references: [id_modalidad], onDelete: Restrict)

@@ -24,3 +24,7 @@ logs/
 
 # Internal tooling
 .atl
+
+# Claude Code
+CLAUDE.md
+AGENTS.md

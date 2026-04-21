@@ -14,14 +14,23 @@ const comisionSelect = {
   nombre_comision: true,
   cupo_maximo: true,
   materia: { select: { id_materia: true, nombre_materia: true } },
-  profesor: { select: { id_profesor: true, nombre_profesor: true } },
+  profesor: {
+    select: {
+      id_usuario: true,
+      nombre_usuario: true,
+      apellido_usuario: true,
+      correo: true,
+    },
+  },
   horarios: {
     select: {
       id_horario_comision: true,
       hora_inicio: true,
       hora_fin: true,
+      formato: true,
       dia: { select: { numero_dia: true, nombre_dia: true } },
       modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+      aula: { select: { id_aula: true, nombre: true } },
     },
   },
   usuarios: {
@@ -46,6 +55,8 @@ const comisionSelect = {
       fecha_inicio: true,
       fecha_fin: true,
       origen: true,
+      id_materia: true,
+      id_comision: true,
     },
     orderBy: { fecha_inicio: 'asc' as const },
   },
