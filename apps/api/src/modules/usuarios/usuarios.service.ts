@@ -14,11 +14,12 @@ export class UsuariosService {
         correo: true,
         activo: true,
         fecha_registro: true,
+        roles: { select: { id_rol: true } },
       },
     });
     if (!estudiante) {
       throw new NotFoundException(
-        `No existe estudiante con id_usuario=${idUsuario}`,
+        `No existe usuario con id_usuario=${idUsuario}`,
       );
     }
     return estudiante;
@@ -102,6 +103,19 @@ export class UsuariosService {
                 modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
                 aula: { select: { id_aula: true, nombre: true } },
               },
+            },
+            eventos: {
+              select: {
+                id_evento: true,
+                titulo: true,
+                tipo_evento: true,
+                fecha_inicio: true,
+                fecha_fin: true,
+                origen: true,
+                id_materia: true,
+                id_comision: true,
+              },
+              orderBy: { fecha_inicio: 'asc' as const },
             },
           },
         },

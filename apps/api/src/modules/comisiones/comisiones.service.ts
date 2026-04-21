@@ -151,8 +151,39 @@ export class ComisionesService {
 
   async agregarHorario(idComision: number, dto: CreateHorarioDto) {
     await this.verificarComision(idComision);
+
+    const dia = await this.prisma.dia.findFirst({
+      where: { nombre_dia: { equals: dto.nombre_dia, mode: 'insensitive' } },
+    });
+    if (!dia) {
+      throw new NotFoundException(`No existe el día "${dto.nombre_dia}"`);
+    }
+
+    const modalidad = await this.prisma.modalidad.findFirst({
+      where: { nombre_modalidad: { equals: dto.nombre_modalidad, mode: 'insensitive' } },
+    });
+    if (!modalidad) {
+      throw new NotFoundException(`No existe la modalidad "${dto.nombre_modalidad}"`);
+    }
+
     return this.prisma.horarioComision.create({
-      data: { ...dto, id_comision: idComision },
+      data: {
+        hora_inicio: dto.hora_inicio,
+        hora_fin: dto.hora_fin,
+        numero_dia: dia.numero_dia,
+        id_modalidad: modalidad.id_modalidad,
+        formato: dto.formato ?? 'TEORICO_PRACTICO',
+        id_comision: idComision,
+      },
+      select: {
+        id_horario_comision: true,
+        hora_inicio: true,
+        hora_fin: true,
+        formato: true,
+        dia: { select: { numero_dia: true, nombre_dia: true } },
+        modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+        aula: { select: { id_aula: true, nombre: true } },
+      },
     });
   }
 

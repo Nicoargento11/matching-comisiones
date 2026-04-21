@@ -10,6 +10,7 @@ import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import CalendarioCuadriculado from '@/componentes/funcionalidades/CalendarioCuadriculado'
 
 import { comisionServicio } from '@/servicios/comisionServicio'
+import { usuarioServicio } from '@/servicios/usuarioServicio'
 import {
   Horario, Evento, Comision, FormatoClase, TipoEvento,
   UsuarioInComision, EstadoInscripcion, OrigenEvento,
@@ -121,22 +122,30 @@ export default function paginaGestionComision() {
     setTimeout(() => setMensajeExito(''), 4000)
   }
 
+  const [buscando, setBuscando] = useState(false)
+
   async function buscarAlumno(e: React.FormEvent) {
     e.preventDefault()
     setErrorAlumno('')
     setAlumnoEncontrado(null)
-    const idNum = Number(idBusqueda.trim())
-    if (!idBusqueda.trim() || isNaN(idNum)) {
-      setErrorAlumno('Ingresa el ID de usuario')
+    const idNum = Number(idBusqueda)
+    if (!idBusqueda || idNum <= 0) {
+      setErrorAlumno('Ingresa un ID de usuario válido')
       return
     }
 
     try {
-      setCargando(true) // Opcional si tenes un loader chiquito, sino reutilizamos el del tab
+      setBuscando(true)
       const usuario = await usuarioServicio.obtenerPorId(idNum)
-      
+
+      const esAlumno = (usuario as any).roles?.some((r: { id_rol: number }) => r.id_rol === 1)
+      if (!esAlumno) {
+        setErrorAlumno('El usuario no tiene rol de alumno y no puede ser inscripto')
+        return
+      }
+
       if (alumnos.some((a) => a.usuario.id_usuario === idNum)) {
-        setErrorAlumno('El alumno ya esta inscripto en esta comision')
+        setErrorAlumno('El alumno ya está inscripto en esta comisión')
         return
       }
 
@@ -144,10 +153,10 @@ export default function paginaGestionComision() {
         estado: 'ACTIVO' as EstadoInscripcion,
         usuario: { id_usuario: usuario.id_usuario, nombre_usuario: usuario.nombre_usuario, apellido_usuario: usuario.apellido_usuario, correo: usuario.correo },
       })
-    } catch (error) {
-      setErrorAlumno('No se encontro ningun usuario con ese ID en la base de datos o hubo un error')
+    } catch {
+      setErrorAlumno('No existe ningún usuario con ese ID')
     } finally {
-      setCargando(false)
+      setBuscando(false)
     }
   }
 
@@ -157,14 +166,18 @@ export default function paginaGestionComision() {
     setTimeout(() => setMensajeExito(''), 4000)
   }
 
-  // TODO llamar al servicio de NestJS para inscribir al alumno en la comision
-  function confirmarAgregarAlumno() {
+  async function confirmarAgregarAlumno() {
     if (!alumnoEncontrado) return
-    setAlumnos((prev) => [...prev, alumnoEncontrado])
-    mostrarMensajeExitoIncorporacion(alumnoEncontrado.usuario.nombre_usuario, alumnoEncontrado.usuario.apellido_usuario, comisionInicial.numero_comision)
-    setAlumnoEncontrado(null)
-    setIdBusqueda('')
-    setErrorAlumno('')
+    try {
+      await comisionServicio.agregarEstudiante(comisionInicial.id_comision, alumnoEncontrado.usuario.id_usuario)
+      setAlumnos((prev) => [...prev, alumnoEncontrado])
+      mostrarMensajeExitoIncorporacion(alumnoEncontrado.usuario.nombre_usuario, alumnoEncontrado.usuario.apellido_usuario, comisionInicial.numero_comision)
+      setAlumnoEncontrado(null)
+      setIdBusqueda('')
+      setErrorAlumno('')
+    } catch {
+      setErrorAlumno('No se pudo inscribir al alumno. Intentá de nuevo.')
+    }
   }
 
   // ─── horarios ──────────────────────────────────────────
@@ -174,34 +187,40 @@ export default function paginaGestionComision() {
     setTimeout(() => setMensajeExito(''), 4000)
   }
 
-  function agregarHorario(e: React.FormEvent) {
+  async function agregarHorario(e: React.FormEvent) {
     e.preventDefault()
     setErrorHorario('')
     if (!nuevoHorario.hora_inicio || !nuevoHorario.hora_fin) {
-      setErrorHorario('Completa los campos de hora')
+      setErrorHorario('Completa los campos de hora de inicio y fin')
       return
     }
     if (nuevoHorario.hora_inicio >= nuevoHorario.hora_fin) {
-      setErrorHorario('La hora de inicio debe ser menor a la hora de fin')
+      setErrorHorario('La hora de fin debe ser mayor a la hora de inicio')
       return
     }
-    // TODO llamar al servicio de NestJS para guardar el horario
-    setHorarios((prev) => [...prev, {
-      id_horario_comision: Date.now(),
-      hora_inicio: nuevoHorario.hora_inicio,
-      hora_fin: nuevoHorario.hora_fin,
-      formato: nuevoHorario.formato,
-      dia: { numero_dia: DIAS_SEMANA.indexOf(nuevoHorario.diaNombre) + 1, nombre_dia: nuevoHorario.diaNombre },
-      modalidad: { id_modalidad: 0, nombre_modalidad: nuevoHorario.modalidad },
-      aula: nuevoHorario.aula ? { id_aula: 0, nombre: nuevoHorario.aula } : null,
-    }])
-    mostrarMensajeExitoHorario(nuevoHorario.diaNombre, nuevoHorario.hora_inicio, nuevoHorario.hora_fin)
-    setNuevoHorario({ diaNombre: 'Lunes', hora_inicio: '', hora_fin: '', aula: '', formato: 'TEORICO', modalidad: 'presencial' })
+    try {
+      const horarioGuardado = await comisionServicio.agregarHorario(comisionInicial.id_comision, {
+        hora_inicio: nuevoHorario.hora_inicio,
+        hora_fin: nuevoHorario.hora_fin,
+        nombre_dia: nuevoHorario.diaNombre,
+        nombre_modalidad: nuevoHorario.modalidad,
+        formato: nuevoHorario.formato,
+      })
+      setHorarios((prev) => [...prev, horarioGuardado])
+      mostrarMensajeExitoHorario(nuevoHorario.diaNombre, nuevoHorario.hora_inicio, nuevoHorario.hora_fin)
+      setNuevoHorario({ diaNombre: 'Lunes', hora_inicio: '', hora_fin: '', aula: '', formato: 'TEORICO', modalidad: 'presencial' })
+    } catch {
+      setErrorHorario('No se pudo guardar el horario. Verificá que el día y la modalidad existan en el sistema.')
+    }
   }
 
-  function eliminarHorario(idHorario: number) {
-    // TODO llamar al servicio de NestJS para eliminar el horario
-    setHorarios((prev) => prev.filter((h) => h.id_horario_comision !== idHorario))
+  async function eliminarHorario(idHorario: number) {
+    try {
+      await comisionServicio.eliminarHorario(comisionInicial.id_comision, idHorario)
+      setHorarios((prev) => prev.filter((h) => h.id_horario_comision !== idHorario))
+    } catch {
+      setMensajeExito('')
+    }
   }
 
   // ─── eventos ───────────────────────────────────────────
@@ -211,40 +230,48 @@ export default function paginaGestionComision() {
     setTimeout(() => setMensajeExito(''), 4000)
   }
 
-  function agregarEvento(e: React.FormEvent) {
+  async function agregarEvento(e: React.FormEvent) {
     e.preventDefault()
     setErrorEvento('')
     if (!nuevoEvento.titulo.trim() || !nuevoEvento.fecha || !nuevoEvento.hora) {
-      setErrorEvento('Completa titulo fecha y hora')
+      setErrorEvento('Completa título, fecha y hora de inicio')
       return
     }
-    if (nuevoEvento.horaFin && nuevoEvento.horaFin <= nuevoEvento.hora) {
+    if (!nuevoEvento.horaFin) {
+      setErrorEvento('La hora de fin es obligatoria')
+      return
+    }
+    if (nuevoEvento.horaFin <= nuevoEvento.hora) {
       setErrorEvento('La hora de fin debe ser mayor a la hora de inicio')
       return
     }
-    // TODO llamar al servicio de NestJS para guardar el evento
-    const fecha_inicio = `${nuevoEvento.fecha}T${nuevoEvento.hora}:00`
-    const fecha_fin = nuevoEvento.horaFin
-      ? `${nuevoEvento.fecha}T${nuevoEvento.horaFin}:00`
-      : fecha_inicio
-    const ev: Evento = {
-      id_evento: Date.now(),
-      titulo: nuevoEvento.titulo.trim(),
-      tipo_evento: nuevoEvento.tipo,
-      fecha_inicio,
-      fecha_fin,
-      origen: 'PROFESOR' as OrigenEvento,
-      id_materia: comisionInicial.materia.id_materia,
-      id_comision: comisionInicial.id_comision,
+    try {
+      const fecha_inicio = `${nuevoEvento.fecha}T${nuevoEvento.hora}:00`
+      const fecha_fin = `${nuevoEvento.fecha}T${nuevoEvento.horaFin}:00`
+      const eventoGuardado = await comisionServicio.agregarEvento(comisionInicial.id_comision, {
+        titulo: nuevoEvento.titulo.trim(),
+        tipo_evento: nuevoEvento.tipo,
+        fecha_inicio,
+        fecha_fin,
+        origen: 'PROFESOR',
+        id_usuario: comisionInicial.profesor.id_usuario,
+        id_materia: comisionInicial.materia.id_materia,
+      })
+      setEventos((prev) => [...prev, eventoGuardado])
+      mostrarMensajeExitoEvento(eventoGuardado.titulo)
+      setNuevoEvento({ titulo: '', tipo: 'PARCIAL', fecha: '', hora: '', horaFin: '' })
+    } catch {
+      setErrorEvento('No se pudo guardar el evento. Intentá de nuevo.')
     }
-    setEventos((prev) => [...prev, ev])
-    mostrarMensajeExitoEvento(ev.titulo)
-    setNuevoEvento({ titulo: '', tipo: 'PARCIAL', fecha: '', hora: '', horaFin: '' })
   }
 
-  function eliminarEvento(idEvento: number) {
-    // TODO llamar al servicio de NestJS para eliminar el evento
-    setEventos((prev) => prev.filter((ev) => ev.id_evento !== idEvento))
+  async function eliminarEvento(idEvento: number) {
+    try {
+      await comisionServicio.eliminarEvento(comisionInicial.id_comision, idEvento)
+      setEventos((prev) => prev.filter((ev) => ev.id_evento !== idEvento))
+    } catch {
+      setMensajeExito('')
+    }
   }
 
   // ─── render ────────────────────────────────────────────
@@ -350,9 +377,11 @@ export default function paginaGestionComision() {
             <form onSubmit={buscarAlumno} className="flex gap-3">
               <input
                 type="text"
+                inputMode="numeric"
                 value={idBusqueda}
                 onChange={(e) => {
-                  setIdBusqueda(e.target.value)
+                  const soloNumeros = e.target.value.replace(/\D/g, '')
+                  setIdBusqueda(soloNumeros)
                   setAlumnoEncontrado(null)
                   setErrorAlumno('')
                 }}
@@ -361,9 +390,10 @@ export default function paginaGestionComision() {
               />
               <button
                 type="submit"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={buscando}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
               >
-                Buscar
+                {buscando ? 'Buscando...' : 'Buscar'}
               </button>
             </form>
 
@@ -684,7 +714,7 @@ export default function paginaGestionComision() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Hora fin (opcional)</label>
+                    <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Hora fin</label>
                     <input type="time" value={nuevoEvento.horaFin}
                       onChange={(e) => setNuevoEvento((p) => ({ ...p, horaFin: e.target.value }))}
                       className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
