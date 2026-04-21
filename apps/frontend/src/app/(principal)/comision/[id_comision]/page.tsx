@@ -1,9 +1,9 @@
-// vista de detalle de una comision especifica
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import { comisionServicio } from '@/servicios/comisionServicio'
+import { getServerSession } from '@/lib/supabase-server'
 
 interface Props {
   params: Promise<{ id_comision: string }>
@@ -12,7 +12,10 @@ interface Props {
 export default async function paginaDetalleComision({ params }: Props) {
   const { id_comision } = await params
 
-  const comision = await comisionServicio.obtenerPorId(Number(id_comision)).catch(() => null)
+  const session = await getServerSession()
+  if (!session) redirect('/login')
+
+  const comision = await comisionServicio.obtenerPorId(Number(id_comision), session.access_token).catch(() => null)
 
   if (!comision) notFound()
 

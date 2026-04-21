@@ -7,14 +7,17 @@ function agregarColor(c: any): Comision {
 }
 
 export const comisionServicio = {
-  obtenerTodas: () =>
-    api.get<any[]>('/comisiones').then((cs) => cs.map(agregarColor)),
+  obtenerTodas: (token?: string) =>
+    api.get<any[]>('/comisiones', token).then((cs) => cs.map(agregarColor)),
 
-  obtenerPorId: (id: number) =>
-    api.get<any>(`/comisiones/${id}`).then(agregarColor),
+  obtenerPorId: (id: number, token?: string) =>
+    api.get<any>(`/comisiones/${id}`, token).then(agregarColor),
 
-  agregarEstudiante: (idComision: number, idUsuario: number) =>
-    api.post<void>(`/comisiones/${idComision}/estudiantes`, { id_usuario: idUsuario }),
+  agregarEstudiante: (idComision: number, idUsuario: number, token?: string) =>
+    api.post<void>(`/comisiones/${idComision}/estudiantes`, { id_usuario: idUsuario }, token),
+
+  darBajaEstudiante: (idComision: number, idUsuario: number, token?: string) =>
+    api.delete<void>(`/comisiones/${idComision}/estudiantes/${idUsuario}`, token),
 
   agregarHorario: (idComision: number, datos: {
     hora_inicio: string
@@ -22,11 +25,11 @@ export const comisionServicio = {
     nombre_dia: string
     nombre_modalidad: string
     formato: string
-  }) =>
-    api.post<Horario>(`/comisiones/${idComision}/horarios`, datos),
+  }, token?: string) =>
+    api.post<Horario>(`/comisiones/${idComision}/horarios`, datos, token),
 
-  eliminarHorario: (idComision: number, idHorario: number) =>
-    api.delete<void>(`/comisiones/${idComision}/horarios/${idHorario}`),
+  eliminarHorario: (idComision: number, idHorario: number, token?: string) =>
+    api.delete<void>(`/comisiones/${idComision}/horarios/${idHorario}`, token),
 
   agregarEvento: (idComision: number, datos: {
     titulo: string
@@ -36,9 +39,9 @@ export const comisionServicio = {
     origen: string
     id_usuario: number
     id_materia: number
-  }) =>
-    api.post<Evento>(`/comisiones/${idComision}/eventos`, datos),
+  }, token?: string) =>
+    api.post<Evento>(`/comisiones/${idComision}/eventos`, datos, token),
 
-  eliminarEvento: (idComision: number, idEvento: number) =>
-    api.delete<void>(`/comisiones/${idComision}/eventos/${idEvento}`),
+  eliminarEvento: (idComision: number, idEvento: number, token?: string) =>
+    api.delete<void>(`/comisiones/${idComision}/eventos/${idEvento}`, token),
 }

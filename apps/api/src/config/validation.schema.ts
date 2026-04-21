@@ -7,7 +7,7 @@ export const validationSchema = Joi.object({
   // DB
   DATABASE_URL: Joi.string().required(),
   DIRECT_URL: Joi.string().required(),
-  //   SUPABASE_URL: Joi.string().uri().required(),
-  //   SUPABASE_JWT_ISSUER: Joi.string().uri().required(),
-  //   SUPABASE_JWT_AUDIENCE: Joi.string().default('authenticated'),
+  SUPABASE_URL: Joi.string().uri().required(),
+  SUPABASE_JWT_ISSUER: Joi.string().uri().optional(),
+  SUPABASE_JWT_AUDIENCE: Joi.string().default('authenticated'),
 });

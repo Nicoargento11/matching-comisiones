@@ -1,28 +1,26 @@
-// vista del perfil del estudiante con sus comisiones inscriptas
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import CardMateria from '@/componentes/interfaz/CardMateria'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
+import { getServerSession } from '@/lib/supabase-server'
+import { api } from '@/servicios/api'
+import { Usuario } from '@/tipos'
 
 export default async function PaginaPerfil() {
-  let ID_USUARIO: number;
-  try {
-    ID_USUARIO = await usuarioServicio.obtenerIdPrimerEstudiante();
-  } catch (error) {
-    return <div className="p-8 text-center text-red-500">Error: No hay estudiantes cargados en la base de datos local o remota.</div>;
-  }
+  const session = await getServerSession()
+  if (!session) redirect('/login')
 
-  const [usuario, comisiones] = await Promise.all([
-    usuarioServicio.obtenerPorId(ID_USUARIO),
-    usuarioServicio.obtenerComisiones(ID_USUARIO),
-  ])
+  const token = session.access_token
+
+  // obtiene el usuario de nuestra DB a partir del JWT
+  const usuario = await api.get<Usuario>('/auth/me', token)
+
+  const comisiones = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
 
   return (
     <div className="space-y-8">
-      {/* encabezado del perfil */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        {/* datos del estudiante */}
         <div className="flex items-center gap-4">
-          {/* avatar con iniciales */}
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xl font-bold text-white shadow-md">
             {usuario.nombre_usuario[0]}{usuario.apellido_usuario[0]}
           </div>
@@ -31,12 +29,11 @@ export default async function PaginaPerfil() {
               {usuario.nombre_usuario} {usuario.apellido_usuario}
             </h1>
             <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
-              ID: {usuario.id_usuario}
+              {usuario.correo}
             </p>
           </div>
         </div>
 
-        {/* acciones del estudiante */}
         <Link
           href="/calendario"
           className="flex self-start items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/40"
@@ -48,7 +45,6 @@ export default async function PaginaPerfil() {
         </Link>
       </div>
 
-      {/* separador con contador de materias */}
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           Mis Materias
@@ -58,7 +54,6 @@ export default async function PaginaPerfil() {
         </span>
       </div>
 
-      {/* grilla de cards de materias */}
       {comisiones.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {comisiones.map((comision) => (
@@ -68,7 +63,7 @@ export default async function PaginaPerfil() {
       ) : (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-gray-600">
           <p className="text-gray-400 dark:text-gray-500">
-            No tenes materias inscriptas por el momento
+            No tenés materias inscriptas por el momento
           </p>
         </div>
       )}

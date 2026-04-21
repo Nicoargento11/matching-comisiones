@@ -11,6 +11,7 @@ import CalendarioCuadriculado from '@/componentes/funcionalidades/CalendarioCuad
 
 import { comisionServicio } from '@/servicios/comisionServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
+import { getSupabaseClient } from '@/src/lib/supabase'
 import {
   Horario, Evento, Comision, FormatoClase, TipoEvento,
   UsuarioInComision, EstadoInscripcion, OrigenEvento,
@@ -46,6 +47,7 @@ export default function paginaGestionComision() {
   const params = useParams()
   const id_comision = params.id_comision as string
 
+  const [token, setToken] = useState<string | null>(null)
   const [comisionInicial, setComisionInicial] = useState<Comision | null>(null)
   const [cargando, setCargando] = useState(true)
   const [alumnos, setAlumnos] = useState<UsuarioInComision[]>([])
@@ -56,15 +58,17 @@ export default function paginaGestionComision() {
   const [eventos, setEventos] = useState<Evento[]>([])
 
   useEffect(() => {
-    comisionServicio.obtenerPorId(Number(id_comision))
-      .then((c) => {
-        setComisionInicial(c)
-        setAlumnos(c.usuarios ?? [])
-        setHorarios(c.horarios)
-        setEventos(c.eventos ?? [])
-      })
-      .catch(() => setComisionInicial(null))
-      .finally(() => setCargando(false))
+    async function cargar() {
+      const { data } = await getSupabaseClient().auth.getSession()
+      const t = data.session?.access_token ?? null
+      setToken(t)
+      const c = await comisionServicio.obtenerPorId(Number(id_comision), t ?? undefined)
+      setComisionInicial(c)
+      setAlumnos(c.usuarios ?? [])
+      setHorarios(c.horarios)
+      setEventos(c.eventos ?? [])
+    }
+    cargar().catch(() => setComisionInicial(null)).finally(() => setCargando(false))
   }, [id_comision])
 
   const [mensajeExito, setMensajeExito] = useState('')
@@ -104,22 +108,36 @@ export default function paginaGestionComision() {
     setAlumnoAConfirmarBaja(alumno)
   }
 
-  // TODO llamar al servicio de NestJS para marcar la inscripcion como inactiva
-  function confirmarBajaAlumno() {
-    if (!alumnoAConfirmarBaja) return
-    setAlumnos((prev) => prev.filter((a) => a.usuario.id_usuario !== alumnoAConfirmarBaja.usuario.id_usuario))
-    setAlumnosDadosDeBaja((prev) => [...prev, alumnoAConfirmarBaja])
+  async function confirmarBajaAlumno() {
+    if (!alumnoAConfirmarBaja || !comisionInicial) return
+    const alumno = alumnoAConfirmarBaja
     setAlumnoAConfirmarBaja(null)
+    try {
+      await comisionServicio.darBajaEstudiante(comisionInicial.id_comision, alumno.usuario.id_usuario, token ?? undefined)
+      setAlumnos((prev) => prev.filter((a) => a.usuario.id_usuario !== alumno.usuario.id_usuario))
+      setAlumnosDadosDeBaja((prev) => [...prev, alumno])
+      setMensajeExito(`${alumno.usuario.nombre_usuario} ${alumno.usuario.apellido_usuario} fue dado de baja`)
+      setTimeout(() => setMensajeExito(''), 4000)
+    } catch (e) {
+      setMensajeExito(`Error al dar de baja: ${e instanceof Error ? e.message : 'intentá de nuevo'}`)
+      setTimeout(() => setMensajeExito(''), 4000)
+    }
   }
 
-  // TODO llamar al servicio de NestJS para reactivar la inscripcion
-  function reincorporarAlumno(idUsuario: number) {
+  async function reincorporarAlumno(idUsuario: number) {
+    if (!comisionInicial) return
     const alumno = alumnosDadosDeBaja.find((a) => a.usuario.id_usuario === idUsuario)
     if (!alumno) return
-    setAlumnosDadosDeBaja((prev) => prev.filter((a) => a.usuario.id_usuario !== idUsuario))
-    setAlumnos((prev) => [...prev, alumno])
-    setMensajeExito(`El alumno ${alumno.usuario.nombre_usuario} ${alumno.usuario.apellido_usuario} fue reincorporado a la comision`)
-    setTimeout(() => setMensajeExito(''), 4000)
+    try {
+      await comisionServicio.agregarEstudiante(comisionInicial.id_comision, idUsuario, token ?? undefined)
+      setAlumnosDadosDeBaja((prev) => prev.filter((a) => a.usuario.id_usuario !== idUsuario))
+      setAlumnos((prev) => [...prev, alumno])
+      setMensajeExito(`${alumno.usuario.nombre_usuario} ${alumno.usuario.apellido_usuario} fue reincorporado`)
+      setTimeout(() => setMensajeExito(''), 4000)
+    } catch (e) {
+      setMensajeExito(`Error al reincorporar: ${e instanceof Error ? e.message : 'intentá de nuevo'}`)
+      setTimeout(() => setMensajeExito(''), 4000)
+    }
   }
 
   const [buscando, setBuscando] = useState(false)
@@ -136,7 +154,7 @@ export default function paginaGestionComision() {
 
     try {
       setBuscando(true)
-      const usuario = await usuarioServicio.obtenerPorId(idNum)
+      const usuario = await usuarioServicio.obtenerPorId(idNum, token ?? undefined)
 
       const esAlumno = (usuario as any).roles?.some((r: { id_rol: number }) => r.id_rol === 1)
       if (!esAlumno) {
@@ -169,7 +187,7 @@ export default function paginaGestionComision() {
   async function confirmarAgregarAlumno() {
     if (!alumnoEncontrado) return
     try {
-      await comisionServicio.agregarEstudiante(comisionInicial.id_comision, alumnoEncontrado.usuario.id_usuario)
+      await comisionServicio.agregarEstudiante(comisionInicial.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
       setAlumnos((prev) => [...prev, alumnoEncontrado])
       mostrarMensajeExitoIncorporacion(alumnoEncontrado.usuario.nombre_usuario, alumnoEncontrado.usuario.apellido_usuario, comisionInicial.numero_comision)
       setAlumnoEncontrado(null)
@@ -205,7 +223,7 @@ export default function paginaGestionComision() {
         nombre_dia: nuevoHorario.diaNombre,
         nombre_modalidad: nuevoHorario.modalidad,
         formato: nuevoHorario.formato,
-      })
+      }, token ?? undefined)
       setHorarios((prev) => [...prev, horarioGuardado])
       mostrarMensajeExitoHorario(nuevoHorario.diaNombre, nuevoHorario.hora_inicio, nuevoHorario.hora_fin)
       setNuevoHorario({ diaNombre: 'Lunes', hora_inicio: '', hora_fin: '', aula: '', formato: 'TEORICO', modalidad: 'presencial' })
@@ -216,7 +234,7 @@ export default function paginaGestionComision() {
 
   async function eliminarHorario(idHorario: number) {
     try {
-      await comisionServicio.eliminarHorario(comisionInicial.id_comision, idHorario)
+      await comisionServicio.eliminarHorario(comisionInicial.id_comision, idHorario, token ?? undefined)
       setHorarios((prev) => prev.filter((h) => h.id_horario_comision !== idHorario))
     } catch {
       setMensajeExito('')
@@ -256,7 +274,7 @@ export default function paginaGestionComision() {
         origen: 'PROFESOR',
         id_usuario: comisionInicial.profesor.id_usuario,
         id_materia: comisionInicial.materia.id_materia,
-      })
+      }, token ?? undefined)
       setEventos((prev) => [...prev, eventoGuardado])
       mostrarMensajeExitoEvento(eventoGuardado.titulo)
       setNuevoEvento({ titulo: '', tipo: 'PARCIAL', fecha: '', hora: '', horaFin: '' })
@@ -267,7 +285,7 @@ export default function paginaGestionComision() {
 
   async function eliminarEvento(idEvento: number) {
     try {
-      await comisionServicio.eliminarEvento(comisionInicial.id_comision, idEvento)
+      await comisionServicio.eliminarEvento(comisionInicial.id_comision, idEvento, token ?? undefined)
       setEventos((prev) => prev.filter((ev) => ev.id_evento !== idEvento))
     } catch {
       setMensajeExito('')
@@ -532,7 +550,6 @@ export default function paginaGestionComision() {
             })()}
           </div>
 
-          {/* lista de alumnos dados de baja */}
           {alumnosDadosDeBaja.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
               <div className="border-b border-gray-100 px-5 py-3 dark:border-gray-700">
@@ -570,6 +587,7 @@ export default function paginaGestionComision() {
               </div>
             </div>
           )}
+
         </div>
       )}
 

@@ -4,6 +4,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { getSupabaseClient } from '@/src/lib/supabase'
 
 export default function Navbar() {
   const router = useRouter()
@@ -29,11 +30,10 @@ export default function Navbar() {
     }
   }
 
-  // cierra la sesion y redirige al login
-  function cerrarSesion() {
-    // TODO conectar con el servicio de autenticacion de NestJS/Supabase
-    localStorage.removeItem('tema-sic')
+  async function cerrarSesion() {
+    await getSupabaseClient().auth.signOut()
     router.push('/login')
+    router.refresh()
   }
 
   return (

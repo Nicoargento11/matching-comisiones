@@ -1,24 +1,20 @@
-// lista de comisiones asignadas al profesor logueado
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { profesorServicio } from '@/servicios/profesorServicio'
-import { usuarioServicio } from '@/servicios/usuarioServicio'
+import { api } from '@/servicios/api'
+import { getServerSession } from '@/lib/supabase-server'
+import { Usuario } from '@/tipos'
 
-export default async function paginaMisComisiones() {
-  let ID_PROFESOR: number;
-  try {
-    ID_PROFESOR = await usuarioServicio.obtenerIdPrimerProfesor();
-  } catch (error) {
-    return <div className="p-8 text-center text-red-500">Error: No hay profesores cargados en la base de datos local o remota.</div>;
-  }
+export default async function PaginaMisComisiones() {
+  const session = await getServerSession()
+  if (!session) redirect('/login')
 
-  const [profesor, comisiones] = await Promise.all([
-    usuarioServicio.obtenerPorId(ID_PROFESOR),
-    profesorServicio.obtenerComisiones(ID_PROFESOR),
-  ])
+  const token = session.access_token
+  const profesor = await api.get<Usuario>('/auth/me', token)
+  const comisiones = await profesorServicio.obtenerComisiones(profesor.id_usuario, token)
 
   return (
     <div className="space-y-8">
-      {/* encabezado */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Prof. {profesor.nombre_usuario} {profesor.apellido_usuario}
@@ -26,7 +22,6 @@ export default async function paginaMisComisiones() {
         <p className="text-sm text-gray-500 dark:text-gray-400">{profesor.correo}</p>
       </div>
 
-      {/* contador */}
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Mis Comisiones</h2>
         <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
@@ -34,10 +29,9 @@ export default async function paginaMisComisiones() {
         </span>
       </div>
 
-      {/* grilla de comisiones */}
       {comisiones.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-gray-600">
-          <p className="text-gray-400 dark:text-gray-500">No tenes comisiones asignadas</p>
+          <p className="text-gray-400 dark:text-gray-500">No tenés comisiones asignadas</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -52,7 +46,6 @@ export default async function paginaMisComisiones() {
                   className="absolute left-0 top-0 h-full w-1 rounded-l-xl"
                   style={{ backgroundColor: comision.materia.color }}
                 />
-
                 <div className="pl-3">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">

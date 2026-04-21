@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AuthGuard } from './common/guards/auth/auth.guard';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ComisionesModule } from './modules/comisiones/comisiones.module';
 import { AcademicoModule } from './modules/academico/academico.module';
@@ -28,6 +30,9 @@ import { validationSchema } from './config/validation.schema';
     MensajesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AppModule {}

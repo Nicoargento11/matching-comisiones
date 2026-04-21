@@ -9,10 +9,9 @@ import CalendarioCuadriculado from './CalendarioCuadriculado'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
-import { Comision } from '@/tipos'
-
-// TODO: obtener el id del usuario autenticado desde la sesion
-const ID_USUARIO = 1
+import { api } from '@/servicios/api'
+import { getSupabaseClient } from '@/src/lib/supabase'
+import { Comision, Usuario } from '@/tipos'
 
 const nombreDiaCorto = (nombre: string) => nombre.substring(0, 3)
 
@@ -26,9 +25,16 @@ export default function ContenidoCalendario() {
   const [comisiones, setComisiones] = useState<Comision[]>([])
 
   useEffect(() => {
-    usuarioServicio.obtenerComisiones(ID_USUARIO)
-      .then(setComisiones)
-      .catch(() => setComisiones([]))
+    async function cargar() {
+      const { data } = await getSupabaseClient().auth.getSession()
+      const token = data.session?.access_token
+      if (!token) return
+
+      const usuario = await api.get<Usuario>('/auth/me', token)
+      const data2 = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
+      setComisiones(data2)
+    }
+    cargar().catch(() => setComisiones([]))
   }, [])
 
   const materiaFiltrada = materiaFiltradaId != null

@@ -9,17 +9,11 @@ function agregarColor(c: any): Comision {
 }
 
 export const usuarioServicio = {
-  obtenerIdPrimerEstudiante: () =>
-    api.get<number>('/usuarios/mock/estudiante'),
-
-  obtenerIdPrimerProfesor: () =>
-    api.get<number>('/usuarios/mock/profesor'),
-
-  obtenerPorId: (id: number) =>
-    api.get<Usuario>(`/usuarios/${id}`),
+  obtenerPorId: (id: number, token?: string) =>
+    api.get<Usuario>(`/usuarios/${id}`, token),
 
   // el endpoint devuelve { estado, comision }[] — extraemos solo la comision
-  obtenerComisiones: (id: number) =>
-    api.get<{ estado: string; comision: any }[]>(`/usuarios/${id}/comisiones`)
+  obtenerComisiones: (id: number, token?: string) =>
+    api.get<{ estado: string; comision: any }[]>(`/usuarios/${id}/comisiones`, token)
       .then((data) => data.map((item) => agregarColor(item.comision))),
 }
