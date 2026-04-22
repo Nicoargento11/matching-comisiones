@@ -8,6 +8,7 @@ import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import CalendarioCuadriculado from '@/componentes/funcionalidades/CalendarioCuadriculado'
 import { comisionServicio } from '@/servicios/comisionServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
+import { api } from '@/servicios/api'
 import { getSupabaseClient } from '@/src/lib/supabase'
 import { Comision, EstadoInscripcion, Evento, FormatoClase, Horario, TipoEvento, UsuarioInComision } from '@/tipos'
 
@@ -17,6 +18,22 @@ type UsuarioBusquedaPorDni = {
   apellido_usuario: string
   correo: string
   roles?: { rol?: { nombre_rol?: string } }[]
+}
+
+type ItemComisionConEstado = {
+  estado: string
+  comision: {
+    id_comision: number
+    numero_comision?: number | null
+    nombre_comision?: string | null
+    materia: { id_materia: number }
+  }
+}
+
+type ComisionConflicto = {
+  id_comision: number
+  numero_comision?: number | null
+  nombre_comision?: string | null
 }
 
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
@@ -102,6 +119,8 @@ export default function PaginaGestionComision() {
   const [errorAlumno, setErrorAlumno] = useState('')
   const [buscando, setBuscando] = useState(false)
   const [procesando, setProcesando] = useState(false)
+  const [comisionesConflicto, setComisionesConflicto] = useState<ComisionConflicto[]>([])
+  const [confirmarAgregarConConflicto, setConfirmarAgregarConConflicto] = useState(false)
 
   const [nuevoHorario, setNuevoHorario] = useState({
     diaNombre: 'Lunes',
@@ -220,12 +239,14 @@ export default function PaginaGestionComision() {
     e.preventDefault()
     setErrorAlumno('')
     setAlumnoEncontrado(null)
+    setComisionesConflicto([])
+    setConfirmarAgregarConConflicto(false)
 
-    const dniNum = Number(idBusqueda)
-    if (!idBusqueda || dniNum <= 0) {
-      setErrorAlumno('Ingresa un DNI válido')
+    if (idBusqueda.length < 8) {
+      setErrorAlumno('DNI no válido')
       return
     }
+    const dniNum = Number(idBusqueda)
 
     try {
       setBuscando(true)
@@ -247,6 +268,25 @@ export default function PaginaGestionComision() {
         return
       }
 
+      // detectar si está activo en otra comisión de la misma materia
+      const todasLasComisiones = await api.get<ItemComisionConEstado[]>(
+        `/usuarios/${usuario.id_usuario}/comisiones`,
+        token ?? undefined,
+      )
+      const conflictos: ComisionConflicto[] = todasLasComisiones
+        .filter(
+          ({ estado, comision }) =>
+            estado === 'ACTIVO' &&
+            comision.materia.id_materia === comisionInicial!.materia.id_materia &&
+            comision.id_comision !== comisionInicial!.id_comision,
+        )
+        .map(({ comision }) => ({
+          id_comision: comision.id_comision,
+          numero_comision: comision.numero_comision,
+          nombre_comision: comision.nombre_comision,
+        }))
+      setComisionesConflicto(conflictos)
+
       setAlumnoEncontrado({
         estado: 'ACTIVO' as EstadoInscripcion,
         usuario: {
@@ -263,21 +303,36 @@ export default function PaginaGestionComision() {
     }
   }
 
-  async function confirmarAgregarAlumno() {
+  async function ejecutarAgregarAlumno() {
     if (!alumnoEncontrado || !comisionInicial || procesando) return
     setProcesando(true)
     try {
+      for (const c of comisionesConflicto) {
+        await comisionServicio.darBajaEstudiante(c.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
+      }
       await comisionServicio.agregarEstudiante(comisionInicial.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
       setAlumnos((prev) => [...prev, alumnoEncontrado])
-      mostrarExitoAlumnos(`El alumno ${alumnoEncontrado.usuario.nombre_usuario} ${alumnoEncontrado.usuario.apellido_usuario} fue incorporado a la comision ${comisionInicial.numero_comision ?? comisionInicial.id_comision}`)
+      mostrarExitoAlumnos(`${alumnoEncontrado.usuario.nombre_usuario} ${alumnoEncontrado.usuario.apellido_usuario} fue incorporado a la comision ${comisionInicial.numero_comision ?? comisionInicial.id_comision}`)
       setAlumnoEncontrado(null)
       setIdBusqueda('')
       setErrorAlumno('')
+      setComisionesConflicto([])
+      setConfirmarAgregarConConflicto(false)
     } catch {
       setErrorAlumno('No se pudo inscribir al alumno. Intentá de nuevo.')
+      setConfirmarAgregarConConflicto(false)
     } finally {
       setProcesando(false)
     }
+  }
+
+  function confirmarAgregarAlumno() {
+    if (!alumnoEncontrado || !comisionInicial || procesando) return
+    if (comisionesConflicto.length > 0) {
+      setConfirmarAgregarConConflicto(true)
+      return
+    }
+    ejecutarAgregarAlumno()
   }
 
   // horarios
@@ -640,9 +695,10 @@ export default function PaginaGestionComision() {
               <input
                 type="text"
                 inputMode="numeric"
+                maxLength={8}
                 value={idBusqueda}
                 onChange={(e) => {
-                  setIdBusqueda(e.target.value.replace(/\D/g, ''))
+                  setIdBusqueda(e.target.value.replace(/\D/g, '').slice(0, 8))
                   setAlumnoEncontrado(null)
                   setErrorAlumno('')
                 }}
@@ -683,26 +739,61 @@ export default function PaginaGestionComision() {
                     </div>
                   </dl>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={confirmarAgregarAlumno}
-                    disabled={procesando}
-                    className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
-                  >
-                    {procesando ? 'Agregando...' : 'Agregar alumno'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAlumnoEncontrado(null)
-                      setIdBusqueda('')
-                    }}
-                    className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                </div>
+                {confirmarAgregarConConflicto ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
+                    <p className="mb-3 text-sm text-amber-800 dark:text-amber-300">
+                      ¿Seguro que querés añadir a{' '}
+                      <span className="font-semibold">
+                        {alumnoEncontrado.usuario.nombre_usuario} {alumnoEncontrado.usuario.apellido_usuario}
+                      </span>{' '}
+                      a esta comisión? Ya se encuentra en{' '}
+                      {comisionesConflicto
+                        .map((c) => `la comisión ${c.numero_comision ?? c.id_comision}`)
+                        .join(' y ')}
+                      . Una vez agregado, se dará de baja automáticamente en{' '}
+                      {comisionesConflicto.length === 1 ? 'la otra' : 'las otras'}.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={ejecutarAgregarAlumno}
+                        disabled={procesando}
+                        className="rounded-lg bg-indigo-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
+                      >
+                        {procesando ? 'Agregando...' : 'Confirmar'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmarAgregarConConflicto(false)}
+                        className="rounded-lg border border-gray-300 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={confirmarAgregarAlumno}
+                      disabled={procesando}
+                      className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
+                    >
+                      {procesando ? 'Agregando...' : 'Agregar alumno'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAlumnoEncontrado(null)
+                        setIdBusqueda('')
+                        setComisionesConflicto([])
+                      }}
+                      className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

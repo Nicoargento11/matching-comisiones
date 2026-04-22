@@ -18,8 +18,8 @@ export const usuarioServicio = {
   obtenerPorDni: (dni: number, token?: string) =>
     api.get<UsuarioConRoles>(`/usuarios/dni/${dni}`, token),
 
-  // el endpoint devuelve { estado, comision }[] — extraemos solo la comision
+  // el endpoint devuelve { estado, comision }[] — solo mostramos las activas
   obtenerComisiones: (id: number, token?: string) =>
     api.get<{ estado: string; comision: ComisionSinColor }[]>(`/usuarios/${id}/comisiones`, token)
-      .then((data) => data.map((item) => agregarColor(item.comision))),
+      .then((data) => data.filter((item) => item.estado === 'ACTIVO').map((item) => agregarColor(item.comision))),
 }
