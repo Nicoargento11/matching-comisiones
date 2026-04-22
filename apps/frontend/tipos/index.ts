@@ -122,6 +122,7 @@ export interface ParticipanteConversacion {
     id_usuario: number
     nombre_usuario: string
     apellido_usuario: string
+    roles?: { rol?: { nombre_rol?: string } }[]
   }
 }
 
@@ -129,7 +130,11 @@ export interface Conversacion {
   id_conversacion: number
   creada_en: string
   participantes: ParticipanteConversacion[]
-  mensajes: { contenido: string; creado_en: string }[]
+  mensajes: {
+    contenido: string
+    creado_en: string
+    id_usuario_emisor?: number
+  }[]
 }
 
 export interface PerfilEstudiante {

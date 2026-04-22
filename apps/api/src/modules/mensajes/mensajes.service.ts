@@ -68,6 +68,9 @@ export class MensajesService {
                 id_usuario: true,
                 nombre_usuario: true,
                 apellido_usuario: true,
+                roles: {
+                  select: { rol: { select: { nombre_rol: true } } },
+                },
               },
             },
           },
@@ -172,6 +175,9 @@ export class MensajesService {
                 id_usuario: true,
                 nombre_usuario: true,
                 apellido_usuario: true,
+                roles: {
+                  select: { rol: { select: { nombre_rol: true } } },
+                },
               },
             },
           },
@@ -179,7 +185,11 @@ export class MensajesService {
         mensajes: {
           orderBy: { creado_en: 'desc' },
           take: 1,
-          select: { contenido: true, creado_en: true },
+          select: {
+            contenido: true,
+            creado_en: true,
+            id_usuario_emisor: true,
+          },
         },
       },
     });
