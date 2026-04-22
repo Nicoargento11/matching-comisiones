@@ -48,6 +48,20 @@ function seSuperponeHorario(a: { hora_inicio: string; hora_fin: string }, b: { h
   return a.hora_inicio < b.hora_fin && a.hora_fin > b.hora_inicio
 }
 
+// Argentina = UTC-3, sin horario de verano desde 1999.
+// La DB guarda en UTC, el front convierte al mostrar.
+function utcAHoraArg(isoStr: string): string {
+  const d = new Date(isoStr)
+  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
+  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`
+}
+
+function utcAFechaArg(isoStr: string): string {
+  const d = new Date(isoStr)
+  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
+  return local.toISOString().slice(0, 10)
+}
+
 function BannerExito({ mensaje }: { mensaje: string }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
@@ -325,16 +339,18 @@ export default function PaginaGestionComision() {
         await comisionServicio.eliminarHorario(comisionInicial.id_comision, editandoHorario.id_horario_comision, token ?? undefined)
       }
 
+      const payload = {
+        hora_inicio: nuevoHorario.hora_inicio,
+        hora_fin: nuevoHorario.hora_fin,
+        nombre_dia: nuevoHorario.diaNombre,
+        nombre_modalidad: nuevoHorario.modalidad,
+        formato: nuevoHorario.formato,
+        ...(nuevoHorario.aula.trim() && { nombre_aula: nuevoHorario.aula.trim() }),
+      }
+
       const guardado = await comisionServicio.agregarHorario(
         comisionInicial.id_comision,
-        {
-          hora_inicio: nuevoHorario.hora_inicio,
-          hora_fin: nuevoHorario.hora_fin,
-          nombre_dia: nuevoHorario.diaNombre,
-          nombre_modalidad: nuevoHorario.modalidad,
-          formato: nuevoHorario.formato,
-          ...(nuevoHorario.aula.trim() && { nombre_aula: nuevoHorario.aula.trim() }),
-        },
+        payload,
         token ?? undefined,
       )
 
@@ -404,9 +420,9 @@ export default function PaginaGestionComision() {
     setNuevoEvento({
       titulo: ev.titulo,
       tipo: ev.tipo_evento,
-      fecha: ev.fecha_inicio.slice(0, 10),
-      hora: ev.fecha_inicio.slice(11, 16),
-      horaFin: ev.fecha_fin.slice(11, 16),
+      fecha: utcAFechaArg(ev.fecha_inicio),
+      hora: utcAHoraArg(ev.fecha_inicio),
+      horaFin: utcAHoraArg(ev.fecha_fin),
     })
     setErrorEvento('')
     setConfirmandoCambiosEvento(false)
@@ -439,9 +455,9 @@ export default function PaginaGestionComision() {
       const sinCambios =
         nuevoEvento.titulo.trim() === editandoEvento.titulo &&
         nuevoEvento.tipo === editandoEvento.tipo_evento &&
-        nuevoEvento.fecha === editandoEvento.fecha_inicio.slice(0, 10) &&
-        nuevoEvento.hora === editandoEvento.fecha_inicio.slice(11, 16) &&
-        nuevoEvento.horaFin === editandoEvento.fecha_fin.slice(11, 16)
+        nuevoEvento.fecha === utcAFechaArg(editandoEvento.fecha_inicio) &&
+        nuevoEvento.hora === utcAHoraArg(editandoEvento.fecha_inicio) &&
+        nuevoEvento.horaFin === utcAHoraArg(editandoEvento.fecha_fin)
       if (sinCambios) {
         setErrorEvento('No se realizaron cambios. Modificá al menos un campo para guardar.')
         return
@@ -1114,9 +1130,9 @@ export default function PaginaGestionComision() {
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                   {eventos.map((ev) => {
-                    const fechaStr = ev.fecha_inicio.slice(0, 10)
-                    const horaStr = ev.fecha_inicio.slice(11, 16)
-                    const horaFinStr = ev.fecha_fin !== ev.fecha_inicio ? ev.fecha_fin.slice(11, 16) : null
+                    const fechaStr = utcAFechaArg(ev.fecha_inicio)
+                    const horaStr = utcAHoraArg(ev.fecha_inicio)
+                    const horaFinStr = ev.fecha_fin !== ev.fecha_inicio ? utcAHoraArg(ev.fecha_fin) : null
                     return (
                       <div key={ev.id_evento} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <div className="flex items-center gap-4">
@@ -1187,7 +1203,7 @@ export default function PaginaGestionComision() {
                     {eventosDadosDeBaja.map((ev) => (
                       <div key={ev.id_evento} className="flex items-center justify-between px-4 py-3">
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {ev.titulo} · {ev.fecha_inicio.slice(0, 10)} {ev.fecha_inicio.slice(11, 16)}
+                          {ev.titulo} · {utcAFechaArg(ev.fecha_inicio)} {utcAHoraArg(ev.fecha_inicio)}
                         </p>
                         <button
                           onClick={() => reincorporarEvento(ev)}

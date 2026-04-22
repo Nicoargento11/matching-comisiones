@@ -83,6 +83,25 @@ function horaAMinutos(hora: string): number {
   return h * 60 + m
 }
 
+// Argentina es UTC-3 sin horario de verano (desde 1999)
+// Extrae la hora local Argentina de un ISO datetime del backend
+function utcAHoraArgentina(isoStr: string): string {
+  const d = new Date(isoStr)
+  // restamos 3hs al UTC para obtener hora Argentina
+  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
+  const h = String(local.getUTCHours()).padStart(2, '0')
+  const m = String(local.getUTCMinutes()).padStart(2, '0')
+  return `${h}:${m}`
+}
+
+// Extrae la fecha local Argentina (sin distorsion de timezone del browser)
+function utcAFechaArgentina(isoStr: string): Date {
+  const d = new Date(isoStr)
+  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
+  // construimos la fecha usando los componentes UTC del datetime ajustado
+  return new Date(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate())
+}
+
 // ─────────────────────────────────────────────
 //  GENERADOR DE EVENTOS
 // ─────────────────────────────────────────────
@@ -133,11 +152,11 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
 
     // eventos de fecha especifica (parciales entregas etc)
     for (const evento of comision.eventos ?? []) {
-      const fechaInicio = new Date(evento.fecha_inicio)
+      const fechaInicio = utcAFechaArgentina(evento.fecha_inicio)
       if (fechaInicio >= inicio && fechaInicio <= fin) {
-        // usar el string directamente para evitar distorsion de timezone
-        const hiStr = evento.fecha_inicio.slice(11, 16)
-        const hfStr = evento.fecha_fin.slice(11, 16)
+        // extraemos la hora en timezone Argentina (UTC-3, sin DST)
+        const hiStr = utcAHoraArgentina(evento.fecha_inicio)
+        const hfStr = evento.fecha_fin ? utcAHoraArgentina(evento.fecha_fin) : null
         const horaInicioMin = horaAMinutos(hiStr)
         const horaFinMin = hfStr && hfStr !== '00:00' ? horaAMinutos(hfStr) : horaInicioMin + 60
         eventos.push({
@@ -160,28 +179,103 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
 }
 
 // ─────────────────────────────────────────────
+//  LAYOUT DE COLUMNAS PARA SOLAPAMIENTO
+// ─────────────────────────────────────────────
+
+interface EventoConLayout extends EventoInterno {
+  columna: number
+  totalColumnas: number
+}
+
+function calcularLayoutColumnas(eventos: EventoInterno[]): EventoConLayout[] {
+  if (eventos.length === 0) return []
+
+  // ordenamos por hora de inicio
+  const ordenados = [...eventos].sort((a, b) => a.horaInicio - b.horaInicio)
+  const resultado: EventoConLayout[] = []
+
+  // grupos de eventos que se solapan entre sí
+  const grupos: EventoInterno[][] = []
+  let grupoActual: EventoInterno[] = []
+  let maxFinGrupo = -1
+
+  for (const ev of ordenados) {
+    if (ev.horaInicio >= maxFinGrupo) {
+      if (grupoActual.length > 0) grupos.push(grupoActual)
+      grupoActual = [ev]
+      maxFinGrupo = ev.horaFin
+    } else {
+      grupoActual.push(ev)
+      maxFinGrupo = Math.max(maxFinGrupo, ev.horaFin)
+    }
+  }
+  if (grupoActual.length > 0) grupos.push(grupoActual)
+
+  for (const grupo of grupos) {
+    // asignamos columnas dentro del grupo
+    const columnas: number[] = []
+    const finPorColumna: number[] = []
+    for (const ev of grupo) {
+      let col = finPorColumna.findIndex((fin) => ev.horaInicio >= fin)
+      if (col === -1) {
+        col = finPorColumna.length
+        finPorColumna.push(ev.horaFin)
+      } else {
+        finPorColumna[col] = ev.horaFin
+      }
+      columnas.push(col)
+    }
+    const totalColumnas = finPorColumna.length
+    grupo.forEach((ev, idx) => {
+      resultado.push({ ...ev, columna: columnas[idx], totalColumnas })
+    })
+  }
+
+  return resultado
+}
+
+function minutosAHora(min: number): string {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+// ─────────────────────────────────────────────
 //  SUB-COMPONENTE: EVENTO EN GRILLA
 // ─────────────────────────────────────────────
 
-function BloqueEvento({ evento }: { evento: EventoInterno }) {
+function BloqueEvento({ evento }: { evento: EventoConLayout }) {
   const top = (evento.horaInicio - HORA_INICIO_GRILLA * 60) * (PX_POR_HORA / 60)
   const height = Math.max((evento.horaFin - evento.horaInicio) * (PX_POR_HORA / 60), 24)
-  const corto = height < 36
+  const corto = height < 38
+
+  const ancho = `calc((100% - 2px) / ${evento.totalColumnas})`
+  const left = `calc((100% - 2px) / ${evento.totalColumnas} * ${evento.columna} + 1px)`
 
   return (
     <div
-      className={`absolute left-0.5 right-0.5 overflow-hidden rounded shadow-sm ${evento.esHorario ? 'opacity-80 z-10' : 'opacity-95 z-20 border border-white/40'}`}
-      style={{ 
-        top, 
-        height, 
+      className={`absolute overflow-hidden rounded shadow-sm transition-opacity hover:opacity-100 ${
+        evento.esHorario
+          ? 'opacity-75 border-l-2 z-10'
+          : 'opacity-90 border border-white/30 z-20'
+      }`}
+      style={{
+        top,
+        height,
+        width: ancho,
+        left,
         backgroundColor: evento.color,
+        borderLeftColor: evento.esHorario ? 'rgba(255,255,255,0.6)' : undefined,
       }}
-      title={`${evento.titulo} · ${evento.subtitulo}`}
+      title={`${evento.titulo} · ${evento.subtitulo}\n${minutosAHora(evento.horaInicio)} – ${minutosAHora(evento.horaFin)}`}
     >
       <div className="px-1.5 py-0.5 text-white">
+        <p className="truncate text-[10px] font-medium opacity-80 leading-tight">
+          {minutosAHora(evento.horaInicio)} – {minutosAHora(evento.horaFin)}
+        </p>
         <p className="truncate text-xs font-semibold leading-tight">{evento.titulo}</p>
         {!corto && (
-          <p className="truncate text-[10px] opacity-90">{evento.subtitulo}</p>
+          <p className="truncate text-[10px] opacity-80">{evento.subtitulo}</p>
         )}
       </div>
     </div>
@@ -270,7 +364,7 @@ function VistaSemana({ fechaNav, eventos, hoy }: {
                 />
               ))}
               {/* eventos del dia en su horario adecuado */}
-              {eventosDelDia(dia).map((evento) => (
+              {calcularLayoutColumnas(eventosDelDia(dia)).map((evento) => (
                 <BloqueEvento key={evento.id} evento={evento} />
               ))}
             </div>
@@ -337,7 +431,7 @@ function VistaDia({ fechaNav, eventos, hoy }: {
                 style={{ height: PX_POR_HORA }}
               />
             ))}
-            {eventosDia.map((evento) => (
+            {calcularLayoutColumnas(eventosDia).map((evento) => (
               <BloqueEvento key={evento.id} evento={evento} />
             ))}
           </div>
