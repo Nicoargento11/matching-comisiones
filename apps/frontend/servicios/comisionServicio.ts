@@ -43,6 +43,14 @@ export const comisionServicio = {
   }, token?: string) =>
     api.post<Evento>(`/comisiones/${idComision}/eventos`, datos, token),
 
+  modificarEvento: (idComision: number, idEvento: number, datos: Partial<{
+    titulo: string
+    tipo_evento: string
+    fecha_inicio: string
+    fecha_fin: string
+  }>, token?: string) =>
+    api.patch<Evento>(`/comisiones/${idComision}/eventos/${idEvento}`, datos, token),
+
   eliminarEvento: (idComision: number, idEvento: number, token?: string) =>
     api.delete<void>(`/comisiones/${idComision}/eventos/${idEvento}`, token),
 }

@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import { ComisionesService } from './comisiones.service';
 import { AddEstudianteDto } from './dto/add-estudiante.dto';
 import { CreateHorarioDto } from './dto/create-horario.dto';
 import { CreateEventoDto } from './dto/create-evento.dto';
+import { UpdateEventoDto } from './dto/update-evento.dto';
 
 @ApiTags('Comisiones')
 @Controller('comisiones')
@@ -116,6 +118,21 @@ export class ComisionesController {
     @Body() dto: CreateEventoDto,
   ) {
     return this.comisionesService.agregarEvento(idComision, dto);
+  }
+
+  @Patch(':id_comision/eventos/:id_evento')
+  @ApiOperation({ summary: 'Modificar un evento de la comisión' })
+  @ApiParam({ name: 'id_comision', type: Number })
+  @ApiParam({ name: 'id_evento', type: Number })
+  @ApiBody({ type: UpdateEventoDto })
+  @ApiResponse({ status: 200, description: 'Evento modificado' })
+  @ApiResponse({ status: 404, description: 'Evento no encontrado' })
+  modificarEvento(
+    @Param('id_comision', ParseIntPipe) idComision: number,
+    @Param('id_evento', ParseIntPipe) idEvento: number,
+    @Body() dto: UpdateEventoDto,
+  ) {
+    return this.comisionesService.modificarEvento(idComision, idEvento, dto);
   }
 
   @Delete(':id_comision/eventos/:id_evento')

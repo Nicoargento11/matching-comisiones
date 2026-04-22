@@ -238,6 +238,42 @@ export class ComisionesService {
     });
   }
 
+  async modificarEvento(idComision: number, idEvento: number, dto: any) {
+    const evento = await this.prisma.evento.findFirst({
+      where: { id_evento: idEvento, id_comision: idComision },
+    });
+    if (!evento) {
+      throw new NotFoundException('Evento no encontrado en esta comisión');
+    }
+    
+    return this.prisma.evento.update({
+      where: { id_evento: idEvento },
+      data: {
+        ...dto,
+        ...(dto.fecha_inicio && { fecha_inicio: new Date(dto.fecha_inicio) }),
+        ...(dto.fecha_fin && { fecha_fin: new Date(dto.fecha_fin) }),
+      },
+    });
+  }
+
+  async modificarEvento(idComision: number, idEvento: number, dto: any) {
+    const evento = await this.prisma.evento.findFirst({
+      where: { id_evento: idEvento, id_comision: idComision },
+    });
+    if (!evento) {
+      throw new NotFoundException('Evento no encontrado en esta comisión');
+    }
+    
+    return this.prisma.evento.update({
+      where: { id_evento: idEvento },
+      data: {
+        ...dto,
+        ...(dto.fecha_inicio && { fecha_inicio: new Date(dto.fecha_inicio) }),
+        ...(dto.fecha_fin && { fecha_fin: new Date(dto.fecha_fin) }),
+      },
+    });
+  }
+
   async eliminarEvento(idComision: number, idEvento: number) {
     const evento = await this.prisma.evento.findFirst({
       where: { id_evento: idEvento, id_comision: idComision },

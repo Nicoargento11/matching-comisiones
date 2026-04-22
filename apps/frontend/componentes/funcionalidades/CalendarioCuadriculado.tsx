@@ -165,19 +165,25 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
 
 function BloqueEvento({ evento }: { evento: EventoInterno }) {
   const top = (evento.horaInicio - HORA_INICIO_GRILLA * 60) * (PX_POR_HORA / 60)
-  const height = Math.max((evento.horaFin - evento.horaInicio) * (PX_POR_HORA / 60), 20)
+  const height = Math.max((evento.horaFin - evento.horaInicio) * (PX_POR_HORA / 60), 24)
   const corto = height < 36
 
   return (
     <div
-      className="absolute left-0.5 right-0.5 overflow-hidden rounded px-1.5 py-0.5 text-white shadow-sm"
-      style={{ top, height, backgroundColor: evento.color, opacity: 0.92 }}
-      title={`${evento.titulo} - ${evento.subtitulo}`}
+      className={`absolute left-0.5 right-0.5 overflow-hidden rounded shadow-sm ${evento.esHorario ? 'opacity-80 z-10' : 'opacity-95 z-20 border border-white/40'}`}
+      style={{ 
+        top, 
+        height, 
+        backgroundColor: evento.color,
+      }}
+      title={`${evento.titulo} · ${evento.subtitulo}`}
     >
-      <p className="truncate text-xs font-semibold leading-tight">{evento.titulo}</p>
-      {!corto && (
-        <p className="truncate text-[10px] opacity-80">{evento.subtitulo}</p>
-      )}
+      <div className="px-1.5 py-0.5 text-white">
+        <p className="truncate text-xs font-semibold leading-tight">{evento.titulo}</p>
+        {!corto && (
+          <p className="truncate text-[10px] opacity-90">{evento.subtitulo}</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -263,9 +269,9 @@ function VistaSemana({ fechaNav, eventos, hoy }: {
                   style={{ height: PX_POR_HORA }}
                 />
               ))}
-              {/* eventos del dia */}
-              {eventosDelDia(dia).map((e) => (
-                <BloqueEvento key={e.id} evento={e} />
+              {/* eventos del dia en su horario adecuado */}
+              {eventosDelDia(dia).map((evento) => (
+                <BloqueEvento key={evento.id} evento={evento} />
               ))}
             </div>
           ))}
@@ -331,8 +337,8 @@ function VistaDia({ fechaNav, eventos, hoy }: {
                 style={{ height: PX_POR_HORA }}
               />
             ))}
-            {eventosDia.map((e) => (
-              <BloqueEvento key={e.id} evento={e} />
+            {eventosDia.map((evento) => (
+              <BloqueEvento key={evento.id} evento={evento} />
             ))}
           </div>
         </div>

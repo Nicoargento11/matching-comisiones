@@ -12,10 +12,15 @@ export default async function PaginaPerfil() {
 
   const token = session.access_token
 
-  // obtiene el usuario de nuestra DB a partir del JWT
-  const usuario = await api.get<Usuario>('/auth/me', token)
-
-  const comisiones = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
+  let usuario: Usuario
+  let comisiones: Awaited<ReturnType<typeof usuarioServicio.obtenerComisiones>>
+  try {
+    usuario = await api.get<Usuario>('/auth/me', token)
+    comisiones = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
+  } catch {
+    redirect('/login')
+    return
+  }
 
   return (
     <div className="space-y-8">
