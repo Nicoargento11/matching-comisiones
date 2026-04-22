@@ -182,35 +182,37 @@ export class ComisionesService {
       );
     }
 
-    let id_aula: number | undefined
-    if (dto.nombre_aula?.trim()) {
-      const aula = await this.prisma.aula.upsert({
-        where: { nombre: dto.nombre_aula.trim() },
-        update: {},
-        create: { nombre: dto.nombre_aula.trim() },
-      })
-      id_aula = aula.id_aula
-    }
+    return this.prisma.$transaction(async (tx) => {
+      let id_aula: number | undefined;
+      if (dto.nombre_aula?.trim()) {
+        const aula = await tx.aula.upsert({
+          where: { nombre: dto.nombre_aula.trim() },
+          update: {},
+          create: { nombre: dto.nombre_aula.trim() },
+        });
+        id_aula = aula.id_aula;
+      }
 
-    return this.prisma.horarioComision.create({
-      data: {
-        hora_inicio: dto.hora_inicio,
-        hora_fin: dto.hora_fin,
-        numero_dia: dia.numero_dia,
-        id_modalidad: modalidad.id_modalidad,
-        formato: dto.formato ?? 'TEORICO_PRACTICO',
-        id_comision: idComision,
-        ...(id_aula !== undefined && { id_aula }),
-      },
-      select: {
-        id_horario_comision: true,
-        hora_inicio: true,
-        hora_fin: true,
-        formato: true,
-        dia: { select: { numero_dia: true, nombre_dia: true } },
-        modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
-        aula: { select: { id_aula: true, nombre: true } },
-      },
+      return tx.horarioComision.create({
+        data: {
+          hora_inicio: dto.hora_inicio,
+          hora_fin: dto.hora_fin,
+          numero_dia: dia.numero_dia,
+          id_modalidad: modalidad.id_modalidad,
+          formato: dto.formato ?? 'TEORICO_PRACTICO',
+          id_comision: idComision,
+          ...(id_aula !== undefined && { id_aula }),
+        },
+        select: {
+          id_horario_comision: true,
+          hora_inicio: true,
+          hora_fin: true,
+          formato: true,
+          dia: { select: { numero_dia: true, nombre_dia: true } },
+          modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+          aula: { select: { id_aula: true, nombre: true } },
+        },
+      });
     });
   }
 
@@ -256,23 +258,6 @@ export class ComisionesService {
     });
   }
 
-  async modificarEvento(idComision: number, idEvento: number, dto: any) {
-    const evento = await this.prisma.evento.findFirst({
-      where: { id_evento: idEvento, id_comision: idComision },
-    });
-    if (!evento) {
-      throw new NotFoundException('Evento no encontrado en esta comisión');
-    }
-    
-    return this.prisma.evento.update({
-      where: { id_evento: idEvento },
-      data: {
-        ...dto,
-        ...(dto.fecha_inicio && { fecha_inicio: new Date(dto.fecha_inicio) }),
-        ...(dto.fecha_fin && { fecha_fin: new Date(dto.fecha_fin) }),
-      },
-    });
-  }
 
   async eliminarEvento(idComision: number, idEvento: number) {
     const evento = await this.prisma.evento.findFirst({
