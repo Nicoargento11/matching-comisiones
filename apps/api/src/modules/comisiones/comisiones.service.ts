@@ -119,7 +119,9 @@ export class ComisionesService {
       },
     });
     if (existing && existing.estado === 'ACTIVO') {
-      throw new ConflictException('El estudiante ya está activo en la comisión');
+      throw new ConflictException(
+        'El estudiante ya está activo en la comisión',
+      );
     }
     if (existing) {
       return this.prisma.usuarioComision.update({
@@ -133,7 +135,11 @@ export class ComisionesService {
       });
     }
     return this.prisma.usuarioComision.create({
-      data: { id_usuario: dto.id_usuario, id_comision: idComision, estado: 'ACTIVO' },
+      data: {
+        id_usuario: dto.id_usuario,
+        id_comision: idComision,
+        estado: 'ACTIVO',
+      },
     });
   }
 
@@ -247,7 +253,7 @@ export class ComisionesService {
     if (!evento) {
       throw new NotFoundException('Evento no encontrado en esta comisión');
     }
-    
+
     return this.prisma.evento.update({
       where: { id_evento: idEvento },
       data: {
@@ -257,7 +263,6 @@ export class ComisionesService {
       },
     });
   }
-
 
   async eliminarEvento(idComision: number, idEvento: number) {
     const evento = await this.prisma.evento.findFirst({
