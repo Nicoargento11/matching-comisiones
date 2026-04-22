@@ -118,11 +118,22 @@ export class ComisionesService {
         },
       },
     });
+    if (existing && existing.estado === 'ACTIVO') {
+      throw new ConflictException('El estudiante ya está activo en la comisión');
+    }
     if (existing) {
-      throw new ConflictException('El estudiante ya está en la comisión');
+      return this.prisma.usuarioComision.update({
+        where: {
+          id_usuario_id_comision: {
+            id_usuario: dto.id_usuario,
+            id_comision: idComision,
+          },
+        },
+        data: { estado: 'ACTIVO' },
+      });
     }
     return this.prisma.usuarioComision.create({
-      data: { id_usuario: dto.id_usuario, id_comision: idComision },
+      data: { id_usuario: dto.id_usuario, id_comision: idComision, estado: 'ACTIVO' },
     });
   }
 
@@ -139,13 +150,14 @@ export class ComisionesService {
     if (!inscripcion) {
       throw new NotFoundException('El estudiante no está en esta comisión');
     }
-    await this.prisma.usuarioComision.delete({
+    await this.prisma.usuarioComision.update({
       where: {
         id_usuario_id_comision: {
           id_usuario: idUsuario,
           id_comision: idComision,
         },
       },
+      data: { estado: 'BAJA' },
     });
   }
 
@@ -171,11 +183,13 @@ export class ComisionesService {
     }
 
     let id_aula: number | undefined
-    if (dto.nombre_aula) {
-      const aula = await this.prisma.aula.findFirst({
-        where: { nombre: { contains: dto.nombre_aula, mode: 'insensitive' } },
+    if (dto.nombre_aula?.trim()) {
+      const aula = await this.prisma.aula.upsert({
+        where: { nombre: dto.nombre_aula.trim() },
+        update: {},
+        create: { nombre: dto.nombre_aula.trim() },
       })
-      if (aula) id_aula = aula.id_aula
+      id_aula = aula.id_aula
     }
 
     return this.prisma.horarioComision.create({

@@ -121,7 +121,9 @@ export default function PaginaGestionComision() {
       setToken(t)
       const c = await comisionServicio.obtenerPorId(Number(id_comision), t ?? undefined)
       setComisionInicial(c)
-      setAlumnos(c.usuarios ?? [])
+      const todos = (c.usuarios ?? []) as UsuarioInComision[]
+      setAlumnos(todos.filter((u) => u.estado === 'ACTIVO'))
+      setAlumnosDadosDeBaja(todos.filter((u) => u.estado === 'BAJA'))
       setHorarios(c.horarios)
       setEventos(c.eventos ?? [])
     }
@@ -212,7 +214,12 @@ export default function PaginaGestionComision() {
       }
 
       if (alumnos.some((a) => a.usuario.id_usuario === usuario.id_usuario)) {
-        setErrorAlumno('El alumno ya está inscripto en esta comisión')
+        setErrorAlumno('El alumno ya está activo en esta comisión')
+        return
+      }
+
+      if (alumnosDadosDeBaja.some((a) => a.usuario.id_usuario === usuario.id_usuario)) {
+        setErrorAlumno('Este alumno está dado de baja. Usá el botón Reincorporar en la sección de bajas.')
         return
       }
 
