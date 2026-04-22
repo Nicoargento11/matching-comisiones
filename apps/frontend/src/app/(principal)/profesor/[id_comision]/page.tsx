@@ -138,8 +138,10 @@ export default function PaginaGestionComision() {
       const todos = (c.usuarios ?? []) as UsuarioInComision[]
       setAlumnos(todos.filter((u) => u.estado === 'ACTIVO'))
       setAlumnosDadosDeBaja(todos.filter((u) => u.estado === 'BAJA'))
-      setHorarios(c.horarios)
-      setEventos(c.eventos ?? [])
+      setHorarios(c.horarios.filter((h) => h.activo))
+      setHorariosDadosDeBaja(c.horarios.filter((h) => !h.activo))
+      setEventos((c.eventos ?? []).filter((e) => e.activo))
+      setEventosDadosDeBaja((c.eventos ?? []).filter((e) => !e.activo))
     }
     cargar().catch(() => setComisionInicial(null)).finally(() => setCargando(false))
   }, [id_comision])
@@ -394,20 +396,13 @@ export default function PaginaGestionComision() {
     }
 
     try {
-      const nuevo = await comisionServicio.agregarHorario(
+      const reactivado = await comisionServicio.reactivarHorario(
         comisionInicial.id_comision,
-        {
-          hora_inicio: h.hora_inicio,
-          hora_fin: h.hora_fin,
-          nombre_dia: h.dia.nombre_dia,
-          nombre_modalidad: h.modalidad.nombre_modalidad,
-          formato: h.formato,
-          ...(h.aula?.nombre && { nombre_aula: h.aula.nombre }),
-        },
+        h.id_horario_comision,
         token ?? undefined,
       )
       setHorariosDadosDeBaja((prev) => prev.filter((x) => x.id_horario_comision !== h.id_horario_comision))
-      setHorarios((prev) => [...prev, nuevo])
+      setHorarios((prev) => [...prev, reactivado])
       mostrarExitoHorario('Horario reincorporado')
     } catch {
       mostrarExitoHorario('Error al reincorporar el horario. Intentá de nuevo.')
@@ -527,21 +522,13 @@ export default function PaginaGestionComision() {
   async function reincorporarEvento(ev: Evento) {
     if (!comisionInicial) return
     try {
-      const nuevo = await comisionServicio.agregarEvento(
+      const reactivado = await comisionServicio.reactivarEvento(
         comisionInicial.id_comision,
-        {
-          titulo: ev.titulo,
-          tipo_evento: ev.tipo_evento,
-          fecha_inicio: ev.fecha_inicio,
-          fecha_fin: ev.fecha_fin,
-          origen: ev.origen,
-          id_usuario: comisionInicial.profesor.id_usuario,
-          id_materia: comisionInicial.materia.id_materia,
-        },
+        ev.id_evento,
         token ?? undefined,
       )
       setEventosDadosDeBaja((prev) => prev.filter((x) => x.id_evento !== ev.id_evento))
-      setEventos((prev) => [...prev, nuevo])
+      setEventos((prev) => [...prev, reactivado])
       mostrarExitoEvento('Evento reincorporado')
     } catch {
       mostrarExitoEvento('Error al reincorporar el evento. Intentá de nuevo.')

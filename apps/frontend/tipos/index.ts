@@ -49,6 +49,7 @@ export interface Horario {
   hora_inicio: string // formato HH:mm
   hora_fin: string   // formato HH:mm
   formato: FormatoClase
+  activo: boolean
   dia: Dia
   modalidad: Modalidad
   aula: Aula | null
@@ -62,6 +63,7 @@ export interface Evento {
   fecha_inicio: string // ISO datetime
   fecha_fin: string   // ISO datetime
   origen: OrigenEvento
+  activo: boolean
   id_materia: number
   id_comision: number
 }

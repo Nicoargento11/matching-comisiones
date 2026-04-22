@@ -32,6 +32,9 @@ export const comisionServicio = {
   eliminarHorario: (idComision: number, idHorario: number, token?: string) =>
     api.delete<void>(`/comisiones/${idComision}/horarios/${idHorario}`, token),
 
+  reactivarHorario: (idComision: number, idHorario: number, token?: string) =>
+    api.patch<Horario>(`/comisiones/${idComision}/horarios/${idHorario}/reactivar`, {}, token),
+
   agregarEvento: (idComision: number, datos: {
     titulo: string
     tipo_evento: string
@@ -53,4 +56,7 @@ export const comisionServicio = {
 
   eliminarEvento: (idComision: number, idEvento: number, token?: string) =>
     api.delete<void>(`/comisiones/${idComision}/eventos/${idEvento}`, token),
+
+  reactivarEvento: (idComision: number, idEvento: number, token?: string) =>
+    api.patch<Evento>(`/comisiones/${idComision}/eventos/${idEvento}/reactivar`, {}, token),
 }

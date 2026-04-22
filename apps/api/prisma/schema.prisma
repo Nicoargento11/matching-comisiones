@@ -216,6 +216,7 @@ model HorarioComision {
   numero_dia          Int
   id_modalidad        Int
   id_aula             Int?
+  activo              Boolean      @default(true)
   formato             FormatoClase @default(TEORICO_PRACTICO)
   comision            Comision  @relation(fields: [id_comision], references: [id_comision], onDelete: Cascade)
   dia                 Dia       @relation(fields: [numero_dia], references: [numero_dia], onDelete: Restrict)
@@ -260,6 +261,7 @@ model Evento {
   fecha_inicio  DateTime
   fecha_fin     DateTime
   origen        OrigenEvento
+  activo        Boolean              @default(true)
   id_usuario    Int
   id_materia    Int
   id_comision   Int

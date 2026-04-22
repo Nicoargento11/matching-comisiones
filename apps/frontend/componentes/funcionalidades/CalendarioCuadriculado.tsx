@@ -112,7 +112,7 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
   const eventos: EventoInterno[] = []
 
   for (const comision of comisiones) {
-    // horarios recurrentes: se repiten cada semana
+    // horarios recurrentes: se repiten cada semana (solo activos)
     const cursor = new Date(inicio)
     cursor.setHours(0, 0, 0, 0)
     const finCopia = new Date(fin)
@@ -123,6 +123,8 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
       const diaNombre = Object.entries(DIA_A_JS).find(([, n]) => n === diaJS)?.[0]
       if (diaNombre && diaNombre !== 'domingo') {
         for (const horario of comision.horarios) {
+          // solo mostrar horarios activos (soft delete)
+          if (horario.activo === false) continue
           if (horario.dia.nombre_dia.toLowerCase() !== diaNombre) continue
 
           const etiquetaFormato =

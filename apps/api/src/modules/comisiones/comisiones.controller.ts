@@ -95,16 +95,29 @@ export class ComisionesController {
 
   @Delete(':id_comision/horarios/:id_horario')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un horario de la comisión' })
+  @ApiOperation({ summary: 'Dar de baja (soft delete) un horario de la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
   @ApiParam({ name: 'id_horario', type: Number })
-  @ApiResponse({ status: 204, description: 'Horario eliminado' })
+  @ApiResponse({ status: 204, description: 'Horario dado de baja' })
   @ApiResponse({ status: 404, description: 'Horario no encontrado' })
   quitarHorario(
     @Param('id_comision', ParseIntPipe) idComision: number,
     @Param('id_horario', ParseIntPipe) idHorario: number,
   ) {
     return this.comisionesService.eliminarHorario(idComision, idHorario);
+  }
+
+  @Patch(':id_comision/horarios/:id_horario/reactivar')
+  @ApiOperation({ summary: 'Reactivar un horario dado de baja' })
+  @ApiParam({ name: 'id_comision', type: Number })
+  @ApiParam({ name: 'id_horario', type: Number })
+  @ApiResponse({ status: 200, description: 'Horario reactivado' })
+  @ApiResponse({ status: 404, description: 'Horario no encontrado' })
+  reactivarHorario(
+    @Param('id_comision', ParseIntPipe) idComision: number,
+    @Param('id_horario', ParseIntPipe) idHorario: number,
+  ) {
+    return this.comisionesService.reactivarHorario(idComision, idHorario);
   }
 
   @Post(':id_comision/eventos')
@@ -137,15 +150,28 @@ export class ComisionesController {
 
   @Delete(':id_comision/eventos/:id_evento')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un evento de la comisión' })
+  @ApiOperation({ summary: 'Dar de baja (soft delete) un evento de la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
   @ApiParam({ name: 'id_evento', type: Number })
-  @ApiResponse({ status: 204, description: 'Evento eliminado' })
+  @ApiResponse({ status: 204, description: 'Evento dado de baja' })
   @ApiResponse({ status: 404, description: 'Evento no encontrado' })
   quitarEvento(
     @Param('id_comision', ParseIntPipe) idComision: number,
     @Param('id_evento', ParseIntPipe) idEvento: number,
   ) {
     return this.comisionesService.eliminarEvento(idComision, idEvento);
+  }
+
+  @Patch(':id_comision/eventos/:id_evento/reactivar')
+  @ApiOperation({ summary: 'Reactivar un evento dado de baja' })
+  @ApiParam({ name: 'id_comision', type: Number })
+  @ApiParam({ name: 'id_evento', type: Number })
+  @ApiResponse({ status: 200, description: 'Evento reactivado' })
+  @ApiResponse({ status: 404, description: 'Evento no encontrado' })
+  reactivarEvento(
+    @Param('id_comision', ParseIntPipe) idComision: number,
+    @Param('id_evento', ParseIntPipe) idEvento: number,
+  ) {
+    return this.comisionesService.reactivarEvento(idComision, idEvento);
   }
 }

@@ -28,6 +28,7 @@ const comisionSelect = {
       hora_inicio: true,
       hora_fin: true,
       formato: true,
+      activo: true,
       dia: { select: { numero_dia: true, nombre_dia: true } },
       modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
       aula: { select: { id_aula: true, nombre: true } },
@@ -55,6 +56,7 @@ const comisionSelect = {
       fecha_inicio: true,
       fecha_fin: true,
       origen: true,
+      activo: true,
       id_materia: true,
       id_comision: true,
     },
@@ -214,6 +216,7 @@ export class ComisionesService {
           hora_inicio: true,
           hora_fin: true,
           formato: true,
+          activo: true,
           dia: { select: { numero_dia: true, nombre_dia: true } },
           modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
           aula: { select: { id_aula: true, nombre: true } },
@@ -229,8 +232,32 @@ export class ComisionesService {
     if (!horario) {
       throw new NotFoundException('Horario no encontrado en esta comisión');
     }
-    await this.prisma.horarioComision.delete({
+    await this.prisma.horarioComision.update({
       where: { id_horario_comision: idHorario },
+      data: { activo: false },
+    });
+  }
+
+  async reactivarHorario(idComision: number, idHorario: number) {
+    const horario = await this.prisma.horarioComision.findFirst({
+      where: { id_horario_comision: idHorario, id_comision: idComision },
+    });
+    if (!horario) {
+      throw new NotFoundException('Horario no encontrado en esta comisión');
+    }
+    return this.prisma.horarioComision.update({
+      where: { id_horario_comision: idHorario },
+      data: { activo: true },
+      select: {
+        id_horario_comision: true,
+        hora_inicio: true,
+        hora_fin: true,
+        formato: true,
+        activo: true,
+        dia: { select: { numero_dia: true, nombre_dia: true } },
+        modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+        aula: { select: { id_aula: true, nombre: true } },
+      },
     });
   }
 
@@ -271,6 +298,22 @@ export class ComisionesService {
     if (!evento) {
       throw new NotFoundException('Evento no encontrado en esta comisión');
     }
-    await this.prisma.evento.delete({ where: { id_evento: idEvento } });
+    await this.prisma.evento.update({
+      where: { id_evento: idEvento },
+      data: { activo: false },
+    });
+  }
+
+  async reactivarEvento(idComision: number, idEvento: number) {
+    const evento = await this.prisma.evento.findFirst({
+      where: { id_evento: idEvento, id_comision: idComision },
+    });
+    if (!evento) {
+      throw new NotFoundException('Evento no encontrado en esta comisión');
+    }
+    return this.prisma.evento.update({
+      where: { id_evento: idEvento },
+      data: { activo: true },
+    });
   }
 }
