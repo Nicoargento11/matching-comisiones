@@ -44,11 +44,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       {/* el script se ejecuta antes de que react hidrate - evita el flash de tema */}
-      <head suppressHydrationWarning>
-        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: scriptTema }} />
-      </head>
       {/* bg y color van por CSS variables en globals.css - no por clases dark: de tailwind */}
       <body className="flex min-h-full flex-col">
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: scriptTema }} />
         {children}
       </body>
     </html>

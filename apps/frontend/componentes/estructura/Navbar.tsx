@@ -2,12 +2,9 @@
 
 // barra de navegacion superior del sistema SIC con toggle de tema y boton de sesion
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { getSupabaseClient } from '@/src/lib/supabase'
 
 export default function Navbar() {
-  const router = useRouter()
   const [oscuro, setOscuro] = useState(false)
   // evita el flash mientras se detecta el tema inicial
   const [montado, setMontado] = useState(false)
@@ -30,10 +27,8 @@ export default function Navbar() {
     }
   }
 
-  async function cerrarSesion() {
-    await getSupabaseClient().auth.signOut()
-    router.push('/login')
-    router.refresh()
+  function cerrarSesion() {
+    window.location.href = '/api/auth/signout'
   }
 
   return (
