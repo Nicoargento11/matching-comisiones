@@ -22,6 +22,15 @@ export class UsuariosController {
     return this.usuariosService.ObtenerEstudiantes();
   }
 
+  @Get('dni/:dni')
+  @ApiOperation({ summary: 'Buscar un usuario por DNI' })
+  @ApiParam({ name: 'dni', type: Number })
+  @ApiResponse({ status: 200, description: 'Datos del usuario' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  ObtenerPorDni(@Param('dni', ParseIntPipe) dni: number) {
+    return this.usuariosService.ObtenerPorDni(dni);
+  }
+
   @Get(':id_usuario')
   @ApiOperation({ summary: 'Obtener un estudiante por ID' })
   @ApiParam({ name: 'id_usuario', type: Number })

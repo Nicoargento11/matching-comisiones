@@ -13,7 +13,10 @@ export class CreateHorarioDto {
   @Matches(/^\d{2}:\d{2}$/)
   hora_fin: string;
 
-  @ApiProperty({ example: 'Lunes', description: 'Nombre del día (Lunes, Martes, ...)' })
+  @ApiProperty({
+    example: 'Lunes',
+    description: 'Nombre del día (Lunes, Martes, ...)',
+  })
   @IsString()
   nombre_dia: string;
 
@@ -25,4 +28,9 @@ export class CreateHorarioDto {
   @IsEnum(FormatoClase)
   @IsOptional()
   formato?: FormatoClase;
+
+  @ApiProperty({ example: 'Aula 101 - Edificio Central', required: false })
+  @IsString()
+  @IsOptional()
+  nombre_aula?: string;
 }

@@ -14,7 +14,7 @@ export class UsuariosService {
         correo: true,
         activo: true,
         fecha_registro: true,
-        roles: { select: { id_rol: true } },
+        roles: { select: { rol: { select: { nombre_rol: true } } } },
       },
     });
     if (!estudiante) {
@@ -24,6 +24,29 @@ export class UsuariosService {
     }
     return estudiante;
   }
+
+  async ObtenerPorDni(dni: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { dni },
+      select: {
+        id_usuario: true,
+        dni: true,
+        nombre_usuario: true,
+        apellido_usuario: true,
+        correo: true,
+        activo: true,
+        fecha_registro: true,
+        roles: { select: { rol: { select: { nombre_rol: true } } } },
+      },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException(`No existe usuario con DNI=${dni}`);
+    }
+
+    return usuario;
+  }
+
   //obtener todos los estudiantes
   async ObtenerEstudiantes() {
     return this.prisma.usuario.findMany({
@@ -100,7 +123,9 @@ export class UsuariosService {
                 hora_fin: true,
                 formato: true,
                 dia: { select: { numero_dia: true, nombre_dia: true } },
-                modalidad: { select: { id_modalidad: true, nombre_modalidad: true } },
+                modalidad: {
+                  select: { id_modalidad: true, nombre_modalidad: true },
+                },
                 aula: { select: { id_aula: true, nombre: true } },
               },
             },

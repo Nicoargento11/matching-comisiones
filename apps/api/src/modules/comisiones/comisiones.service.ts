@@ -160,10 +160,22 @@ export class ComisionesService {
     }
 
     const modalidad = await this.prisma.modalidad.findFirst({
-      where: { nombre_modalidad: { equals: dto.nombre_modalidad, mode: 'insensitive' } },
+      where: {
+        nombre_modalidad: { equals: dto.nombre_modalidad, mode: 'insensitive' },
+      },
     });
     if (!modalidad) {
-      throw new NotFoundException(`No existe la modalidad "${dto.nombre_modalidad}"`);
+      throw new NotFoundException(
+        `No existe la modalidad "${dto.nombre_modalidad}"`,
+      );
+    }
+
+    let id_aula: number | undefined
+    if (dto.nombre_aula) {
+      const aula = await this.prisma.aula.findFirst({
+        where: { nombre: { contains: dto.nombre_aula, mode: 'insensitive' } },
+      })
+      if (aula) id_aula = aula.id_aula
     }
 
     return this.prisma.horarioComision.create({
@@ -174,6 +186,7 @@ export class ComisionesService {
         id_modalidad: modalidad.id_modalidad,
         formato: dto.formato ?? 'TEORICO_PRACTICO',
         id_comision: idComision,
+        ...(id_aula !== undefined && { id_aula }),
       },
       select: {
         id_horario_comision: true,

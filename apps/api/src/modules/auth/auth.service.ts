@@ -14,7 +14,9 @@ export class AuthService {
         apellido_usuario: true,
         correo: true,
         activo: true,
-        roles: { select: { rol: { select: { id_rol: true, nombre_rol: true } } } },
+        roles: {
+          select: { rol: { select: { id_rol: true, nombre_rol: true } } },
+        },
       },
     });
 
