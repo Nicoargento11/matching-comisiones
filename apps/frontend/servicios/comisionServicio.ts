@@ -25,6 +25,7 @@ export const comisionServicio = {
     nombre_dia: string
     nombre_modalidad: string
     formato: string
+    nombre_aula?: string
   }, token?: string) =>
     api.post<Horario>(`/comisiones/${idComision}/horarios`, datos, token),
 

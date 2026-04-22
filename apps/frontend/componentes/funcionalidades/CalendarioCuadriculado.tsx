@@ -20,6 +20,14 @@ interface EventoInterno {
   color: string
   materiaId: number
   tipo: string
+  esHorario: boolean
+}
+
+const COLORES_TIPO: Record<string, string> = {
+  PARCIAL:    '#ef4444',
+  ENTREGA_TP: '#f59e0b',
+  OTRO:       '#6b7280',
+  CLASE:      '#6366f1',
 }
 
 type Vista = 'mes' | 'semana' | 'dia'
@@ -116,6 +124,7 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
             color: comision.materia.color,
             materiaId: comision.materia.id_materia,
             tipo: horario.formato,
+            esHorario: true,
           })
         }
       }
@@ -125,20 +134,23 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
     // eventos de fecha especifica (parciales entregas etc)
     for (const evento of comision.eventos ?? []) {
       const fechaInicio = new Date(evento.fecha_inicio)
-      const fechaFin = new Date(evento.fecha_fin)
       if (fechaInicio >= inicio && fechaInicio <= fin) {
-        const horaInicioMin = fechaInicio.getHours() * 60 + fechaInicio.getMinutes()
-        const horaFinMin = fechaFin.getHours() * 60 + fechaFin.getMinutes()
+        // usar el string directamente para evitar distorsion de timezone
+        const hiStr = evento.fecha_inicio.slice(11, 16)
+        const hfStr = evento.fecha_fin.slice(11, 16)
+        const horaInicioMin = horaAMinutos(hiStr)
+        const horaFinMin = hfStr && hfStr !== '00:00' ? horaAMinutos(hfStr) : horaInicioMin + 60
         eventos.push({
           id: String(evento.id_evento),
           titulo: evento.titulo,
           subtitulo: comision.materia.nombre_materia,
           fecha: fechaInicio,
           horaInicio: horaInicioMin,
-          horaFin: horaFinMin || horaInicioMin + 60,
-          color: comision.materia.color,
+          horaFin: horaFinMin,
+          color: COLORES_TIPO[evento.tipo_evento] ?? comision.materia.color,
           materiaId: evento.id_materia,
           tipo: evento.tipo_evento,
+          esHorario: false,
         })
       }
     }

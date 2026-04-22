@@ -1,10 +1,10 @@
-// pagina de mensajeria
-// usa Suspense porque VistaMensajeria necesita useSearchParams
 import Link from 'next/link'
 import { Suspense } from 'react'
+import { redirect } from 'next/navigation'
 import VistaMensajeria from '@/componentes/funcionalidades/VistaMensajeria'
+import { getServerSession } from '@/lib/supabase-server'
+import { api } from '@/servicios/api'
 
-// esqueleto de carga
 function EsqueletoMensajeria() {
   return (
     <div className="flex h-[calc(100vh-8rem)] animate-pulse overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
@@ -29,11 +29,18 @@ function EsqueletoMensajeria() {
   )
 }
 
-export default function PaginaMensajes() {
+export default async function PaginaMensajes() {
+  const session = await getServerSession()
+  if (!session) redirect('/login')
+
+  const usuario = await api.get<{ roles: { nombre_rol: string }[] }>('/auth/me', session.access_token)
+  const esProfesor = usuario.roles.some((r) => r.nombre_rol === 'profesor')
+  const hrefVolver = esProfesor ? '/profesor' : '/perfil'
+
   return (
     <div className="space-y-4">
       <Link
-        href="/perfil"
+        href={hrefVolver}
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
       >
         ← Volver
