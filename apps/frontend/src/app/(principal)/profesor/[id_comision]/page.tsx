@@ -100,6 +100,7 @@ export default function PaginaGestionComision() {
   const [alumnoEncontrado, setAlumnoEncontrado] = useState<UsuarioInComision | null>(null)
   const [errorAlumno, setErrorAlumno] = useState('')
   const [buscando, setBuscando] = useState(false)
+  const [procesando, setProcesando] = useState(false)
 
   const [nuevoHorario, setNuevoHorario] = useState({
     diaNombre: 'Lunes',
@@ -181,9 +182,10 @@ export default function PaginaGestionComision() {
   }
 
   async function confirmarBajaAlumno() {
-    if (!alumnoAConfirmarBaja || !comisionInicial) return
+    if (!alumnoAConfirmarBaja || !comisionInicial || procesando) return
     const alumno = alumnoAConfirmarBaja
     setAlumnoAConfirmarBaja(null)
+    setProcesando(true)
     try {
       await comisionServicio.darBajaEstudiante(comisionInicial.id_comision, alumno.usuario.id_usuario, token ?? undefined)
       setAlumnos((prev) => prev.filter((a) => a.usuario.id_usuario !== alumno.usuario.id_usuario))
@@ -191,13 +193,16 @@ export default function PaginaGestionComision() {
       mostrarExitoAlumnos(`${alumno.usuario.nombre_usuario} ${alumno.usuario.apellido_usuario} fue dado de baja`)
     } catch (e) {
       mostrarExitoAlumnos(`Error al dar de baja: ${e instanceof Error ? e.message : 'intentá de nuevo'}`)
+    } finally {
+      setProcesando(false)
     }
   }
 
   async function reincorporarAlumno(idUsuario: number) {
-    if (!comisionInicial) return
+    if (!comisionInicial || procesando) return
     const alumno = alumnosDadosDeBaja.find((a) => a.usuario.id_usuario === idUsuario)
     if (!alumno) return
+    setProcesando(true)
     try {
       await comisionServicio.agregarEstudiante(comisionInicial.id_comision, idUsuario, token ?? undefined)
       setAlumnosDadosDeBaja((prev) => prev.filter((a) => a.usuario.id_usuario !== idUsuario))
@@ -205,6 +210,8 @@ export default function PaginaGestionComision() {
       mostrarExitoAlumnos(`${alumno.usuario.nombre_usuario} ${alumno.usuario.apellido_usuario} fue reincorporado`)
     } catch (e) {
       mostrarExitoAlumnos(`Error al reincorporar: ${e instanceof Error ? e.message : 'intentá de nuevo'}`)
+    } finally {
+      setProcesando(false)
     }
   }
 
@@ -256,7 +263,8 @@ export default function PaginaGestionComision() {
   }
 
   async function confirmarAgregarAlumno() {
-    if (!alumnoEncontrado || !comisionInicial) return
+    if (!alumnoEncontrado || !comisionInicial || procesando) return
+    setProcesando(true)
     try {
       await comisionServicio.agregarEstudiante(comisionInicial.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
       setAlumnos((prev) => [...prev, alumnoEncontrado])
@@ -266,6 +274,8 @@ export default function PaginaGestionComision() {
       setErrorAlumno('')
     } catch {
       setErrorAlumno('No se pudo inscribir al alumno. Intentá de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
@@ -373,9 +383,10 @@ export default function PaginaGestionComision() {
   }
 
   async function confirmarEliminarHorario() {
-    if (!horarioAConfirmarEliminar || !comisionInicial) return
+    if (!horarioAConfirmarEliminar || !comisionInicial || procesando) return
     const h = horarioAConfirmarEliminar
     setHorarioAConfirmarEliminar(null)
+    setProcesando(true)
     try {
       await comisionServicio.eliminarHorario(comisionInicial.id_comision, h.id_horario_comision, token ?? undefined)
       setHorarios((prev) => prev.filter((x) => x.id_horario_comision !== h.id_horario_comision))
@@ -383,11 +394,13 @@ export default function PaginaGestionComision() {
       mostrarExitoHorario('Horario dado de baja')
     } catch {
       mostrarExitoHorario('Error al dar de baja el horario. Intentá de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
   async function reincorporarHorario(h: Horario) {
-    if (!comisionInicial) return
+    if (!comisionInicial || procesando) return
 
     const mismosDia = horarios.filter((x) => x.dia.nombre_dia.toLowerCase() === h.dia.nombre_dia.toLowerCase())
     if (mismosDia.some((x) => seSuperponeHorario(h, x))) {
@@ -395,6 +408,7 @@ export default function PaginaGestionComision() {
       return
     }
 
+    setProcesando(true)
     try {
       const reactivado = await comisionServicio.reactivarHorario(
         comisionInicial.id_comision,
@@ -406,6 +420,8 @@ export default function PaginaGestionComision() {
       mostrarExitoHorario('Horario reincorporado')
     } catch {
       mostrarExitoHorario('Error al reincorporar el horario. Intentá de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
@@ -506,9 +522,10 @@ export default function PaginaGestionComision() {
   }
 
   async function confirmarEliminarEvento() {
-    if (!eventoAConfirmarEliminar || !comisionInicial) return
+    if (!eventoAConfirmarEliminar || !comisionInicial || procesando) return
     const ev = eventoAConfirmarEliminar
     setEventoAConfirmarEliminar(null)
+    setProcesando(true)
     try {
       await comisionServicio.eliminarEvento(comisionInicial.id_comision, ev.id_evento, token ?? undefined)
       setEventos((prev) => prev.filter((x) => x.id_evento !== ev.id_evento))
@@ -516,11 +533,14 @@ export default function PaginaGestionComision() {
       mostrarExitoEvento('Evento dado de baja')
     } catch {
       mostrarExitoEvento('Error al dar de baja el evento. Intentá de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
   async function reincorporarEvento(ev: Evento) {
-    if (!comisionInicial) return
+    if (!comisionInicial || procesando) return
+    setProcesando(true)
     try {
       const reactivado = await comisionServicio.reactivarEvento(
         comisionInicial.id_comision,
@@ -532,6 +552,8 @@ export default function PaginaGestionComision() {
       mostrarExitoEvento('Evento reincorporado')
     } catch {
       mostrarExitoEvento('Error al reincorporar el evento. Intentá de nuevo.')
+    } finally {
+      setProcesando(false)
     }
   }
 
@@ -664,9 +686,10 @@ export default function PaginaGestionComision() {
                   <button
                     type="button"
                     onClick={confirmarAgregarAlumno}
-                    className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={procesando}
+                    className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
                   >
-                    Agregar alumno
+                    {procesando ? 'Agregando...' : 'Agregar alumno'}
                   </button>
                   <button
                     type="button"
@@ -704,7 +727,7 @@ export default function PaginaGestionComision() {
                   ¿Dar de baja a <span className="font-semibold">{alumnoAConfirmarBaja.usuario.nombre_usuario} {alumnoAConfirmarBaja.usuario.apellido_usuario}</span>?
                 </p>
                 <div className="flex shrink-0 gap-2">
-                  <button onClick={confirmarBajaAlumno} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                  <button onClick={confirmarBajaAlumno} disabled={procesando} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-60">
                     Confirmar
                   </button>
                   <button
@@ -783,7 +806,8 @@ export default function PaginaGestionComision() {
                     </div>
                     <button
                       onClick={() => reincorporarAlumno(alumno.usuario.id_usuario)}
-                      className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                      disabled={procesando}
+                      className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-60 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
                     >
                       Reincorporar
                     </button>
@@ -932,7 +956,7 @@ export default function PaginaGestionComision() {
                   ¿Seguro que querés dar de baja el horario del <span className="font-semibold">{horarioAConfirmarEliminar.dia.nombre_dia}</span> de {horarioAConfirmarEliminar.hora_inicio} a {horarioAConfirmarEliminar.hora_fin}?
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={confirmarEliminarHorario} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                  <button onClick={confirmarEliminarHorario} disabled={procesando} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-60">
                     Confirmar
                   </button>
                   <button
@@ -1100,7 +1124,7 @@ export default function PaginaGestionComision() {
                   ¿Seguro que querés dar de baja el evento <span className="font-semibold">{eventoAConfirmarEliminar.titulo}</span>?
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={confirmarEliminarEvento} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600">
+                  <button onClick={confirmarEliminarEvento} disabled={procesando} className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600 disabled:opacity-60">
                     Confirmar
                   </button>
                   <button
@@ -1173,7 +1197,8 @@ export default function PaginaGestionComision() {
                         </p>
                         <button
                           onClick={() => reincorporarHorario(h)}
-                          className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                          disabled={procesando}
+                          className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-60 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
                         >
                           Reincorporar
                         </button>
@@ -1194,7 +1219,8 @@ export default function PaginaGestionComision() {
                         </p>
                         <button
                           onClick={() => reincorporarEvento(ev)}
-                          className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+                          disabled={procesando}
+                          className="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-60 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
                         >
                           Reincorporar
                         </button>
