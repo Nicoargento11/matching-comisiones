@@ -1,9 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
-import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import { comisionServicio } from '@/servicios/comisionServicio'
 import { getServerSession } from '@/lib/supabase-server'
+import SeccionHorariosEventos from '@/componentes/funcionalidades/SeccionHorariosEventos'
 
 interface Props {
   params: Promise<{ id_comision: string }>
@@ -19,7 +18,7 @@ export default async function paginaDetalleComision({ params }: Props) {
 
   if (!comision) notFound()
 
-  const { materia, numero_comision, profesor, horarios } = comision
+  const { materia, numero_comision, profesor, horarios, eventos } = comision
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -67,40 +66,11 @@ export default async function paginaDetalleComision({ params }: Props) {
         </div>
       </div>
 
-      {/* lista de horarios */}
-      <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-        <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-700">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clipRule="evenodd" />
-            </svg>
-            Horarios
-          </h2>
-        </div>
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {horarios.map((horario) => (
-            <div key={horario.id_horario_comision} className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <span className="w-20 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {horario.dia.nombre_dia}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {horario.hora_inicio} – {horario.hora_fin}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {horario.aula && (
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
-                    {horario.aula.nombre}
-                  </span>
-                )}
-                <InsigniaHorario formato={horario.formato} />
-                <InsigniaModalidad modalidad={horario.modalidad.nombre_modalidad} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* horarios y eventos */}
+      <SeccionHorariosEventos
+        horarios={horarios.filter((h) => h.activo)}
+        eventos={(eventos ?? []).filter((e) => e.activo)}
+      />
 
       {/* boton para ver en el calendario destacado */}
       <div className="flex justify-end">

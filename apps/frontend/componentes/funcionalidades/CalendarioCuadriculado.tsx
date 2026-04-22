@@ -548,6 +548,7 @@ export default function CalendarioCuadriculado({ comisiones, materiaDestacadaId 
 
   const [vista, setVista] = useState<Vista>('semana')
   const [fechaNav, setFechaNav] = useState<Date>(new Date(hoy))
+  const [filtroTipo, setFiltroTipo] = useState<'ambos' | 'horarios' | 'eventos'>('ambos')
 
   // filtra las comisiones segun la materia destacada
   const comisionesFiltradas = materiaDestacadaId
@@ -577,7 +578,10 @@ export default function CalendarioCuadriculado({ comisiones, materiaDestacadaId 
   }
 
   const [rangoInicio, rangoFin] = obtenerRango()
-  const eventos = generarEventos(comisionesFiltradas, rangoInicio, rangoFin)
+  const todosLosEventos = generarEventos(comisionesFiltradas, rangoInicio, rangoFin)
+  const eventos = filtroTipo === 'ambos'
+    ? todosLosEventos
+    : todosLosEventos.filter((e) => filtroTipo === 'horarios' ? e.esHorario : !e.esHorario)
 
   // titulo de navegacion segun vista
   function obtenerTitulo() {
@@ -609,6 +613,9 @@ export default function CalendarioCuadriculado({ comisiones, materiaDestacadaId 
     }
     setFechaNav(d)
   }
+
+  const cantHorarios = todosLosEventos.filter((e) => e.esHorario).length
+  const cantEventos  = todosLosEventos.filter((e) => !e.esHorario).length
 
   return (
     <div className="flex flex-col gap-3">
@@ -657,6 +664,34 @@ export default function CalendarioCuadriculado({ comisiones, materiaDestacadaId 
             </button>
           ))}
         </div>
+      </div>
+
+      {/* filtro de tipo: horarios / eventos / ambos */}
+      <div className="flex items-center gap-1.5 self-start rounded-lg border border-gray-200 bg-white p-0.5 dark:border-gray-600 dark:bg-gray-800">
+        {([
+          { key: 'ambos',    label: 'Ambos',    count: cantHorarios + cantEventos },
+          { key: 'horarios', label: 'Horarios', count: cantHorarios },
+          { key: 'eventos',  label: 'Eventos',  count: cantEventos },
+        ] as const).map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFiltroTipo(f.key)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              filtroTipo === f.key
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+          >
+            {f.label}
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              filtroTipo === f.key
+                ? 'bg-white/20 text-white'
+                : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+            }`}>
+              {f.count}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* grilla del calendario segun vista activa */}

@@ -95,6 +95,7 @@ export default function PaginaGestionComision() {
   const [mensajeHorario, setMensajeHorario] = useState('')
   const [mensajeEvento, setMensajeEvento] = useState('')
   const [tabActivo, setTabActivo] = useState<'alumnos' | 'calendario'>('alumnos')
+  const [filtroCalendario, setFiltroCalendario] = useState<'ambos' | 'horarios' | 'eventos'>('ambos')
 
   const [idBusqueda, setIdBusqueda] = useState('')
   const [alumnoEncontrado, setAlumnoEncontrado] = useState<UsuarioInComision | null>(null)
@@ -821,6 +822,30 @@ export default function PaginaGestionComision() {
 
       {tabActivo === 'calendario' && (
         <div className="space-y-8">
+          <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+            {([
+              { key: 'ambos', label: 'Ambos', count: horarios.length + eventos.length },
+              { key: 'horarios', label: 'Horarios', count: horarios.length },
+              { key: 'eventos', label: 'Eventos', count: eventos.length },
+            ] as const).map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFiltroCalendario(f.key)}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  filtroCalendario === f.key
+                    ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                {f.label}
+                <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                  {f.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {filtroCalendario !== 'eventos' && (
           <section className="space-y-4">
             {mensajeHorario && <BannerExito mensaje={mensajeHorario} />}
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">Horarios semanales</h2>
@@ -1001,7 +1026,9 @@ export default function PaginaGestionComision() {
               </div>
             )}
           </section>
+          )}
 
+          {filtroCalendario !== 'horarios' && (
           <section className="space-y-4">
             {mensajeEvento && <BannerExito mensaje={mensajeEvento} />}
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">Eventos y evaluaciones</h2>
@@ -1179,6 +1206,7 @@ export default function PaginaGestionComision() {
               </div>
             )}
           </section>
+          )}
 
           {(horariosDadosDeBaja.length > 0 || eventosDadosDeBaja.length > 0) && (
             <section className="space-y-3 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800">
