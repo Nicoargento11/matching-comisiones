@@ -12,15 +12,8 @@ export default async function PaginaPerfil() {
 
   const token = session.access_token
 
-  let usuario: Usuario
-  let comisiones: Awaited<ReturnType<typeof usuarioServicio.obtenerComisiones>>
-  try {
-    usuario = await api.get<Usuario>('/auth/me', token)
-    comisiones = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
-  } catch {
-    redirect('/login')
-    return
-  }
+  const usuario = await api.get<Usuario>('/auth/me', token)
+  const comisiones = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
 
   return (
     <div className="space-y-8">
