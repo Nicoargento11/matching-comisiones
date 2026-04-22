@@ -117,6 +117,7 @@ export class UsuariosService {
               },
             },
             horarios: {
+              where: { activo: true },
               select: {
                 id_horario_comision: true,
                 hora_inicio: true,
@@ -130,6 +131,7 @@ export class UsuariosService {
               },
             },
             eventos: {
+              where: { activo: true },
               select: {
                 id_evento: true,
                 titulo: true,
