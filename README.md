@@ -172,4 +172,4 @@ El frontend queda disponible en `http://localhost:3001`.
 
 
 **Materia**: Ingeniería de Software II  
-**Año**: 2025
+**Año**: 2026
