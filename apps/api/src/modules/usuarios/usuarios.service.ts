@@ -1,192 +1,138 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import {
+  NotFoundError,
+  BadRequestError,
+} from '../../common/errors/business-error';
+import { UsuariosRepository } from './repositories/usuarios.repository';
+import { PaginacionDto } from '../../common/dto/paginacion.dto';
+import {
+  construirPaginacion,
+  construirMetaPaginacion,
+} from '../../common/helpers/paginacion';
+import { verificarOExcepcion } from '../../common/helpers/verificar-existencia';
+
 @Injectable()
 export class UsuariosService {
-  constructor(private readonly prisma: PrismaService) {}
-  async ObtenerEstudiante(idUsuario: number) {
-    const estudiante = await this.prisma.usuario.findUnique({
-      where: { id_usuario: idUsuario },
-      select: {
-        id_usuario: true,
-        dni: true,
-        nombre_usuario: true,
-        apellido_usuario: true,
-        correo: true,
-        activo: true,
-        fecha_registro: true,
-        roles: { select: { rol: { select: { nombre_rol: true } } } },
-      },
-    });
+  constructor(private readonly usuariosRepository: UsuariosRepository) {}
+
+  /**
+   * Obtiene los datos de un estudiante por su ID
+   * @param idUsuario - ID del usuario a buscar
+   * @returns Datos del usuario con roles
+   * @throws NotFoundException si no existe el usuario
+   */
+  async obtenerEstudiante(idUsuario: number) {
+    const estudiante = await this.usuariosRepository.obtenerPorId(idUsuario);
     if (!estudiante) {
-      throw new NotFoundException(
+      throw new NotFoundError(
+        'USUARIO_NO_ENCONTRADO',
         `No existe usuario con id_usuario=${idUsuario}`,
       );
     }
     return estudiante;
   }
 
-  async ObtenerPorDni(dni: number) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { dni },
-      select: {
-        id_usuario: true,
-        dni: true,
-        nombre_usuario: true,
-        apellido_usuario: true,
-        correo: true,
-        activo: true,
-        fecha_registro: true,
-        roles: { select: { rol: { select: { nombre_rol: true } } } },
-      },
-    });
-
-    if (!usuario) {
-      throw new NotFoundException(`No existe usuario con DNI=${dni}`);
+  /**
+   * Obtiene un usuario por su DNI
+   * @param dni - DNI del usuario a buscar
+   * @returns Datos del usuario con roles
+   * @throws NotFoundException si no existe el usuario
+   */
+  async obtenerPorDni(dni: number) {
+    if (dni < 1000000) {
+      throw new BadRequestError(
+        'DNI_INVALIDO',
+        'El DNI debe tener al menos 7 dígitos',
+      );
     }
-
+    const usuario = await this.usuariosRepository.obtenerPorDni(dni);
+    if (!usuario) {
+      throw new NotFoundError(
+        'USUARIO_NO_ENCONTRADO',
+        `No existe usuario con DNI=${dni}`,
+      );
+    }
     return usuario;
   }
 
-  //obtener todos los estudiantes
-  async ObtenerEstudiantes() {
-    return this.prisma.usuario.findMany({
-      select: {
-        id_usuario: true,
-        dni: true,
-        nombre_usuario: true,
-        apellido_usuario: true,
-        correo: true,
-        activo: true,
-        fecha_registro: true,
-      },
-    });
+  /**
+   * Obtiene todos los estudiantes registrados con paginación
+   * @param paginacionDto - DTO de paginación con pagina, limite, ordenarPor y direccion
+   * @returns Objeto con data (lista de usuarios) y meta (info de paginación)
+   */
+  async obtenerEstudiantes(paginacionDto: PaginacionDto) {
+    const paginacion = construirPaginacion(paginacionDto, [
+      'nombre_usuario',
+      'apellido_usuario',
+      'correo',
+      'dni',
+    ]);
+    const [data, total] = await Promise.all([
+      this.usuariosRepository.obtenerTodos(paginacion),
+      this.usuariosRepository.contar(),
+    ]);
+    return { data, meta: construirMetaPaginacion(total, paginacionDto) };
   }
 
-  async ObtenerPrimerEstudianteUsuarioId() {
-    const estudiante = await this.prisma.usuarioComision.findFirst({
-      select: { id_usuario: true },
-    });
-    if (!estudiante) {
-      throw new NotFoundException('No hay estudiantes en la base de datos');
-    }
-    return estudiante.id_usuario;
-  }
-
-  async ObtenerPrimerProfesorUsuarioId() {
-    const profesor = await this.prisma.comision.findFirst({
-      select: { id_usuario_profesor: true },
-    });
-    if (!profesor) {
-      throw new NotFoundException('No hay profesores en la base de datos');
-    }
-    return profesor.id_usuario_profesor;
-  }
-
-  async ObtenerComisionesDeEstudiante(idUsuario: number) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id_usuario: idUsuario },
-      select: { id_usuario: true },
-    });
-    if (!usuario) {
-      throw new NotFoundException(
-        `No existe estudiante con id_usuario=${idUsuario}`,
+  /**
+   * Obtiene el id_usuario del primer estudiante inscrito en una comisión
+   * @returns ID del primer estudiante
+   * @throws NotFoundException si no hay estudiantes en la base de datos
+   */
+  async obtenerPrimerEstudianteUsuarioId() {
+    const id = await this.usuariosRepository.obtenerPrimerEstudianteUsuarioId();
+    if (!id) {
+      throw new NotFoundError(
+        'USUARIO_NO_ENCONTRADO',
+        'No hay estudiantes en la base de datos',
       );
     }
-    return this.prisma.usuarioComision.findMany({
-      where: { id_usuario: idUsuario },
-      select: {
-        estado: true,
-        comision: {
-          select: {
-            id_comision: true,
-            numero_comision: true,
-            nombre_comision: true,
-            cupo_maximo: true,
-            materia: {
-              select: {
-                id_materia: true,
-                nombre_materia: true,
-              },
-            },
-            profesor: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-                correo: true,
-              },
-            },
-            horarios: {
-              where: { activo: true },
-              select: {
-                id_horario_comision: true,
-                hora_inicio: true,
-                hora_fin: true,
-                formato: true,
-                dia: { select: { numero_dia: true, nombre_dia: true } },
-                modalidad: {
-                  select: { id_modalidad: true, nombre_modalidad: true },
-                },
-                aula: { select: { id_aula: true, nombre: true } },
-              },
-            },
-            eventos: {
-              where: { activo: true },
-              select: {
-                id_evento: true,
-                titulo: true,
-                tipo_evento: true,
-                fecha_inicio: true,
-                fecha_fin: true,
-                origen: true,
-                id_materia: true,
-                id_comision: true,
-              },
-              orderBy: { fecha_inicio: 'asc' as const },
-            },
-          },
-        },
-      },
-    });
+    return id;
   }
 
-  async ObtenerConversaciones(idUsuario: number) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { id_usuario: idUsuario },
-      select: { id_usuario: true },
-    });
-    if (!usuario) {
-      throw new NotFoundException(
-        `No existe usuario con id_usuario=${idUsuario}`,
+  /**
+   * Obtiene el id_usuario del primer profesor con comisión asignada
+   * @returns ID del primer profesor
+   * @throws NotFoundException si no hay profesores en la base de datos
+   */
+  async obtenerPrimerProfesorUsuarioId() {
+    const id = await this.usuariosRepository.obtenerPrimerProfesorUsuarioId();
+    if (!id) {
+      throw new NotFoundError(
+        'USUARIO_NO_ENCONTRADO',
+        'No hay profesores en la base de datos',
       );
     }
-    return this.prisma.conversacionParticipante.findMany({
-      where: { id_usuario: idUsuario },
-      select: {
-        ultimo_leido: true,
-        conversacion: {
-          select: {
-            id_conversacion: true,
-            creada_en: true,
-            participantes: {
-              select: {
-                usuario: {
-                  select: {
-                    id_usuario: true,
-                    nombre_usuario: true,
-                    apellido_usuario: true,
-                  },
-                },
-              },
-            },
-            mensajes: {
-              orderBy: { creado_en: 'desc' },
-              take: 1,
-              select: { contenido: true, creado_en: true },
-            },
-          },
-        },
-      },
-    });
+    return id;
+  }
+
+  /**
+   * Obtiene las comisiones en las que está inscrito un estudiante
+   * @param idUsuario - ID del estudiante
+   * @returns Lista de inscripciones con datos de comisión, horarios y eventos
+   * @throws NotFoundException si no existe el estudiante
+   */
+  async obtenerComisionesDeEstudiante(idUsuario: number) {
+    await verificarOExcepcion(
+      () => this.usuariosRepository.verificarExistencia(idUsuario),
+      'estudiante',
+      idUsuario,
+    );
+    return this.usuariosRepository.obtenerComisionesDeEstudiante(idUsuario);
+  }
+
+  /**
+   * Obtiene las conversaciones de un usuario
+   * @param idUsuario - ID del usuario
+   * @returns Lista de conversaciones con último mensaje
+   * @throws NotFoundException si no existe el usuario
+   */
+  async obtenerConversaciones(idUsuario: number) {
+    await verificarOExcepcion(
+      () => this.usuariosRepository.verificarExistencia(idUsuario),
+      'usuario',
+      idUsuario,
+    );
+    return this.usuariosRepository.obtenerConversaciones(idUsuario);
   }
 }
