@@ -1,222 +1,146 @@
+import { Injectable } from '@nestjs/common';
 import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+  NotFoundError,
+  ConflictError,
+} from '../../common/errors/business-error';
+import { MensajesRepository } from './repositories/mensajes.repository';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
 import { CreateConversacionDto } from './dto/create-conversacion.dto';
 import { MarcarLeidoDto } from './dto/marcar-leido.dto';
+import { PaginacionDto } from '../../common/dto/paginacion.dto';
+import {
+  construirPaginacion,
+  construirMetaPaginacion,
+} from '../../common/helpers/paginacion';
+import { verificarOExcepcion } from '../../common/helpers/verificar-existencia';
+import { mapearConversacionResponse } from './mensajes.mapper';
 
 @Injectable()
 export class MensajesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly mensajesRepository: MensajesRepository) {}
 
+  /**
+   * Crea una nueva conversación entre dos usuarios
+   * @param dto - Datos con los IDs de los dos participantes
+   * @returns La conversación creada
+   * @throws ConflictException si ya existe una conversación entre esos usuarios
+   */
   async crearConversacion(dto: CreateConversacionDto) {
-    const existente = await this.prisma.conversacion.findFirst({
-      where: {
-        AND: [
-          { participantes: { some: { id_usuario: dto.id_usuario_1 } } },
-          { participantes: { some: { id_usuario: dto.id_usuario_2 } } },
-        ],
-      },
-      select: { id_conversacion: true },
-    });
+    const existente = await this.mensajesRepository.buscarConversacionExistente(
+      dto.id_usuario_1,
+      dto.id_usuario_2,
+    );
     if (existente) {
-      throw new ConflictException(
+      throw new ConflictError(
+        'CONVERSACION_YA_EXISTE',
         'Ya existe una conversación entre estos usuarios',
       );
     }
-    return this.prisma.conversacion.create({
-      data: {
-        participantes: {
-          create: [
-            { id_usuario: dto.id_usuario_1 },
-            { id_usuario: dto.id_usuario_2 },
-          ],
-        },
-      },
-      select: {
-        id_conversacion: true,
-        creada_en: true,
-        participantes: {
-          select: {
-            usuario: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    return this.mensajesRepository.crearConversacion(dto);
   }
 
+  /**
+   * Obtiene una conversación con sus participantes y mensajes
+   * @param idConversacion - ID de la conversación
+   * @returns La conversación completa
+   * @throws NotFoundException si no existe la conversación
+   */
   async obtenerConversacion(idConversacion: number) {
-    const conversacion = await this.prisma.conversacion.findUnique({
-      where: { id_conversacion: idConversacion },
-      select: {
-        id_conversacion: true,
-        creada_en: true,
-        participantes: {
-          select: {
-            ultimo_leido: true,
-            usuario: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-                roles: {
-                  select: { rol: { select: { nombre_rol: true } } },
-                },
-              },
-            },
-          },
-        },
-        mensajes: {
-          orderBy: { creado_en: 'asc' },
-          select: {
-            id_mensaje: true,
-            contenido: true,
-            creado_en: true,
-            emisor: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const conversacion =
+      await this.mensajesRepository.obtenerConversacion(idConversacion);
     if (!conversacion) {
-      throw new NotFoundException(
+      throw new NotFoundError(
+        'CONVERSACION_NO_ENCONTRADA',
         `No existe conversación con id=${idConversacion}`,
       );
     }
-    return conversacion;
+    return mapearConversacionResponse(conversacion);
   }
 
+  /**
+   * Marca los mensajes de una conversación como leídos para un usuario
+   * @param idConversacion - ID de la conversación
+   * @param dto - Datos con el ID del usuario
+   * @returns El participante con la fecha de último leído actualizada
+   * @throws NotFoundException si el usuario no pertenece a la conversación
+   */
   async marcarLeido(idConversacion: number, dto: MarcarLeidoDto) {
-    const participante = await this.prisma.conversacionParticipante.findUnique({
-      where: {
-        id_conversacion_id_usuario: {
-          id_conversacion: idConversacion,
-          id_usuario: dto.id_usuario,
-        },
-      },
-    });
+    const participante = await this.mensajesRepository.buscarParticipante(
+      idConversacion,
+      dto.id_usuario,
+    );
     if (!participante) {
-      throw new NotFoundException(
+      throw new NotFoundError(
+        'CONVERSACION_PARTICIPANTE_NO_ENCONTRADO',
         'El usuario no pertenece a esta conversación',
       );
     }
-    return this.prisma.conversacionParticipante.update({
-      where: {
-        id_conversacion_id_usuario: {
-          id_conversacion: idConversacion,
-          id_usuario: dto.id_usuario,
-        },
-      },
-      data: { ultimo_leido: new Date() },
-      select: { id_conversacion: true, id_usuario: true, ultimo_leido: true },
-    });
+    return this.mensajesRepository.actualizarUltimoLeido(
+      idConversacion,
+      dto.id_usuario,
+    );
   }
 
+  /**
+   * Obtiene los mensajes de una conversación ordenados por fecha
+   * @param idConversacion - ID de la conversación
+   * @returns Lista de mensajes con datos del emisor
+   * @throws NotFoundException si no existe la conversación
+   */
   async obtenerMensajes(idConversacion: number) {
-    const conversacion = await this.prisma.conversacion.findUnique({
-      where: { id_conversacion: idConversacion },
-    });
-    if (!conversacion) {
-      throw new NotFoundException(
-        `No existe conversación con id=${idConversacion}`,
-      );
-    }
-    return this.prisma.mensaje.findMany({
-      where: { id_conversacion: idConversacion },
-      orderBy: { creado_en: 'asc' },
-      select: {
-        id_mensaje: true,
-        contenido: true,
-        creado_en: true,
-        emisor: {
-          select: {
-            id_usuario: true,
-            nombre_usuario: true,
-            apellido_usuario: true,
-          },
-        },
-      },
-    });
+    await verificarOExcepcion(
+      () =>
+        this.mensajesRepository.verificarExistenciaConversacion(idConversacion),
+      'conversación',
+      idConversacion,
+    );
+    return this.mensajesRepository.obtenerMensajes(idConversacion);
   }
 
-  async getMisConversaciones(supabaseAuthId: string) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { supabase_auth_id: supabaseAuthId },
-      select: { id_usuario: true },
-    });
+  /**
+   * Obtiene las conversaciones del usuario autenticado con paginación
+   * @param supabaseAuthId - ID de autenticación de Supabase del usuario
+   * @param paginacionDto - DTO de paginación con pagina, limite, ordenarPor y direccion
+   * @returns Objeto con data (lista de conversaciones) y meta (info de paginación)
+   * @throws NotFoundException si no existe el usuario
+   */
+  async obtenerMisConversaciones(
+    supabaseAuthId: string,
+    paginacionDto: PaginacionDto,
+  ) {
+    const usuario =
+      await this.mensajesRepository.buscarUsuarioPorAuthId(supabaseAuthId);
     if (!usuario) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundError('USUARIO_NO_ENCONTRADO', 'Usuario no encontrado');
     }
-    return this.prisma.conversacion.findMany({
-      where: { participantes: { some: { id_usuario: usuario.id_usuario } } },
-      orderBy: { creada_en: 'desc' },
-      select: {
-        id_conversacion: true,
-        creada_en: true,
-        participantes: {
-          select: {
-            ultimo_leido: true,
-            usuario: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-                roles: {
-                  select: { rol: { select: { nombre_rol: true } } },
-                },
-              },
-            },
-          },
-        },
-        mensajes: {
-          orderBy: { creado_en: 'desc' },
-          take: 1,
-          select: {
-            contenido: true,
-            creado_en: true,
-            id_usuario_emisor: true,
-          },
-        },
-      },
-    });
+    const paginacion = construirPaginacion(paginacionDto, ['creado_en']);
+    const [data, total] = await Promise.all([
+      this.mensajesRepository.obtenerConversacionesDeUsuario(
+        usuario.id_usuario,
+        paginacion,
+      ),
+      this.mensajesRepository.contarConversacionesDeUsuario(usuario.id_usuario),
+    ]);
+    return { data, meta: construirMetaPaginacion(total, paginacionDto) };
   }
 
+  /**
+   * Envía un mensaje en una conversación
+   * @param dto - Datos del mensaje a enviar
+   * @returns El mensaje creado
+   * @throws NotFoundException si no existe la conversación
+   */
   async enviarMensaje(dto: CreateMensajeDto) {
-    const conversacion = await this.prisma.conversacion.findUnique({
-      where: { id_conversacion: dto.id_conversacion },
-    });
+    const conversacion =
+      await this.mensajesRepository.verificarExistenciaConversacion(
+        dto.id_conversacion,
+      );
     if (!conversacion) {
-      throw new NotFoundException(
+      throw new NotFoundError(
+        'CONVERSACION_NO_ENCONTRADA',
         `No existe conversación con id=${dto.id_conversacion}`,
       );
     }
-    return this.prisma.mensaje.create({
-      data: {
-        contenido: dto.contenido,
-        id_conversacion: dto.id_conversacion,
-        id_usuario_emisor: dto.id_usuario_emisor,
-      },
-      select: {
-        id_mensaje: true,
-        contenido: true,
-        creado_en: true,
-        id_conversacion: true,
-        id_usuario_emisor: true,
-      },
-    });
+    return this.mensajesRepository.crearMensaje(dto);
   }
 }
