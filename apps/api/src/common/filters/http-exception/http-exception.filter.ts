@@ -9,6 +9,8 @@ import { Request, Response } from 'express';
 
 type ErrorResponseBody = {
   message?: string | string[];
+  mensaje?: string;
+  codigo?: string;
 };
 
 @Catch()
@@ -24,12 +26,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const exceptionResponse = isHttpException
       ? (exception.getResponse() as string | ErrorResponseBody)
       : undefined;
+    const body =
+      typeof exceptionResponse === 'object' ? exceptionResponse : null;
+    const codigo = body?.codigo;
     const message =
       typeof exceptionResponse === 'string'
         ? exceptionResponse
-        : (exceptionResponse?.message ?? 'Internal server error');
+        : (body?.message ?? 'Internal server error');
     response.status(status).json({
       statusCode: status,
+      ...(codigo && { codigo }),
       message,
       path: request.originalUrl ?? request.url,
       method: request.method,

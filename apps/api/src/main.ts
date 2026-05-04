@@ -1,7 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { parsearOrigenCors } from './common/helpers/cors';
 import { HttpExceptionFilter } from './common/filters/http-exception/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging/logging.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
@@ -10,7 +12,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: true,
+    origin: parsearOrigenCors(process.env.CORS_ORIGIN),
     credentials: true,
   });
 
@@ -20,6 +22,10 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
+  );
+  app.useGlobalInterceptors(
+    new LoggingInterceptor(),
+    new ClassSerializerInterceptor(app.get(Reflector)),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
@@ -35,4 +41,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3002);
 }
-bootstrap();
+void bootstrap();

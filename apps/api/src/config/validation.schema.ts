@@ -10,4 +10,5 @@ export const validationSchema = Joi.object({
   SUPABASE_URL: Joi.string().uri().required(),
   SUPABASE_JWT_ISSUER: Joi.string().uri().optional(),
   SUPABASE_JWT_AUDIENCE: Joi.string().default('authenticated'),
+  CORS_ORIGIN: Joi.string().optional().default('*'),
 });

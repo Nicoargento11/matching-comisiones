@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -7,11 +7,9 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthGuard } from './common/guards/auth/auth.guard';
+import { RolesGuard } from './common/guards/roles/roles.guard';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ComisionesModule } from './modules/comisiones/comisiones.module';
-import { AcademicoModule } from './modules/academico/academico.module';
-import { IntercambiosModule } from './modules/intercambios/intercambios.module';
-import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 import { ProfesoresModule } from './modules/profesores/profesores.module';
 import { MensajesModule } from './modules/mensajes/mensajes.module';
 import { validationSchema } from './config/validation.schema';
@@ -23,13 +21,16 @@ import { validationSchema } from './config/validation.schema';
     AuthModule,
     UsuariosModule,
     ComisionesModule,
-    AcademicoModule,
-    IntercambiosModule,
-    NotificacionesModule,
     ProfesoresModule,
     MensajesModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: AuthGuard }],
+  providers: [
+    AppService,
+    Logger,
+    // Orden importa: primero autentica (AuthGuard), luego autoriza (RolesGuard)
+    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+  ],
 })
 export class AppModule {}
