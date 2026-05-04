@@ -1,27 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { AuthRepository } from './repositories/auth.repository';
+import { NotFoundError } from '../../common/errors/business-error';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly authRepository: AuthRepository) {}
 
-  async getMe(supabaseAuthId: string) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: { supabase_auth_id: supabaseAuthId },
-      select: {
-        id_usuario: true,
-        nombre_usuario: true,
-        apellido_usuario: true,
-        correo: true,
-        activo: true,
-        roles: {
-          select: { rol: { select: { id_rol: true, nombre_rol: true } } },
-        },
-      },
-    });
+  /**
+   * Obtiene los datos del usuario autenticado a partir de su supabase_auth_id
+   * @param supabaseAuthId - ID de autenticación de Supabase del token JWT
+   * @returns Datos del usuario con roles aplanados
+   * @throws NotFoundException si el usuario no está vinculado a un supabase_auth_id
+   */
+  async obtenerMe(supabaseAuthId: string) {
+    const usuario = await this.authRepository.obtenerPorAuthId(supabaseAuthId);
 
     if (!usuario) {
-      throw new NotFoundException(
+      throw new NotFoundError(
+        'AUTH_USUARIO_NO_VINCULADO',
         'Usuario no encontrado. ¿Está vinculado el supabase_auth_id?',
       );
     }
