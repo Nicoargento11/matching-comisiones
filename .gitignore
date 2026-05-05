@@ -37,6 +37,7 @@ generated/
 
 # Internal tooling
 .atl/
+.claude/
 
 # Misc
 .temp
