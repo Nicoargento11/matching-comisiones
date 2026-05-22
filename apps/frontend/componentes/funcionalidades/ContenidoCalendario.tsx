@@ -25,16 +25,23 @@ export default function ContenidoCalendario() {
   const [comisiones, setComisiones] = useState<Comision[]>([])
 
   useEffect(() => {
+    let activo = true
+
     async function cargar() {
       const { data } = await getSupabaseClient().auth.getSession()
       const token = data.session?.access_token
-      if (!token) return
+      if (!token || !activo) return
 
       const usuario = await api.get<Usuario>('/auth/me', token)
+      if (!activo) return
+
       const data2 = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
-      setComisiones(data2)
+      if (activo) setComisiones(data2)
     }
-    cargar().catch(() => setComisiones([]))
+
+    cargar().catch(() => { if (activo) setComisiones([]) })
+
+    return () => { activo = false }
   }, [])
 
   const materiaFiltrada = materiaFiltradaId != null
