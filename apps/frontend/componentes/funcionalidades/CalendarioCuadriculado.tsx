@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { Comision } from '@/tipos'
 import { utcAHoraArg, utcAFechaArgDate } from '@/lib/fechas'
+import { DIAS_SEMANA_LABELS } from '@/lib/constantes'
 
 // ─────────────────────────────────────────────
 //  TIPOS INTERNOS
@@ -44,7 +45,6 @@ const TOTAL_HORAS = HORA_FIN_GRILLA - HORA_INICIO_GRILLA // 15
 // pixeles por hora en la grilla de tiempo
 const PX_POR_HORA = 64
 
-const DIAS_SEMANA_LABELS = ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom']
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 // mapeo de nombre de dia a numero javascript (0=dom 1=lun ...)
