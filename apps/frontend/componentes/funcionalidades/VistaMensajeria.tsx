@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getSupabaseClient, getAccessToken } from "@/src/lib/supabase";
+import { getSupabaseClient } from "@/src/lib/supabase";
 import { api } from "@/servicios/api";
-import { Usuario, Conversacion, MensajeAPI } from "@/tipos";
+import { useAuth } from "@/src/context/AuthContext";
+import { Conversacion, MensajeAPI } from "@/tipos";
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 
@@ -110,8 +111,7 @@ export default function VistaMensajeria() {
     ? Number(searchParams.get("conv"))
     : null;
 
-  const [yo, setYo] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const { token, yo } = useAuth();
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
   const [mensajes, setMensajes] = useState<MensajeAPI[]>([]);
   const [busqueda, setBusqueda] = useState("");
@@ -124,20 +124,13 @@ export default function VistaMensajeria() {
   // ─── CARGA INICIAL ────────────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!token) return;
     let vivo = true;
-    getAccessToken().then(async (t) => {
-      if (!t || !vivo) return;
-      setToken(t);
-      const [me, convs] = await Promise.all([
-        api.get<Usuario>("/auth/me", t),
-        api.get<Conversacion[]>("/conversaciones/mis-conversaciones", t),
-      ]);
-      if (!vivo) return;
-      setYo(me);
-      setConversaciones(convs);
+    api.get<Conversacion[]>("/conversaciones/mis-conversaciones", token).then((convs) => {
+      if (vivo) setConversaciones(convs);
     });
     return () => { vivo = false; };
-  }, []);
+  }, [token]);
 
   // ─── CARGAR MENSAJES ──────────────────────────────────────────────────────
 

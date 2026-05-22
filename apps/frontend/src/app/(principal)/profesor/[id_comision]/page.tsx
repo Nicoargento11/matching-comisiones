@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { getSupabaseClient } from '@/src/lib/supabase'
+import { useAuth } from '@/src/context/AuthContext'
 import { comisionServicio } from '@/servicios/comisionServicio'
 import CalendarioCuadriculado from '@/componentes/funcionalidades/CalendarioCuadriculado'
 import SeccionAlumnos from './_componentes/SeccionAlumnos'
@@ -15,7 +15,7 @@ export default function PaginaGestionComision() {
   const params = useParams()
   const id_comision = params.id_comision as string
 
-  const [token, setToken] = useState<string | null>(null)
+  const { token } = useAuth()
   const [comisionInicial, setComisionInicial] = useState<Comision | null>(null)
   const [cargando, setCargando] = useState(true)
   const [tabActivo, setTabActivo] = useState<'alumnos' | 'calendario'>('alumnos')
@@ -29,11 +29,9 @@ export default function PaginaGestionComision() {
   const [eventosDadosDeBaja, setEventosDadosDeBaja] = useState<Evento[]>([])
 
   useEffect(() => {
+    if (!token) return
     async function cargar() {
-      const { data } = await getSupabaseClient().auth.getSession()
-      const t = data.session?.access_token ?? null
-      setToken(t)
-      const c = await comisionServicio.obtenerPorId(Number(id_comision), t ?? undefined)
+      const c = await comisionServicio.obtenerPorId(Number(id_comision), token ?? undefined)
       setComisionInicial(c)
       const todos = (c.usuarios ?? []) as UsuarioInComision[]
       setAlumnos(todos.filter((u) => u.estado === 'ACTIVO'))
@@ -44,7 +42,7 @@ export default function PaginaGestionComision() {
       setEventosDadosDeBaja((c.eventos ?? []).filter((e) => !e.activo))
     }
     cargar().catch(() => setComisionInicial(null)).finally(() => setCargando(false))
-  }, [id_comision])
+  }, [id_comision, token])
 
   if (cargando) {
     return (

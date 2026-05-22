@@ -9,9 +9,8 @@ import CalendarioCuadriculado from './CalendarioCuadriculado'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
-import { api } from '@/servicios/api'
-import { getSupabaseClient } from '@/src/lib/supabase'
-import { Comision, Usuario } from '@/tipos'
+import { useAuth } from '@/src/context/AuthContext'
+import { Comision } from '@/tipos'
 
 const nombreDiaCorto = (nombre: string) => nombre.substring(0, 3)
 
@@ -22,27 +21,19 @@ export default function ContenidoCalendario() {
   const materiaFiltradaIdStr = searchParams.get('materia')
   const materiaFiltradaId = materiaFiltradaIdStr ? Number(materiaFiltradaIdStr) : undefined
 
+  const { token, yo } = useAuth()
   const [comisiones, setComisiones] = useState<Comision[]>([])
 
   useEffect(() => {
+    if (!token || !yo) return
     let activo = true
 
-    async function cargar() {
-      const { data } = await getSupabaseClient().auth.getSession()
-      const token = data.session?.access_token
-      if (!token || !activo) return
-
-      const usuario = await api.get<Usuario>('/auth/me', token)
-      if (!activo) return
-
-      const data2 = await usuarioServicio.obtenerComisiones(usuario.id_usuario, token)
-      if (activo) setComisiones(data2)
-    }
-
-    cargar().catch(() => { if (activo) setComisiones([]) })
+    usuarioServicio.obtenerComisiones(yo.id_usuario, token)
+      .then((data) => { if (activo) setComisiones(data) })
+      .catch(() => { if (activo) setComisiones([]) })
 
     return () => { activo = false }
-  }, [])
+  }, [token, yo])
 
   const materiaFiltrada = materiaFiltradaId != null
     ? comisiones.find((c) => c.materia.id_materia === materiaFiltradaId)?.materia
