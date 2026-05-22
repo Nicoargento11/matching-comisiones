@@ -4,6 +4,7 @@
 // soporta horarios recurrentes y eventos de fecha especifica
 import { useState } from 'react'
 import { Comision } from '@/tipos'
+import { utcAHoraArg, utcAFechaArgDate } from '@/lib/fechas'
 
 // ─────────────────────────────────────────────
 //  TIPOS INTERNOS
@@ -83,24 +84,6 @@ function horaAMinutos(hora: string): number {
   return h * 60 + m
 }
 
-// Argentina es UTC-3 sin horario de verano (desde 1999)
-// Extrae la hora local Argentina de un ISO datetime del backend
-function utcAHoraArgentina(isoStr: string): string {
-  const d = new Date(isoStr)
-  // restamos 3hs al UTC para obtener hora Argentina
-  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
-  const h = String(local.getUTCHours()).padStart(2, '0')
-  const m = String(local.getUTCMinutes()).padStart(2, '0')
-  return `${h}:${m}`
-}
-
-// Extrae la fecha local Argentina (sin distorsion de timezone del browser)
-function utcAFechaArgentina(isoStr: string): Date {
-  const d = new Date(isoStr)
-  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
-  // construimos la fecha usando los componentes UTC del datetime ajustado
-  return new Date(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate())
-}
 
 // ─────────────────────────────────────────────
 //  GENERADOR DE EVENTOS
@@ -159,11 +142,11 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
     // eventos de fecha especifica (parciales entregas etc)
     for (const evento of comision.eventos ?? []) {
       if (evento.activo === false) continue
-      const fechaInicio = utcAFechaArgentina(evento.fecha_inicio)
+      const fechaInicio = utcAFechaArgDate(evento.fecha_inicio)
       if (fechaInicio >= inicio && fechaInicio <= fin) {
         // extraemos la hora en timezone Argentina (UTC-3, sin DST)
-        const hiStr = utcAHoraArgentina(evento.fecha_inicio)
-        const hfStr = evento.fecha_fin ? utcAHoraArgentina(evento.fecha_fin) : null
+        const hiStr = utcAHoraArg(evento.fecha_inicio)
+        const hfStr = evento.fecha_fin ? utcAHoraArg(evento.fecha_fin) : null
         const horaInicioMin = horaAMinutos(hiStr)
         const horaFinMin = hfStr && hfStr !== '00:00' ? horaAMinutos(hfStr) : horaInicioMin + 60
         if (horaInicioMin < HORA_INICIO_GRILLA * 60 || horaFinMin > HORA_FIN_GRILLA * 60) continue

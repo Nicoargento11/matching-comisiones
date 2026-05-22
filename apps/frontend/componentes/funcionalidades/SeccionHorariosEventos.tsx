@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
+import { utcAFechaArg, utcAHoraArg } from '@/lib/fechas'
 import { Evento, Horario, TipoEvento } from '@/tipos'
 
 type Filtro = 'ambos' | 'horarios' | 'eventos'
@@ -19,18 +20,6 @@ const colorEvento: Record<TipoEvento, string> = {
   PARCIAL: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   ENTREGA_TP: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   OTRO: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400',
-}
-
-function utcAFechaArg(isoStr: string): string {
-  const d = new Date(isoStr)
-  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
-  return local.toISOString().slice(0, 10)
-}
-
-function utcAHoraArg(isoStr: string): string {
-  const d = new Date(isoStr)
-  const local = new Date(d.getTime() - 3 * 60 * 60 * 1000)
-  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`
 }
 
 interface Props {
