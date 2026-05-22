@@ -127,6 +127,10 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
           if (horario.activo === false) continue
           if (horario.dia.nombre_dia.toLowerCase() !== diaNombre) continue
 
+          const hiMin = horaAMinutos(horario.hora_inicio)
+          const hfMin = horaAMinutos(horario.hora_fin)
+          if (hiMin < HORA_INICIO_GRILLA * 60 || hfMin > HORA_FIN_GRILLA * 60) continue
+
           const etiquetaFormato =
             horario.formato === 'TEORICO' ? 'Teorico'
             : horario.formato === 'PRACTICO' ? 'Practico'
@@ -140,8 +144,8 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
             titulo: comision.materia.nombre_materia,
             subtitulo,
             fecha: new Date(cursor),
-            horaInicio: horaAMinutos(horario.hora_inicio),
-            horaFin: horaAMinutos(horario.hora_fin),
+            horaInicio: hiMin,
+            horaFin: hfMin,
             color: comision.materia.color,
             materiaId: comision.materia.id_materia,
             tipo: horario.formato,
@@ -162,6 +166,7 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
         const hfStr = evento.fecha_fin ? utcAHoraArgentina(evento.fecha_fin) : null
         const horaInicioMin = horaAMinutos(hiStr)
         const horaFinMin = hfStr && hfStr !== '00:00' ? horaAMinutos(hfStr) : horaInicioMin + 60
+        if (horaInicioMin < HORA_INICIO_GRILLA * 60 || horaFinMin > HORA_FIN_GRILLA * 60) continue
         eventos.push({
           id: String(evento.id_evento),
           titulo: evento.titulo,

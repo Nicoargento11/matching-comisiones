@@ -1,5 +1,8 @@
 import type { FormatoClase, TipoEvento } from '@/tipos'
 
+export const HORA_MINIMA_HORARIO = '07:00'
+export const HORA_MAXIMA_HORARIO = '22:00'
+
 export const DIAS_SEMANA = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado']
 export const FORMATOS_CLASE: FormatoClase[] = ['TEORICO', 'PRACTICO', 'TEORICO_PRACTICO']
 export const MODALIDADES = ['presencial', 'virtual', 'hibrido']

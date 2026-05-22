@@ -5,7 +5,7 @@ import { comisionServicio } from '@/servicios/comisionServicio'
 import BannerExito from '@/componentes/interfaz/BannerExito'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
-import { DIAS_SEMANA, FORMATOS_CLASE, MODALIDADES, etiquetaFormato } from '@/lib/constantes'
+import { DIAS_SEMANA, FORMATOS_CLASE, HORA_MAXIMA_HORARIO, HORA_MINIMA_HORARIO, MODALIDADES, etiquetaFormato } from '@/lib/constantes'
 import type { Comision, FormatoClase, Horario } from '@/tipos'
 
 type Props = {
@@ -91,6 +91,14 @@ export default function SeccionHorarios({ horariosIniciales, horariosBajaInicial
     }
     if (nuevoHorario.hora_inicio >= nuevoHorario.hora_fin) {
       setErrorHorario('La hora de fin debe ser mayor a la hora de inicio')
+      return
+    }
+    if (nuevoHorario.hora_inicio < HORA_MINIMA_HORARIO) {
+      setErrorHorario(`El horario no puede empezar antes de las ${HORA_MINIMA_HORARIO}`)
+      return
+    }
+    if (nuevoHorario.hora_fin > HORA_MAXIMA_HORARIO) {
+      setErrorHorario(`El horario no puede terminar después de las ${HORA_MAXIMA_HORARIO}`)
       return
     }
     if (!validarSolape()) return
