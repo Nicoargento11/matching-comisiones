@@ -43,7 +43,7 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
     if (!token) return
     let vivo = true
     api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token).then((convs) => {
-      if (vivo) setConversaciones(convs)
+      if (vivo) setConversaciones(Array.isArray(convs) ? convs : [])
     })
     return () => { vivo = false }
   }, [token])
