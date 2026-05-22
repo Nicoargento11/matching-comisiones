@@ -1,48 +1,37 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/src/context/AuthContext'
-import { comisionServicio } from '@/servicios/comisionServicio'
 import CalendarioCuadriculado from '@/componentes/funcionalidades/CalendarioCuadriculado'
 import SeccionAlumnos from './_componentes/SeccionAlumnos'
 import SeccionHorarios from './_componentes/SeccionHorarios'
 import SeccionEventos from './_componentes/SeccionEventos'
-import type { Comision, Evento, Horario, UsuarioInComision } from '@/tipos'
+import { useComisionData } from './_hooks/useComisionData'
 
 export default function PaginaGestionComision() {
   const params = useParams()
   const id_comision = params.id_comision as string
 
   const { token } = useAuth()
-  const [comisionInicial, setComisionInicial] = useState<Comision | null>(null)
-  const [cargando, setCargando] = useState(true)
   const [tabActivo, setTabActivo] = useState<'alumnos' | 'calendario'>('alumnos')
   const [filtroCalendario, setFiltroCalendario] = useState<'ambos' | 'horarios' | 'eventos'>('ambos')
 
-  const [alumnos, setAlumnos] = useState<UsuarioInComision[]>([])
-  const [alumnosDadosDeBaja, setAlumnosDadosDeBaja] = useState<UsuarioInComision[]>([])
-  const [horarios, setHorarios] = useState<Horario[]>([])
-  const [horariosDadosDeBaja, setHorariosDadosDeBaja] = useState<Horario[]>([])
-  const [eventos, setEventos] = useState<Evento[]>([])
-  const [eventosDadosDeBaja, setEventosDadosDeBaja] = useState<Evento[]>([])
-
-  useEffect(() => {
-    if (!token) return
-    async function cargar() {
-      const c = await comisionServicio.obtenerPorId(Number(id_comision), token ?? undefined)
-      setComisionInicial(c)
-      const todos = (c.usuarios ?? []) as UsuarioInComision[]
-      setAlumnos(todos.filter((u) => u.estado === 'ACTIVO'))
-      setAlumnosDadosDeBaja(todos.filter((u) => u.estado === 'BAJA'))
-      setHorarios(c.horarios.filter((h) => h.activo))
-      setHorariosDadosDeBaja(c.horarios.filter((h) => !h.activo))
-      setEventos((c.eventos ?? []).filter((e) => e.activo))
-      setEventosDadosDeBaja((c.eventos ?? []).filter((e) => !e.activo))
-    }
-    cargar().catch(() => setComisionInicial(null)).finally(() => setCargando(false))
-  }, [id_comision, token])
+  const {
+    comision,
+    comisionActualizada,
+    cargando,
+    alumnos,
+    alumnosDadosDeBaja,
+    horarios,
+    horariosDadosDeBaja,
+    eventos,
+    eventosDadosDeBaja,
+    onAlumnosChange,
+    onHorariosChange,
+    onEventosChange,
+  } = useComisionData(id_comision, token)
 
   if (cargando) {
     return (
@@ -52,7 +41,7 @@ export default function PaginaGestionComision() {
     )
   }
 
-  if (!comisionInicial) {
+  if (!comision || !comisionActualizada) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <p className="text-gray-500 dark:text-gray-400">No se encontro la comision</p>
@@ -63,8 +52,7 @@ export default function PaginaGestionComision() {
     )
   }
 
-  const profesor = comisionInicial.profesor
-  const comisionActualizada: Comision = { ...comisionInicial, horarios, eventos }
+  const profesor = comision.profesor
 
   return (
     <div className="space-y-8">
@@ -85,11 +73,11 @@ export default function PaginaGestionComision() {
 
         <div
           className="self-start rounded-xl border px-4 py-3"
-          style={{ borderColor: comisionInicial.materia.color + '40', backgroundColor: comisionInicial.materia.color + '10' }}
+          style={{ borderColor: comision.materia.color + '40', backgroundColor: comision.materia.color + '10' }}
         >
-          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{comisionInicial.materia.nombre_materia}</p>
-          {comisionInicial.numero_comision != null && (
-            <p className="text-xs text-gray-500 dark:text-gray-400">Comision {comisionInicial.numero_comision}</p>
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{comision.materia.nombre_materia}</p>
+          {comision.numero_comision != null && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">Comision {comision.numero_comision}</p>
           )}
         </div>
       </div>
@@ -120,12 +108,9 @@ export default function PaginaGestionComision() {
         <SeccionAlumnos
           alumnosIniciales={alumnos}
           alumnosBajaIniciales={alumnosDadosDeBaja}
-          comision={comisionInicial}
+          comision={comision}
           token={token}
-          onAlumnosChange={(activos, bajas) => {
-            setAlumnos(activos)
-            setAlumnosDadosDeBaja(bajas)
-          }}
+          onAlumnosChange={onAlumnosChange}
         />
       )}
 
@@ -158,12 +143,9 @@ export default function PaginaGestionComision() {
             <SeccionHorarios
               horariosIniciales={horarios}
               horariosBajaIniciales={horariosDadosDeBaja}
-              comision={comisionInicial}
+              comision={comision}
               token={token}
-              onHorariosChange={(activos, bajas) => {
-                setHorarios(activos)
-                setHorariosDadosDeBaja(bajas)
-              }}
+              onHorariosChange={onHorariosChange}
             />
           )}
 
@@ -171,19 +153,16 @@ export default function PaginaGestionComision() {
             <SeccionEventos
               eventosIniciales={eventos}
               eventosBajaIniciales={eventosDadosDeBaja}
-              comision={comisionInicial}
+              comision={comision}
               token={token}
-              onEventosChange={(activos, bajas) => {
-                setEventos(activos)
-                setEventosDadosDeBaja(bajas)
-              }}
+              onEventosChange={onEventosChange}
             />
           )}
 
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">Vista del calendario</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">Asi ven los estudiantes el calendario de esta comision</p>
-            <CalendarioCuadriculado comisiones={[comisionActualizada]} materiaDestacadaId={comisionInicial.materia.id_materia} />
+            <CalendarioCuadriculado comisiones={[comisionActualizada]} materiaDestacadaId={comision.materia.id_materia} />
           </section>
         </div>
       )}
