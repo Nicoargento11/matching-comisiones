@@ -5,6 +5,7 @@ import { api } from '@/servicios/api'
 import { comisionServicio } from '@/servicios/comisionServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
 import BannerExito from '@/componentes/interfaz/BannerExito'
+import { esEstudiante } from '@/lib/roles'
 import type { Comision, ComisionConflicto, EstadoInscripcion, ItemComisionConEstado, UsuarioBusquedaPorDni, UsuarioInComision } from '@/tipos'
 
 type Props = {
@@ -100,9 +101,9 @@ export default function SeccionAlumnos({ alumnosIniciales, alumnosBajaIniciales,
     try {
       setBuscando(true)
       const usuario = await usuarioServicio.obtenerPorDni(dniNum, token ?? undefined) as UsuarioBusquedaPorDni
-      const esEstudiante = usuario.roles?.some((r) => r.rol?.nombre_rol === 'estudiante')
+      const esEstudianteUsuario = esEstudiante(usuario.roles)
 
-      if (!esEstudiante) {
+      if (!esEstudianteUsuario) {
         setErrorAlumno('El usuario no tiene rol de estudiante y no puede ser inscripto')
         return
       }

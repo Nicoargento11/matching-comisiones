@@ -5,6 +5,7 @@ import { useAuth } from "@/src/context/AuthContext";
 import Avatar from "@/componentes/interfaz/Avatar";
 import RolBadge from "@/componentes/interfaz/RolBadge";
 import { formatearHora, formatearFechaCorta } from "@/lib/fechas";
+import { obtenerRol } from "@/lib/roles";
 import { useMensajeria } from "./_hooks/useMensajeria";
 
 export default function VistaMensajeria() {
@@ -103,11 +104,7 @@ export default function VistaMensajeria() {
                 if (!otro) return null;
                 const ultimo = conv.mensajes[0];
                 const esActiva = convId === conv.id_conversacion;
-                const rol = otro.roles?.some((r) => r.rol?.nombre_rol === "profesor")
-                  ? "Profe"
-                  : otro.roles?.some((r) => r.rol?.nombre_rol === "estudiante")
-                  ? "Alumno"
-                  : null;
+                const rol = obtenerRol(otro.roles);
                 return (
                   <button
                     key={conv.id_conversacion}

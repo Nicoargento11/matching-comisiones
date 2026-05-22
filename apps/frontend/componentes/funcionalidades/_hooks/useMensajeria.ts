@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 import { getSupabaseClient } from '@/src/lib/supabase'
 import { api } from '@/servicios/api'
 import type { Conversacion, MensajeAPI, Usuario } from '@/tipos'
+import { obtenerRol } from '@/lib/roles'
 
 export interface ToastMensaje {
   id: number
@@ -11,13 +12,6 @@ export interface ToastMensaje {
   idUsuario: number
   contenido: string
   convId: number
-}
-
-function obtenerRol(roles?: { rol?: { nombre_rol?: string } }[]): string | null {
-  if (!roles?.length) return null
-  if (roles.some((r) => r.rol?.nombre_rol === 'profesor')) return 'Profe'
-  if (roles.some((r) => r.rol?.nombre_rol === 'estudiante')) return 'Alumno'
-  return null
 }
 
 function tieneNoLeidos(conv: Conversacion, yoId: number): boolean {
