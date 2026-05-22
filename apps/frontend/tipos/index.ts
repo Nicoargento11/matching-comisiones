@@ -90,6 +90,10 @@ export interface Comision {
   usuarios?: UsuarioInComision[]
 }
 
+// lo que devuelve el backend: igual a Comision pero sin color en materia
+// (color se genera en el frontend a partir de id_materia)
+export type ComisionSinColor = Omit<Comision, 'materia'> & { materia: Omit<Materia, 'color'> }
+
 // usuario generico para el sistema de mensajeria
 export interface UsuarioMensajeria {
   id_usuario: number

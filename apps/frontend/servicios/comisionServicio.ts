@@ -1,20 +1,13 @@
 import { api } from "./api";
-import { Comision, Horario, Evento } from "@/tipos";
-import { colorPorMateria } from "@/lib/colores";
-
-function agregarColor(c: any): Comision {
-  return {
-    ...c,
-    materia: { ...c.materia, color: colorPorMateria(c.materia.id_materia) },
-  };
-}
+import { ComisionSinColor, Horario, Evento } from "@/tipos";
+import { agregarColor } from "@/lib/colores";
 
 export const comisionServicio = {
   obtenerTodas: (token?: string) =>
-    api.get<any[]>("/comisiones", token).then((cs) => cs.map(agregarColor)),
+    api.get<ComisionSinColor[]>("/comisiones", token).then((cs) => cs.map(agregarColor)),
 
   obtenerPorId: (id: number, token?: string) =>
-    api.get<any>(`/comisiones/${id}`, token).then(agregarColor),
+    api.get<ComisionSinColor>(`/comisiones/${id}`, token).then(agregarColor),
 
   agregarEstudiante: (idComision: number, idUsuario: number, token?: string) =>
     api.post<void>(

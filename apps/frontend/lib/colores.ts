@@ -1,3 +1,5 @@
+import type { Comision, ComisionSinColor } from '@/tipos'
+
 const PALETA = [
   '#6366f1', '#10b981', '#f59e0b', '#ef4444',
   '#8b5cf6', '#3b82f6', '#f97316', '#ec4899',
@@ -5,4 +7,8 @@ const PALETA = [
 
 export function colorPorMateria(idMateria: number): string {
   return PALETA[idMateria % PALETA.length]
+}
+
+export function agregarColor(c: ComisionSinColor): Comision {
+  return { ...c, materia: { ...c.materia, color: colorPorMateria(c.materia.id_materia) } }
 }
