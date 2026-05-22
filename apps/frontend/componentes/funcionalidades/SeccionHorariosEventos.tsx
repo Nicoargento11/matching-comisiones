@@ -4,23 +4,10 @@ import { useState } from 'react'
 import InsigniaHorario from '@/componentes/interfaz/InsigniaHorario'
 import InsigniaModalidad from '@/componentes/interfaz/InsigniaModalidad'
 import { utcAFechaArg, utcAHoraArg } from '@/lib/fechas'
+import { colorEvento, etiquetaEvento } from '@/lib/constantes'
 import { Evento, Horario, TipoEvento } from '@/tipos'
 
 type Filtro = 'ambos' | 'horarios' | 'eventos'
-
-const etiquetaEvento: Record<TipoEvento, string> = {
-  CLASE: 'Clase',
-  PARCIAL: 'Parcial',
-  ENTREGA_TP: 'Entrega TP',
-  OTRO: 'Otro',
-}
-
-const colorEvento: Record<TipoEvento, string> = {
-  CLASE: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-  PARCIAL: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  ENTREGA_TP: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  OTRO: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400',
-}
 
 interface Props {
   horarios: Horario[]
