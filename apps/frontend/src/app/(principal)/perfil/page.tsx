@@ -4,16 +4,7 @@ import CardMateria from '@/componentes/interfaz/CardMateria'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
 import { getServerSession } from '@/lib/supabase-server'
 import { api } from '@/servicios/api'
-import { Comision } from '@/tipos'
-
-type UsuarioConRoles = {
-  id_usuario: number
-  nombre_usuario: string
-  apellido_usuario: string
-  correo: string
-  activo: boolean
-  roles: { id_rol: number; nombre_rol: string }[]
-}
+import { Comision, UsuarioPerfil } from '@/tipos'
 
 export default async function PaginaPerfil() {
   const session = await getServerSession()
@@ -21,9 +12,9 @@ export default async function PaginaPerfil() {
 
   const token = session.access_token
 
-  let usuario: UsuarioConRoles | null = null
+  let usuario: UsuarioPerfil | null = null
   try {
-    usuario = await api.get<UsuarioConRoles>('/auth/me', token)
+    usuario = await api.get<UsuarioPerfil>('/auth/me', token)
   } catch {
     // backend no disponible — mostramos error sin redirigir (evita loop con middleware)
     return (
