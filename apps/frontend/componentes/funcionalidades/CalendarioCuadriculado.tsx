@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { Comision } from '@/tipos'
 import { utcAHoraArg, utcAFechaArgDate } from '@/lib/fechas'
-import { DIAS_SEMANA_LABELS } from '@/lib/constantes'
+import { DIAS_SEMANA_LABELS, etiquetaFormato } from '@/lib/constantes'
 
 // ─────────────────────────────────────────────
 //  TIPOS INTERNOS
@@ -114,13 +114,9 @@ function generarEventos(comisiones: Comision[], inicio: Date, fin: Date): Evento
           const hfMin = horaAMinutos(horario.hora_fin)
           if (hiMin < HORA_INICIO_GRILLA * 60 || hfMin > HORA_FIN_GRILLA * 60) continue
 
-          const etiquetaFormato =
-            horario.formato === 'TEORICO' ? 'Teorico'
-            : horario.formato === 'PRACTICO' ? 'Practico'
-            : 'Teo/Prac'
           const subtitulo = horario.aula
-            ? `${etiquetaFormato} · ${horario.aula.nombre}`
-            : etiquetaFormato
+            ? `${etiquetaFormato[horario.formato]} · ${horario.aula.nombre}`
+            : etiquetaFormato[horario.formato]
 
           eventos.push({
             id: `${horario.id_horario_comision}-${cursor.toISOString().split('T')[0]}`,
