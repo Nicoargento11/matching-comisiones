@@ -154,10 +154,11 @@ export default function VistaMensajeria() {
 
   useEffect(() => {
     if (!convId || !yo || !token) return;
+    let vivo = true;
     api
       .patch(`/conversaciones/${convId}/leido`, { id_usuario: yo.id_usuario }, token)
       .then(() => {
-        // actualizar el ultimo_leido local para que desaparezca el dot
+        if (!vivo) return;
         setConversaciones((prev) =>
           prev.map((c) =>
             c.id_conversacion !== convId
@@ -174,6 +175,7 @@ export default function VistaMensajeria() {
         );
       })
       .catch(() => {});
+    return () => { vivo = false; };
   }, [convId, yo, token]);
 
   // ─── REALTIME: mensajes en conv activa ───────────────────────────────────
