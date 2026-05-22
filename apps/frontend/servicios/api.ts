@@ -1,6 +1,13 @@
 // cliente HTTP base — todas las llamadas al backend pasan por aqui
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002/api";
 
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 async function request<T>(
   path: string,
   token?: string,
@@ -17,7 +24,7 @@ async function request<T>(
   });
   if (!res.ok) {
     const mensaje = await res.text().catch(() => res.statusText);
-    throw new Error(`[${res.status}] ${path}: ${mensaje}`);
+    throw new ApiError(res.status, `[${res.status}] ${path}: ${mensaje}`);
   }
   if (res.status === 204 || res.headers.get("content-length") === "0") {
     return undefined as T;
