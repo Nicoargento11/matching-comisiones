@@ -1,371 +1,36 @@
 "use client";
 
-import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/src/lib/supabase";
-import { api } from "@/servicios/api";
 import { useAuth } from "@/src/context/AuthContext";
-import { Conversacion, MensajeAPI } from "@/tipos";
-
-// ─── UTILS ───────────────────────────────────────────────────────────────────
-
-function formatearHora(ts: string) {
-  return new Date(ts).toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatearFechaCorta(ts: string) {
-  const fecha = new Date(ts);
-  const hoy = new Date();
-  const ayer = new Date(hoy);
-  ayer.setDate(hoy.getDate() - 1);
-  if (fecha.toDateString() === hoy.toDateString()) return "Hoy";
-  if (fecha.toDateString() === ayer.toDateString()) return "Ayer";
-  return fecha.toLocaleDateString("es-AR", { day: "numeric", month: "long" });
-}
-
-function obtenerRol(roles?: { rol?: { nombre_rol?: string } }[]): string | null {
-  if (!roles?.length) return null;
-  if (roles.some((r) => r.rol?.nombre_rol === "profesor")) return "Profe";
-  if (roles.some((r) => r.rol?.nombre_rol === "estudiante")) return "Alumno";
-  return null;
-}
-
-function tieneNoLeidos(conv: Conversacion, yoId: number): boolean {
-  const ultimo = conv.mensajes[0];
-  if (!ultimo) return false;
-  // si el último mensaje lo mandé yo, ya lo "leí"
-  if (ultimo.id_usuario_emisor === yoId) return false;
-  const miPart = conv.participantes.find((p) => p.usuario.id_usuario === yoId);
-  if (!miPart?.ultimo_leido) return true; // nunca leí nada
-  return new Date(ultimo.creado_en) > new Date(miPart.ultimo_leido);
-}
-
-// ─── SUB-COMPONENTES ─────────────────────────────────────────────────────────
-
-const PALETA = [
-  "#6366f1", "#10b981", "#f59e0b", "#ef4444",
-  "#8b5cf6", "#3b82f6", "#f97316", "#ec4899",
-];
-
-function Avatar({
-  id,
-  nombre,
-  apellido,
-  size = "md",
-}: {
-  id: number;
-  nombre: string;
-  apellido: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const color = PALETA[id % PALETA.length];
-  const cls = {
-    sm: "h-8 w-8 text-xs",
-    md: "h-10 w-10 text-sm",
-    lg: "h-12 w-12 text-base",
-  }[size];
-  return (
-    <div
-      className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${cls}`}
-      style={{ backgroundColor: color }}
-    >
-      {nombre[0]}
-      {apellido[0]}
-    </div>
-  );
-}
-
-function RolBadge({ rol }: { rol: string }) {
-  const esProfe = rol === "Profe";
-  return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${
-        esProfe
-          ? "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"
-          : "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
-      }`}
-    >
-      {esProfe ? "Profesor" : "Alumno"}
-    </span>
-  );
-}
-
-interface Toast {
-  id: number;
-  nombre: string;
-  apellido: string;
-  idUsuario: number;
-  contenido: string;
-  convId: number;
-}
-
-// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
+import Avatar from "@/componentes/interfaz/Avatar";
+import RolBadge from "@/componentes/interfaz/RolBadge";
+import { formatearHora, formatearFechaCorta } from "@/lib/fechas";
+import { useMensajeria } from "./_hooks/useMensajeria";
 
 export default function VistaMensajeria() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const convId = searchParams.get("conv")
-    ? Number(searchParams.get("conv"))
-    : null;
+  const convId = searchParams.get("conv") ? Number(searchParams.get("conv")) : null;
 
   const { token, yo } = useAuth();
-  const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
-  const [mensajes, setMensajes] = useState<MensajeAPI[]>([]);
-  const [busqueda, setBusqueda] = useState("");
-  const [nuevoMensaje, setNuevoMensaje] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const mensajesRef = useRef<HTMLDivElement>(null);
-  const toastContRef = useRef(0);
-
-  // ─── CARGA INICIAL ────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!token) return;
-    let vivo = true;
-    api.get<Conversacion[]>("/conversaciones/mis-conversaciones", token).then((convs) => {
-      if (vivo) setConversaciones(convs);
-    });
-    return () => { vivo = false; };
-  }, [token]);
-
-  // ─── CARGAR MENSAJES ──────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!convId || !token) { setMensajes([]); return; }
-    let vivo = true;
-    api.get<MensajeAPI[]>(`/mensajes/${convId}`, token).then((data) => {
-      if (vivo) setMensajes(data);
-    });
-    return () => { vivo = false; };
-  }, [convId, token]);
-
-  // ─── MARCAR COMO LEÍDO ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!convId || !yo || !token) return;
-    let vivo = true;
-    api
-      .patch(`/conversaciones/${convId}/leido`, { id_usuario: yo.id_usuario }, token)
-      .then(() => {
-        if (!vivo) return;
-        setConversaciones((prev) =>
-          prev.map((c) =>
-            c.id_conversacion !== convId
-              ? c
-              : {
-                  ...c,
-                  participantes: c.participantes.map((p) =>
-                    p.usuario.id_usuario === yo.id_usuario
-                      ? { ...p, ultimo_leido: new Date().toISOString() }
-                      : p,
-                  ),
-                },
-          ),
-        );
-      })
-      .catch(() => {});
-    return () => { vivo = false; };
-  }, [convId, yo, token]);
-
-  // ─── REALTIME: mensajes en conv activa ───────────────────────────────────
-
-  useEffect(() => {
-    if (!convId || !yo) return;
-    const conv = conversaciones.find((c) => c.id_conversacion === convId);
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`conv-${convId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "mensaje" },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          const row = payload.new as {
-            id_mensaje: number;
-            contenido: string;
-            creado_en: string;
-            id_conversacion: number;
-            id_usuario_emisor: number;
-          };
-          if (row.id_conversacion !== convId || row.id_usuario_emisor === yo.id_usuario) return;
-          const emisorData = conv?.participantes.find(
-            (p) => p.usuario.id_usuario === row.id_usuario_emisor,
-          )?.usuario;
-          if (!emisorData) return;
-          setMensajes((prev) =>
-            prev.some((m) => m.id_mensaje === row.id_mensaje)
-              ? prev
-              : [...prev, { id_mensaje: row.id_mensaje, contenido: row.contenido, creado_en: row.creado_en, emisor: emisorData }],
-          );
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [convId, yo, conversaciones]);
-
-  // ─── REALTIME: notificaciones de otras conversaciones ────────────────────
-
-  useEffect(() => {
-    if (!yo || conversaciones.length === 0) return;
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel("all-convs-notify")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "mensaje" },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          const row = payload.new as {
-            id_mensaje: number;
-            contenido: string;
-            creado_en: string;
-            id_conversacion: number;
-            id_usuario_emisor: number;
-          };
-          // solo si NO es la conv activa y NO lo mandé yo
-          if (row.id_conversacion === convId) return;
-          if (row.id_usuario_emisor === yo.id_usuario) return;
-          // buscar la conv y el emisor
-          const conv = conversaciones.find((c) => c.id_conversacion === row.id_conversacion);
-          if (!conv) return;
-          const emisor = conv.participantes.find(
-            (p) => p.usuario.id_usuario === row.id_usuario_emisor,
-          )?.usuario;
-          if (!emisor) return;
-
-          // actualizar dot en la lista de convs
-          setConversaciones((prev) =>
-            prev.map((c) =>
-              c.id_conversacion !== row.id_conversacion
-                ? c
-                : {
-                    ...c,
-                    mensajes: [
-                      { contenido: row.contenido, creado_en: row.creado_en, id_usuario_emisor: row.id_usuario_emisor },
-                    ],
-                  },
-            ),
-          );
-
-          // mostrar toast
-          const toastId = ++toastContRef.current;
-          setToasts((prev) => [
-            ...prev,
-            {
-              id: toastId,
-              nombre: emisor.nombre_usuario,
-              apellido: emisor.apellido_usuario,
-              idUsuario: emisor.id_usuario,
-              contenido: row.contenido,
-              convId: row.id_conversacion,
-            },
-          ]);
-          setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== toastId));
-          }, 5000);
-        },
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [yo, conversaciones, convId]);
-
-  // ─── SCROLL ───────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (mensajesRef.current)
-      mensajesRef.current.scrollTop = mensajesRef.current.scrollHeight;
-  }, [mensajes.length, convId]);
-
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
-
-  function otroParticipante(conv: Conversacion) {
-    return (
-      conv.participantes.find((p) => p.usuario.id_usuario !== yo?.id_usuario)
-        ?.usuario ?? null
-    );
-  }
-
-  const convActiva = conversaciones.find((c) => c.id_conversacion === convId) ?? null;
-  const contactoActivo = convActiva ? otroParticipante(convActiva) : null;
-  const rolContactoActivo = contactoActivo
-    ? obtenerRol(contactoActivo.roles)
-    : null;
-
-  const convsFiltradas = conversaciones
-    .filter((c) => {
-      const otro = otroParticipante(c);
-      return (
-        otro &&
-        `${otro.nombre_usuario} ${otro.apellido_usuario}`
-          .toLowerCase()
-          .includes(busqueda.toLowerCase())
-      );
-    })
-    // conversaciones con no leídos primero
-    .sort((a, b) => {
-      const aUnread = yo ? tieneNoLeidos(a, yo.id_usuario) : false;
-      const bUnread = yo ? tieneNoLeidos(b, yo.id_usuario) : false;
-      if (aUnread === bUnread) return 0;
-      return aUnread ? -1 : 1;
-    });
-
-  const fechasUnicas = [
-    ...new Set(mensajes.map((m) => new Date(m.creado_en).toDateString())),
-  ];
-
-  // ─── ACCIONES ─────────────────────────────────────────────────────────────
-
-  async function enviarMensaje(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!nuevoMensaje.trim() || !convId || !yo || !token || enviando) return;
-    const contenido = nuevoMensaje.trim();
-    setNuevoMensaje("");
-    setEnviando(true);
-    try {
-      const nuevo = await api.post<{
-        id_mensaje: number;
-        contenido: string;
-        creado_en: string;
-      }>(
-        "/mensajes",
-        { contenido, id_conversacion: convId, id_usuario_emisor: yo.id_usuario },
-        token,
-      );
-      setMensajes((prev) =>
-        prev.some((m) => m.id_mensaje === nuevo.id_mensaje)
-          ? prev
-          : [
-              ...prev,
-              { ...nuevo, emisor: { id_usuario: yo.id_usuario, nombre_usuario: yo.nombre_usuario, apellido_usuario: yo.apellido_usuario } },
-            ],
-      );
-      // actualizar preview en lista
-      setConversaciones((prev) =>
-        prev.map((c) =>
-          c.id_conversacion !== convId
-            ? c
-            : { ...c, mensajes: [{ contenido, creado_en: nuevo.creado_en, id_usuario_emisor: yo.id_usuario }] },
-        ),
-      );
-    } catch {
-      setNuevoMensaje(contenido);
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  function manejarTecla(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      enviarMensaje();
-    }
-  }
-
-  // ─── RENDER ───────────────────────────────────────────────────────────────
+  const {
+    mensajes,
+    busqueda,
+    setBusqueda,
+    nuevoMensaje,
+    setNuevoMensaje,
+    enviando,
+    toasts,
+    setToasts,
+    mensajesRef,
+    contactoActivo,
+    rolContactoActivo,
+    convsFiltradas,
+    fechasUnicas,
+    otroParticipante,
+    enviarMensaje,
+    manejarTecla,
+  } = useMensajeria(convId, token, yo);
 
   return (
     <>
@@ -381,19 +46,12 @@ export default function VistaMensajeria() {
             className="pointer-events-auto flex w-72 items-start gap-3 rounded-xl border border-gray-200 bg-white p-3.5 shadow-lg ring-1 ring-black/5 transition-all hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
             style={{ animation: "slideInRight 0.3s ease" }}
           >
-            <Avatar
-              id={t.idUsuario}
-              nombre={t.nombre}
-              apellido={t.apellido}
-              size="sm"
-            />
+            <Avatar id={t.idUsuario} nombre={t.nombre} apellido={t.apellido} size="sm" />
             <div className="min-w-0 flex-1 text-left">
               <p className="text-xs font-semibold text-gray-900 dark:text-gray-100">
                 {t.nombre} {t.apellido}
               </p>
-              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
-                {t.contenido}
-              </p>
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400">{t.contenido}</p>
             </div>
             <span className="mt-0.5 flex h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
           </button>
@@ -437,9 +95,7 @@ export default function VistaMensajeria() {
           <div className="flex-1 overflow-y-auto">
             {convsFiltradas.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                {conversaciones.length === 0
-                  ? "No tenés conversaciones aún"
-                  : "No se encontraron conversaciones"}
+                No se encontraron conversaciones
               </p>
             ) : (
               convsFiltradas.map((conv) => {
@@ -447,53 +103,34 @@ export default function VistaMensajeria() {
                 if (!otro) return null;
                 const ultimo = conv.mensajes[0];
                 const esActiva = convId === conv.id_conversacion;
-                const unread = yo ? tieneNoLeidos(conv, yo.id_usuario) : false;
-                const rol = obtenerRol(otro.roles);
+                const rol = otro.roles?.some((r) => r.rol?.nombre_rol === "profesor")
+                  ? "Profe"
+                  : otro.roles?.some((r) => r.rol?.nombre_rol === "estudiante")
+                  ? "Alumno"
+                  : null;
                 return (
                   <button
                     key={conv.id_conversacion}
-                    onClick={() =>
-                      router.push(`/mensajes?conv=${conv.id_conversacion}`)
-                    }
+                    onClick={() => router.push(`/mensajes?conv=${conv.id_conversacion}`)}
                     className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
                       esActiva ? "bg-indigo-50 dark:bg-indigo-900/20" : ""
                     }`}
                   >
-                    <div className="relative">
-                      <Avatar
-                        id={otro.id_usuario}
-                        nombre={otro.nombre_usuario}
-                        apellido={otro.apellido_usuario}
-                        size="md"
-                      />
-                      {unread && (
-                        <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75" />
-                          <span className="relative inline-flex h-3 w-3 rounded-full bg-indigo-500" />
-                        </span>
-                      )}
-                    </div>
+                    <Avatar
+                      id={otro.id_usuario}
+                      nombre={otro.nombre_usuario}
+                      apellido={otro.apellido_usuario}
+                      size="md"
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span
-                          className={`block truncate text-sm ${
-                            unread
-                              ? "font-bold text-gray-900 dark:text-gray-50"
-                              : "font-medium text-gray-700 dark:text-gray-200"
-                          }`}
-                        >
+                        <span className="block truncate text-sm font-medium text-gray-700 dark:text-gray-200">
                           {otro.nombre_usuario} {otro.apellido_usuario}
                         </span>
                         {rol && <RolBadge rol={rol} />}
                       </div>
                       {ultimo && (
-                        <p
-                          className={`truncate text-xs ${
-                            unread
-                              ? "font-medium text-gray-700 dark:text-gray-300"
-                              : "text-gray-400 dark:text-gray-500"
-                          }`}
-                        >
+                        <p className="truncate text-xs text-gray-400 dark:text-gray-500">
                           {ultimo.contenido}
                         </p>
                       )}
@@ -525,12 +162,10 @@ export default function VistaMensajeria() {
         </div>
 
         {/* ── Panel derecho: chat ── */}
-        <div
-          className={`flex flex-1 flex-col ${convId !== null ? "flex" : "hidden sm:flex"}`}
-        >
+        <div className={`flex flex-1 flex-col ${convId !== null ? "flex" : "hidden sm:flex"}`}>
           {contactoActivo ? (
             <>
-              {/* Header del chat */}
+              {/* Header */}
               <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
                 <button
                   onClick={() => router.push("/mensajes")}
@@ -548,12 +183,9 @@ export default function VistaMensajeria() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                      {contactoActivo.nombre_usuario}{" "}
-                      {contactoActivo.apellido_usuario}
+                      {contactoActivo.nombre_usuario} {contactoActivo.apellido_usuario}
                     </h3>
-                    {rolContactoActivo && (
-                      <RolBadge rol={rolContactoActivo} />
-                    )}
+                    {rolContactoActivo && <RolBadge rol={rolContactoActivo} />}
                   </div>
                 </div>
               </div>
@@ -572,8 +204,7 @@ export default function VistaMensajeria() {
                       size="lg"
                     />
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {contactoActivo.nombre_usuario}{" "}
-                      {contactoActivo.apellido_usuario}
+                      {contactoActivo.nombre_usuario} {contactoActivo.apellido_usuario}
                     </p>
                     {rolContactoActivo && <RolBadge rol={rolContactoActivo} />}
                     <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -599,8 +230,7 @@ export default function VistaMensajeria() {
                           const prevMsg = idx > 0 ? delDia[idx - 1] : null;
                           const mostrarNombre =
                             !esMio &&
-                            (idx === 0 ||
-                              prevMsg?.emisor.id_usuario !== msg.emisor.id_usuario);
+                            (idx === 0 || prevMsg?.emisor.id_usuario !== msg.emisor.id_usuario);
                           return (
                             <div
                               key={msg.id_mensaje}
