@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { api } from '@/servicios/api'
 import { comisionServicio } from '@/servicios/comisionServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
 import BannerExito from '@/componentes/interfaz/BannerExito'
 import { esEstudiante } from '@/lib/roles'
-import type { Comision, ComisionConflicto, EstadoInscripcion, ItemComisionConEstado, UsuarioBusquedaPorDni, UsuarioInComision } from '@/tipos'
+import type { Comision, ComisionConflicto, EstadoInscripcion, UsuarioBusquedaPorDni, UsuarioInComision } from '@/tipos'
 
 type Props = {
   alumnosIniciales: UsuarioInComision[]
@@ -116,10 +115,7 @@ export default function SeccionAlumnos({ alumnosIniciales, alumnosBajaIniciales,
         return
       }
 
-      const todasLasComisiones = await api.get<ItemComisionConEstado[]>(
-        `/usuarios/${usuario.id_usuario}/comisiones`,
-        token ?? undefined,
-      )
+      const todasLasComisiones = await usuarioServicio.obtenerComisionesConEstado(usuario.id_usuario, token ?? undefined)
       const conflictos: ComisionConflicto[] = todasLasComisiones
         .filter(
           ({ estado, comision: c }) =>
