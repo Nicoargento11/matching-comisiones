@@ -68,16 +68,28 @@ matching-comisiones/
 │   │       ├── seed.ts
 │   │       └── migrations/
 │   └── frontend/               # Frontend Next.js (App Router)
-│       ├── src/app/
-│       │   ├── (principal)/    # Rutas autenticadas
-│       │   │   ├── comision/   # Vista alumno de su comisión
-│       │   │   ├── calendario/ # Calendario del alumno
-│       │   │   ├── mensajes/   # Mensajería
-│       │   │   ├── perfil/     # Perfil de usuario
-│       │   │   └── profesor/   # Vista y gestión del profesor
-│       │   │       └── [id_comision]/  # Gestión detallada de comisión
-│       │   └── login/
+│       ├── src/
+│       │   ├── app/
+│       │   │   ├── (principal)/    # Rutas autenticadas
+│       │   │   │   ├── comision/   # Vista alumno de su comisión
+│       │   │   │   ├── calendario/ # Calendario del alumno
+│       │   │   │   ├── mensajes/   # Mensajería
+│       │   │   │   ├── perfil/     # Perfil de usuario
+│       │   │   │   └── profesor/   # Vista y gestión del profesor
+│       │   │   │       └── [id_comision]/  # Gestión detallada de comisión
+│       │   │   └── login/
+│       │   ├── context/        # Contextos React globales (AuthContext)
+│       │   └── lib/            # Cliente Supabase para componentes cliente
 │       ├── componentes/        # Componentes reutilizables
+│       │   ├── funcionalidades/  # Componentes de negocio (calendario, mensajería, etc.)
+│       │   │   └── _hooks/     # Custom hooks extraídos de los componentes
+│       │   └── interfaz/       # Componentes de UI genéricos (Avatar, RolBadge, etc.)
+│       ├── lib/                # Utilidades y constantes compartidas
+│       │   ├── constantes.ts   # Días, formatos, tipos de evento, etiquetas
+│       │   ├── fechas.ts       # Formateo y conversión UTC → horario Argentina
+│       │   ├── colores.ts      # Generación de color por materia + agregarColor()
+│       │   ├── roles.ts        # Helpers de roles (esEstudiante, obtenerRol)
+│       │   └── supabase-server.ts  # Cliente Supabase para Server Components
 │       ├── servicios/          # Capa de servicios (API client)
 │       └── tipos/              # Tipos TypeScript compartidos
 └── docs/                       # Documentación académica
