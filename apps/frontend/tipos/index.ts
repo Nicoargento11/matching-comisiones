@@ -141,3 +141,27 @@ export interface PerfilEstudiante {
   usuario: Usuario
   comisiones: Comision[]
 }
+
+export type UsuarioBusquedaPorDni = {
+  id_usuario: number
+  nombre_usuario: string
+  apellido_usuario: string
+  correo: string
+  roles?: { rol?: { nombre_rol?: string } }[]
+}
+
+export type ItemComisionConEstado = {
+  estado: string
+  comision: {
+    id_comision: number
+    numero_comision?: number | null
+    nombre_comision?: string | null
+    materia: { id_materia: number }
+  }
+}
+
+export type ComisionConflicto = {
+  id_comision: number
+  numero_comision?: number | null
+  nombre_comision?: string | null
+}
