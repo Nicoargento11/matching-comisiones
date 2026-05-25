@@ -10,6 +10,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { JWTVerifyGetKey } from 'jose';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../../decorators/public.decorator';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 type JwtClaims = {
   sub: string;
@@ -29,6 +30,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
   ) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
 
@@ -61,11 +63,20 @@ export class AuthGuard implements CanActivate {
         issuer: this.issuer,
         audience: this.audience,
       });
-      request['user'] = payload;
+      const roles = await this.obtenerRolesUsuario(payload.sub);
+      request['user'] = { ...payload, roles };
       return true;
     } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }
+  }
+
+  private async obtenerRolesUsuario(supabaseAuthId: string): Promise<string[]> {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { supabase_auth_id: supabaseAuthId },
+      select: { roles: { select: { rol: { select: { nombre_rol: true } } } } },
+    });
+    return usuario?.roles.map((r) => r.rol.nombre_rol) ?? [];
   }
 
   private extractBearerToken(request: Request): string | null {

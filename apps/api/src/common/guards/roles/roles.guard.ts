@@ -17,12 +17,9 @@ import type { Request } from 'express';
  *
  * Flujo:
  * 1. Si no hay @Roles → cualquier usuario autenticado pasa (AuthGuard ya validó JWT)
- * 2. Si hay @Roles → compara el claim `role` del JWT contra los roles requeridos
- * 3. Si el rol es 'profesor' y el endpoint opera sobre una comisión (parámetro :id_comision),
- *    verifica que el usuario sea el profesor asignado a ESA comisión (CO-01/CO-02)
- *
- * Confía en JWT `role` claim para verificación genérica (no consulta DB por roles).
- * Solo consulta DB para verificación profesor-comisión cuando hace falta.
+ * 2. Si hay @Roles → verifica contra user.roles (array resuelto desde DB por AuthGuard)
+ * 3. Si el usuario tiene rol 'profesor' y el endpoint tiene :id_comision,
+ *    verifica que sea el profesor asignado a ESA comisión (CO-01/CO-02)
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -52,17 +49,17 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    // Verificar rol genérico contra JWT claim
-    const userRole = user.role;
-    if (!userRole || !requiredRoles.includes(userRole)) {
+    // Verificar roles contra los obtenidos de la DB (adjuntados por AuthGuard)
+    const userRoles: string[] = user.roles ?? [];
+    if (!requiredRoles.some((r) => userRoles.includes(r))) {
       throw new ForbiddenException(
-        `Rol requerido: ${requiredRoles.join(', ')}. Rol actual: ${userRole ?? 'ninguno'}`,
+        `Rol requerido: ${requiredRoles.join(', ')}. Rol actual: ${userRoles.join(', ') || 'ninguno'}`,
       );
     }
 
     // Verificación profesor-comisión (CO-01/CO-02)
     // Solo si el rol es profesor y el endpoint tiene :id_comision en los parámetros
-    if (userRole === 'profesor') {
+    if (userRoles.includes('profesor')) {
       const idComision = this.extraerIdComision(request);
       if (idComision !== null) {
         await this.comisionesService.verificarProfesorDeComision(

@@ -4,6 +4,7 @@ export type CurrentUserClaims = {
   sub: string;
   email?: string;
   role?: string;
+  roles: string[];
   [key: string]: unknown;
 };
 type RequestWithUser = Request & {
