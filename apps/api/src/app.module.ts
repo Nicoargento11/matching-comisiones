@@ -12,6 +12,8 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { ComisionesModule } from './modules/comisiones/comisiones.module';
 import { ProfesoresModule } from './modules/profesores/profesores.module';
 import { MensajesModule } from './modules/mensajes/mensajes.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+import { IntercambiosModule } from './modules/intercambios/intercambios.module';
 import { validationSchema } from './config/validation.schema';
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { validationSchema } from './config/validation.schema';
     ComisionesModule,
     ProfesoresModule,
     MensajesModule,
+    NotificacionesModule,
+    IntercambiosModule,
   ],
   controllers: [AppController],
   providers: [

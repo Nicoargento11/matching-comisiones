@@ -37,7 +37,7 @@ describe('RolesGuard', () => {
     it('debe permitir acceso si no hay roles requeridos', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);
 
-      const ctx = mockExecutionContext({ sub: 'auth-1', role: 'estudiante' });
+      const ctx = mockExecutionContext({ sub: 'auth-1', roles: ['estudiante'] });
       const result = await guard.canActivate(ctx);
 
       expect(result).toBe(true);
@@ -48,7 +48,7 @@ describe('RolesGuard', () => {
     it('debe permitir acceso si el rol coincide', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['profesor']);
 
-      const ctx = mockExecutionContext({ sub: 'auth-1', role: 'profesor' });
+      const ctx = mockExecutionContext({ sub: 'auth-1', roles: ['profesor'] });
       const result = await guard.canActivate(ctx);
 
       expect(result).toBe(true);
@@ -57,15 +57,15 @@ describe('RolesGuard', () => {
     it('debe lanzar ForbiddenException si el rol no coincide', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
 
-      const ctx = mockExecutionContext({ sub: 'auth-1', role: 'estudiante' });
+      const ctx = mockExecutionContext({ sub: 'auth-1', roles: ['estudiante'] });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     });
 
-    it('debe lanzar ForbiddenException si no hay rol en el token', async () => {
+    it('debe lanzar ForbiddenException si no hay roles en el token', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
 
-      const ctx = mockExecutionContext({ sub: 'auth-1' }); // sin role
+      const ctx = mockExecutionContext({ sub: 'auth-1', roles: [] });
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     });
@@ -79,7 +79,7 @@ describe('RolesGuard', () => {
       );
 
       const ctx = mockExecutionContext(
-        { sub: 'auth-1', role: 'profesor' },
+        { sub: 'auth-1', roles: ['profesor'] },
         { id_comision: '1' },
       );
       const result = await guard.canActivate(ctx);
@@ -100,7 +100,7 @@ describe('RolesGuard', () => {
       );
 
       const ctx = mockExecutionContext(
-        { sub: 'auth-1', role: 'profesor' },
+        { sub: 'auth-1', roles: ['profesor'] },
         { id_comision: '1' },
       );
 
@@ -110,7 +110,7 @@ describe('RolesGuard', () => {
     it('no debe llamar a verificarProfesorDeComision si no hay id_comision en params', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['profesor']);
 
-      const ctx = mockExecutionContext({ sub: 'auth-1', role: 'profesor' }, {});
+      const ctx = mockExecutionContext({ sub: 'auth-1', roles: ['profesor'] }, {});
       await guard.canActivate(ctx);
 
       expect(
@@ -118,11 +118,11 @@ describe('RolesGuard', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('no debe verificar profesor-comisión si el rol es admin', async () => {
+    it('no debe verificar profesor-comisión si el rol no es profesor', async () => {
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['admin']);
 
       const ctx = mockExecutionContext(
-        { sub: 'auth-1', role: 'admin' },
+        { sub: 'auth-1', roles: ['admin'] },
         { id_comision: '1' },
       );
       const result = await guard.canActivate(ctx);

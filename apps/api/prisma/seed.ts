@@ -967,43 +967,51 @@ async function main() {
     prisma.estado.create({ data: { nombre_estado: 'PENDIENTE' } }),
     prisma.estado.create({ data: { nombre_estado: 'ACEPTADO' } }),
     prisma.estado.create({ data: { nombre_estado: 'RECHAZADO' } }),
+    prisma.estado.create({ data: { nombre_estado: 'COMPLETADO' } }),
   ]);
 
   // ── INTERCAMBIOS ──────────────────────────────────────────────────────────
-  // Juan (IS2 Com1) ↔ Lucas (IS2 Com2) — pendiente
-  // María (IS2 Com1) ↔ Martín (IS2 Com2) — aceptado
-  // Sofía (MD Com1) ↔ Nicolás (MD Com2) — pendiente
-  // Camila (Arq Com1) ↔ Facundo (Arq Com2) — rechazado
-  const [juan, maria, lucas, sofia, martin, nicolas, camila, facundo] = alumnos;
+  // Para que un intercambio sea válido, AMBOS usuarios deben estar inscritos
+  // en sus respectivas comisiones (FK a usuario_comision).
+  // Grupo A (0-9): IS2_1, MD_1, Arq_1
+  // Grupo B (10-19): IS2_2, MD_2, BD_1
+  // Grupo C (20-29): IS2_3, Arq_2, Redes
+  const [juan, maria, lucas, sofia, , , camila] = alumnos;     // Grupo A
+  const [florencia, ignacio, , , micaela] = alumnos.slice(10); // Grupo B (índices 10-14)
+  const [rocio] = alumnos.slice(20);                           // Grupo C (índice 20)
 
   await prisma.intercambio.createMany({
     data: [
+      // Juan (IS2_1) ↔ Florencia (IS2_2) — pendiente
       {
         id_estado: estadoPendiente.id_estado,
         id_usuario_ofrece: juan.id_usuario,
         id_comision_ofrece: comIS2_1.id_comision,
-        id_usuario_destino: lucas.id_usuario,
+        id_usuario_destino: florencia.id_usuario,
         id_comision_destino: comIS2_2.id_comision,
       },
+      // María (IS2_1) ↔ Ignacio (IS2_2) — aceptado
       {
         id_estado: estadoAceptado.id_estado,
         id_usuario_ofrece: maria.id_usuario,
         id_comision_ofrece: comIS2_1.id_comision,
-        id_usuario_destino: martin.id_usuario,
+        id_usuario_destino: ignacio.id_usuario,
         id_comision_destino: comIS2_2.id_comision,
       },
+      // Sofía (MD_1) ↔ Micaela (MD_2) — pendiente
       {
         id_estado: estadoPendiente.id_estado,
         id_usuario_ofrece: sofia.id_usuario,
         id_comision_ofrece: comMD_1.id_comision,
-        id_usuario_destino: nicolas.id_usuario,
+        id_usuario_destino: micaela.id_usuario,
         id_comision_destino: comMD_2.id_comision,
       },
+      // Camila (Arq_1) ↔ Rocío (Arq_2) — rechazado
       {
         id_estado: estadoRechazado.id_estado,
         id_usuario_ofrece: camila.id_usuario,
         id_comision_ofrece: comArq_1.id_comision,
-        id_usuario_destino: facundo.id_usuario,
+        id_usuario_destino: rocio.id_usuario,
         id_comision_destino: comArq_2.id_comision,
       },
     ],
@@ -1022,25 +1030,32 @@ async function main() {
   await prisma.notificacion.createMany({
     data: [
       {
-        tipo: 'INTERCAMBIO',
+        tipo: 'MATCHING_COMISION',
+        titulo: 'Solicitud de intercambio recibida',
         mensaje: 'Juan Pérez quiere intercambiar IS2 Com1 por la tuya',
-        id_usuario: lucas.id_usuario,
+        datos: { id_comision: comIS2_1.id_comision, nombre_comision: 'IS2 — Com. 1', nombre_materia: 'Ingeniería de Software 2' },
+        id_usuario: florencia.id_usuario,
       },
       {
-        tipo: 'INTERCAMBIO',
-        mensaje: 'María García aceptó el intercambio de IS2',
-        id_usuario: martin.id_usuario,
+        tipo: 'MATCHING_COMISION',
+        titulo: 'Cambio de comisión completado',
+        mensaje: 'Tu intercambio de IS2 fue completado exitosamente.',
+        datos: { id_comision: comIS2_2.id_comision, nombre_comision: 'IS2 — Com. 2', nombre_materia: 'Ingeniería de Software 2' },
+        id_usuario: ignacio.id_usuario,
       },
       {
-        tipo: 'INTERCAMBIO',
+        tipo: 'MATCHING_COMISION',
+        titulo: 'Solicitud de intercambio rechazada',
         mensaje: 'Camila Sánchez rechazó tu solicitud de intercambio',
-        id_usuario: facundo.id_usuario,
+        datos: { id_comision: comArq_1.id_comision, nombre_comision: 'Arq — Com. 1', nombre_materia: 'Arquitectura de Computadoras' },
+        id_usuario: rocio.id_usuario,
       },
       ...alumnos
         .slice(0, 8)
         .map((a) => ({
           tipo: 'SISTEMA' as const,
-          mensaje: 'Bienvenido al sistema de intercambio de comisiones',
+          titulo: 'Bienvenido al SIC',
+          mensaje: 'Tu cuenta fue activada correctamente. Ya podés ver tus materias asignadas.',
           id_usuario: a.id_usuario,
         })),
     ],

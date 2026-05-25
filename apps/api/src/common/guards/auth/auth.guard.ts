@@ -63,20 +63,28 @@ export class AuthGuard implements CanActivate {
         issuer: this.issuer,
         audience: this.audience,
       });
-      const roles = await this.obtenerRolesUsuario(payload.sub);
-      request['user'] = { ...payload, roles };
+      const datosUsuario = await this.obtenerDatosUsuario(payload.sub);
+      request['user'] = { ...payload, roles: datosUsuario.roles, id_usuario: datosUsuario.id_usuario };
       return true;
     } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
 
-  private async obtenerRolesUsuario(supabaseAuthId: string): Promise<string[]> {
+  private async obtenerDatosUsuario(
+    supabaseAuthId: string,
+  ): Promise<{ roles: string[]; id_usuario: number | null }> {
     const usuario = await this.prisma.usuario.findUnique({
       where: { supabase_auth_id: supabaseAuthId },
-      select: { roles: { select: { rol: { select: { nombre_rol: true } } } } },
+      select: {
+        id_usuario: true,
+        roles: { select: { rol: { select: { nombre_rol: true } } } },
+      },
     });
-    return usuario?.roles.map((r) => r.rol.nombre_rol) ?? [];
+    return {
+      id_usuario: usuario?.id_usuario ?? null,
+      roles: usuario?.roles.map((r) => r.rol.nombre_rol) ?? [],
+    };
   }
 
   private extractBearerToken(request: Request): string | null {

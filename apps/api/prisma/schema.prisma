@@ -19,8 +19,7 @@ enum EstadoInscripcion {
 
 enum TipoNotificacion {
   SISTEMA
-  INTERCAMBIO
-  COMPROBANTE
+  MATCHING_COMISION
 }
 
 enum TipoEvento {
@@ -233,21 +232,19 @@ model Comprobante {
   archivo_pdf_url  String
   id_intercambio   Int            @unique
   intercambio      Intercambio    @relation(fields: [id_intercambio], references: [id_intercambio], onDelete: Cascade)
-  notificaciones   Notificacion[]
-
   @@map("comprobante")
 }
 
 model Notificacion {
   id_notificacion Int              @id @default(autoincrement())
   tipo            TipoNotificacion
+  titulo          String
   mensaje         String
-  fecha           DateTime         @default(now())
+  creada_en       DateTime         @default(now())
+  datos           Json?
   leida           Boolean          @default(false)
   id_usuario      Int
-  id_comprobante  Int?
   usuario         Usuario          @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
-  comprobante     Comprobante?     @relation(fields: [id_comprobante], references: [id_comprobante], onDelete: SetNull)
 
   @@index([id_usuario, leida])
   @@map("notificacion")
