@@ -11,7 +11,7 @@ const USUARIO_SELECT = {
   correo: true,
   activo: true,
   fecha_registro: true,
-  roles: { select: { rol: { select: { nombre_rol: true } } } },
+  roles: { select: { rol: { select: { id_rol: true, nombre_rol: true } } } },
 } as const;
 
 /** Select simplificado sin relaciones de roles */

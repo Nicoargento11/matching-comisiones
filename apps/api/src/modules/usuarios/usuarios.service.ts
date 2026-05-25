@@ -29,7 +29,7 @@ export class UsuariosService {
         `No existe usuario con id_usuario=${idUsuario}`,
       );
     }
-    return estudiante;
+    return { ...estudiante, roles: estudiante.roles.map((r) => r.rol) };
   }
 
   /**
@@ -52,7 +52,7 @@ export class UsuariosService {
         `No existe usuario con DNI=${dni}`,
       );
     }
-    return usuario;
+    return { ...usuario, roles: usuario.roles.map((r) => r.rol) };
   }
 
   /**

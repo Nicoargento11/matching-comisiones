@@ -16,7 +16,12 @@ describe('UsuariosService', () => {
     correo: 'juan@test.com',
     activo: true,
     fecha_registro: new Date(),
-    roles: [{ rol: { nombre_rol: 'estudiante' } }],
+    roles: [{ rol: { id_rol: 1, nombre_rol: 'estudiante' } }],
+  };
+
+  const mockUsuarioAplanado = {
+    ...mockUsuario,
+    roles: [{ id_rol: 1, nombre_rol: 'estudiante' }],
   };
 
   const mockUsuarioSinRoles = {
@@ -61,7 +66,7 @@ describe('UsuariosService', () => {
       const result = await service.obtenerEstudiante(1);
 
       expect(repository.obtenerPorId).toHaveBeenCalledWith(1);
-      expect(result).toEqual(mockUsuario);
+      expect(result).toEqual(mockUsuarioAplanado);
     });
 
     it('debe lanzar NotFoundException cuando no existe', async () => {
@@ -83,7 +88,7 @@ describe('UsuariosService', () => {
       const result = await service.obtenerPorDni(12345678);
 
       expect(repository.obtenerPorDni).toHaveBeenCalledWith(12345678);
-      expect(result).toEqual(mockUsuario);
+      expect(result).toEqual(mockUsuarioAplanado);
     });
 
     it('debe lanzar NotFoundException cuando no existe', async () => {
