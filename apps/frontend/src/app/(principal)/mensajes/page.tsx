@@ -1,9 +1,8 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import VistaMensajeria from '@/componentes/funcionalidades/VistaMensajeria'
+import BotonVolver from '@/componentes/interfaz/BotonVolver'
 import { getServerSession } from '@/lib/supabase-server'
-import { api } from '@/servicios/api'
 
 function EsqueletoMensajeria() {
   return (
@@ -33,18 +32,9 @@ export default async function PaginaMensajes() {
   const session = await getServerSession()
   if (!session) redirect('/login')
 
-  const usuario = await api.get<{ roles: { nombre_rol: string }[] }>('/auth/me', session.access_token)
-  const esProfesor = usuario.roles.some((r) => r.nombre_rol === 'profesor')
-  const hrefVolver = esProfesor ? '/profesor' : '/perfil'
-
   return (
     <div className="space-y-4">
-      <Link
-        href={hrefVolver}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
-      >
-        ← Volver
-      </Link>
+      <BotonVolver />
       <Suspense fallback={<EsqueletoMensajeria />}>
         <VistaMensajeria />
       </Suspense>

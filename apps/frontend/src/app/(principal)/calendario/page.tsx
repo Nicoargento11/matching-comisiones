@@ -2,6 +2,7 @@
 // usa Suspense porque ContenidoCalendario necesita useSearchParams
 import { Suspense } from 'react'
 import ContenidoCalendario from '@/componentes/funcionalidades/ContenidoCalendario'
+import BotonVolver from '@/componentes/interfaz/BotonVolver'
 
 // esqueleto de carga mientras se resuelve el contenido
 function EsqueletoCalendario() {
@@ -19,8 +20,11 @@ function EsqueletoCalendario() {
 
 export default function PaginaCalendario() {
   return (
-    <Suspense fallback={<EsqueletoCalendario />}>
-      <ContenidoCalendario />
-    </Suspense>
+    <div className="space-y-4">
+      <BotonVolver />
+      <Suspense fallback={<EsqueletoCalendario />}>
+        <ContenidoCalendario />
+      </Suspense>
+    </div>
   )
 }
