@@ -146,17 +146,15 @@ export interface PerfilEstudiante {
   comisiones: Comision[]
 }
 
-// respuesta de GET /usuarios/dni/:id — roles anidados { rol: { nombre_rol } }
 export type UsuarioBusquedaPorDni = {
   id_usuario: number
   nombre_usuario: string
   apellido_usuario: string
   correo: string
-  roles?: { rol?: { nombre_rol?: string } }[]
+  roles?: { id_rol?: number; nombre_rol?: string }[]
 }
 
-// respuesta de GET /auth/me — roles planos { id_rol, nombre_rol }
-// pendiente: coordinar con backend para unificar estructura con UsuarioBusquedaPorDni
+// GET /auth/me — misma estructura plana que UsuarioBusquedaPorDni
 export type UsuarioPerfil = {
   id_usuario: number
   nombre_usuario: string
