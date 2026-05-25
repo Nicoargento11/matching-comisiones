@@ -27,6 +27,17 @@ export function utcAFechaArg(isoStr: string): string {
   return local.toISOString().slice(0, 10)
 }
 
+export function tiempoRelativo(isoStr: string): string {
+  const diffMs = Date.now() - new Date(isoStr).getTime()
+  const minutos = Math.floor(diffMs / 60_000)
+  if (minutos < 1) return 'ahora mismo'
+  if (minutos < 60) return `hace ${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  if (horas < 24) return `hace ${horas} h`
+  const dias = Math.floor(horas / 24)
+  return `hace ${dias} día${dias !== 1 ? 's' : ''}`
+}
+
 // Retorna un Date a medianoche hora local del browser para comparaciones de rango
 export function utcAFechaArgDate(isoStr: string): Date {
   const d = new Date(isoStr)

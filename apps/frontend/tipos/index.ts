@@ -179,3 +179,21 @@ export type ComisionConflicto = {
   numero_comision?: number | null
   nombre_comision?: string | null
 }
+
+export type TipoNotificacion = 'MATCHING_COMISION' | 'SISTEMA'
+
+export type NotificacionDatos = {
+  id_comision?: number
+  nombre_comision?: string
+  nombre_materia?: string
+}
+
+export interface Notificacion {
+  id_notificacion: number
+  tipo: TipoNotificacion
+  titulo: string
+  mensaje: string
+  leida: boolean
+  creada_en: string // ISO datetime
+  datos?: NotificacionDatos
+}

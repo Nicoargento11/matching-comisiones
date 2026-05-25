@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { useNotificaciones } from '@/src/context/NotificacionesContext'
 
 export default function Navbar() {
+  const { noLeidas } = useNotificaciones()
   const [oscuro, setOscuro] = useState(false)
   const [montado, setMontado] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -60,6 +62,22 @@ export default function Navbar() {
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path fillRule="evenodd" d="M3.43 2.524A41.29 41.29 0 0 1 10 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 0 1-5.183.501.78.78 0 0 0-.528.224l-3.579 3.58A.75.75 0 0 1 6 17.75v-2.824c-.528-.055-1.052-.12-1.57-.195C2.993 14.42 2 13.163 2 11.75V5.426c0-1.413.993-2.67 2.43-2.902Z" clipRule="evenodd" />
             </svg>
+          </Link>
+
+          <Link
+            href="/notificaciones"
+            aria-label={noLeidas > 0 ? `Notificaciones — ${noLeidas} sin leer` : 'Notificaciones'}
+            title="Notificaciones"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              <path d="M4.214 3.227a.75.75 0 0 0-1.156-.956 8.97 8.97 0 0 0-1.856 3.826.75.75 0 0 0 1.466.316 7.47 7.47 0 0 1 1.546-3.186ZM16.942 2.271a.75.75 0 0 0-1.157.956 7.47 7.47 0 0 1 1.547 3.186.75.75 0 0 0 1.466-.316 8.971 8.971 0 0 0-1.856-3.826ZM10 2a6 6 0 0 0-6 6v1.077a.75.75 0 0 1-.063.303L2.62 12.493a1 1 0 0 0 .894 1.507H7.5a2.5 2.5 0 0 0 5 0h4.987a1 1 0 0 0 .894-1.507L17.063 9.38A.75.75 0 0 1 17 9.077V8a6 6 0 0 0-6-6Z" />
+            </svg>
+            {noLeidas > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
+                {noLeidas > 99 ? '99+' : noLeidas}
+              </span>
+            )}
           </Link>
 
           {montado && (
