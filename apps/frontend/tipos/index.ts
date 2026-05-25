@@ -180,6 +180,17 @@ export type ComisionConflicto = {
   nombre_comision?: string | null
 }
 
+export type EstadoTarea = 'POR_HACER' | 'EN_PROGRESO' | 'COMPLETADO'
+export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA'
+
+export interface TareaTablero {
+  id_tarea: string
+  titulo: string
+  descripcion?: string
+  prioridad: PrioridadTarea
+  estado: EstadoTarea
+}
+
 export type TipoNotificacion = 'MATCHING_COMISION' | 'SISTEMA'
 
 export type NotificacionDatos = {
