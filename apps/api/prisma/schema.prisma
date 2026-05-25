@@ -58,7 +58,6 @@ model Usuario {
   nombre_usuario            String
   apellido_usuario          String
   correo                    String                     @unique
-  contrasena                String
   activo                    Boolean                    @default(true)
   fecha_registro            DateTime                   @default(now())
   // Si usan Supabase Auth, esto te sirve para mapear claim `sub`

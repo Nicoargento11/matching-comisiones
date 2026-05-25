@@ -47,29 +47,17 @@ async function limpiarAuthUsers() {
 async function main() {
   console.log('🧹 Limpiando base de datos...');
 
-  await prisma.recordatorioEvento.deleteMany();
-  await prisma.tarea.deleteMany();
-  await prisma.notificacion.deleteMany();
-  await prisma.comprobante.deleteMany();
-  await prisma.intercambio.deleteMany();
-  await prisma.mensaje.deleteMany();
-  await prisma.conversacionParticipante.deleteMany();
-  await prisma.conversacion.deleteMany();
-  await prisma.evento.deleteMany();
-  await prisma.horarioComision.deleteMany();
-  await prisma.usuarioComision.deleteMany();
-  await prisma.rolUsuario.deleteMany();
-  await prisma.comision.deleteMany();
-  await prisma.usuario.deleteMany();
-  await prisma.rol.deleteMany();
-  await prisma.materia.deleteMany();
-  await prisma.carrera.deleteMany();
-  await prisma.facultad.deleteMany();
-  await prisma.estado.deleteMany();
-  await prisma.dia.deleteMany();
-  await prisma.modalidad.deleteMany();
-  await prisma.aula.deleteMany();
-  await prisma.columnaTablero.deleteMany();
+  // TRUNCATE resetea las secuencias de autoincrement (RESTART IDENTITY).
+  // CASCADE maneja automáticamente el orden de dependencias entre tablas.
+  await prisma.$executeRaw`
+    TRUNCATE TABLE
+      recordatorio_evento, tarea, notificacion, comprobante, intercambio,
+      mensaje, conversacion_participante, conversacion, evento,
+      horario_comision, usuario_comision, rol_usuario, comision,
+      usuario, rol, materia, carrera, facultad, estado,
+      dia, modalidad, aula, columna_tablero
+    RESTART IDENTITY CASCADE
+  `;
   await limpiarAuthUsers();
 
   console.log('🌱 Creando estructura base...');
@@ -412,7 +400,6 @@ async function main() {
           nombre_usuario: d.nombre,
           apellido_usuario: d.apellido,
           correo: d.email,
-          contrasena: 'hashed',
           supabase_auth_id: authId,
         },
       });
@@ -429,7 +416,6 @@ async function main() {
           nombre_usuario: d.nombre,
           apellido_usuario: d.apellido,
           correo: d.email,
-          contrasena: 'hashed',
           supabase_auth_id: authId,
         },
       });
@@ -446,7 +432,6 @@ async function main() {
           nombre_usuario: d.nombre,
           apellido_usuario: d.apellido,
           correo: d.email,
-          contrasena: 'hashed',
           supabase_auth_id: authId,
         },
       });

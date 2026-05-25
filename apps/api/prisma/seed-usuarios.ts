@@ -92,7 +92,6 @@ async function main() {
         apellido_usuario:  u.apellido,
         dni:               u.dni,
         correo:            u.correo,
-        contrasena:        PASSWORD,
         supabase_auth_id:  authId,
       },
     });
