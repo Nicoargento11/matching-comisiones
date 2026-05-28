@@ -101,36 +101,42 @@ async function main() {
     prisma.materia.create({
       data: {
         nombre_materia: 'Ingeniería de Software 2',
+        color: '#6366f1',
         id_carrera: carreraIS.id_carrera,
       },
     }),
     prisma.materia.create({
       data: {
         nombre_materia: 'Matemática Discreta',
+        color: '#f59e0b',
         id_carrera: carreraIS.id_carrera,
       },
     }),
     prisma.materia.create({
       data: {
         nombre_materia: 'Arquitectura de Computadoras',
+        color: '#10b981',
         id_carrera: carreraIS.id_carrera,
       },
     }),
     prisma.materia.create({
       data: {
         nombre_materia: 'Base de Datos',
+        color: '#3b82f6',
         id_carrera: carreraInfo.id_carrera,
       },
     }),
     prisma.materia.create({
       data: {
         nombre_materia: 'Sistemas Operativos',
+        color: '#ef4444',
         id_carrera: carreraIS.id_carrera,
       },
     }),
     prisma.materia.create({
       data: {
         nombre_materia: 'Redes de Computadoras',
+        color: '#8b5cf6',
         id_carrera: carreraInfo.id_carrera,
       },
     }),

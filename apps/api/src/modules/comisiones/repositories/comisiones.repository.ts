@@ -10,7 +10,7 @@ export const COMISION_SELECT = {
   numero_comision: true,
   nombre_comision: true,
   cupo_maximo: true,
-  materia: { select: { id_materia: true, nombre_materia: true } },
+  materia: { select: { id_materia: true, nombre_materia: true, color: true } },
   profesor: {
     select: {
       id_usuario: true,

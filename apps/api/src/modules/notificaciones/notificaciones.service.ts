@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { NotFoundError } from '../../common/errors/business-error';
+import { ForbiddenError, NotFoundError } from '../../common/errors/business-error';
 import { NotificacionesRepository } from './repositories/notificaciones.repository';
 import { mapearNotificacionResponse } from './notificaciones.mapper';
 import { NotificacionResponseDto } from './dto/notificacion-response.dto';
@@ -24,10 +24,13 @@ export class NotificacionesService {
    * @returns La notificación actualizada
    * @throws NotFoundException si no existe la notificación
    */
-  async marcarSoloLeida(idNotificacion: number): Promise<NotificacionResponseDto> {
+  async marcarSoloLeida(idNotificacion: number, idUsuario: number): Promise<NotificacionResponseDto> {
     const notificacion = await this.notificacionesRepository.verificarExistencia(idNotificacion);
     if (!notificacion) {
       throw new NotFoundError('NOTIFICACION_NO_ENCONTRADA', 'Notificación no encontrada');
+    }
+    if (notificacion.id_usuario !== idUsuario) {
+      throw new ForbiddenError('NOTIFICACION_ACCESO_DENEGADO', 'No tenés acceso a esta notificación');
     }
     const actualizada = await this.notificacionesRepository.marcarLeida(idNotificacion);
     return mapearNotificacionResponse(actualizada);

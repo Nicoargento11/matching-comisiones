@@ -114,6 +114,7 @@ model Carrera {
 model Materia {
   id_materia     Int        @id @default(autoincrement())
   nombre_materia String
+  color          String     @default("#6366f1")
   id_carrera     Int
   carrera        Carrera    @relation(fields: [id_carrera], references: [id_carrera], onDelete: Restrict)
   comisiones     Comision[]

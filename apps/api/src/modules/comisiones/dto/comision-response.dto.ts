@@ -8,6 +8,9 @@ export class MateriaResponseDto {
 
   @Expose()
   nombre_materia: string;
+
+  @Expose()
+  color: string;
 }
 
 /** DTO simplificado de profesor dentro de comisión */
