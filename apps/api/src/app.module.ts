@@ -14,6 +14,7 @@ import { ProfesoresModule } from './modules/profesores/profesores.module';
 import { MensajesModule } from './modules/mensajes/mensajes.module';
 import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 import { IntercambiosModule } from './modules/intercambios/intercambios.module';
+import { TareasModule } from './modules/tareas/tareas.module';
 import { validationSchema } from './config/validation.schema';
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { validationSchema } from './config/validation.schema';
     MensajesModule,
     NotificacionesModule,
     IntercambiosModule,
+    TareasModule,
   ],
   controllers: [AppController],
   providers: [
