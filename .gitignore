@@ -44,3 +44,6 @@ generated/
 .tmp
 coverage/
 .nyc_output/
+
+# Project docs (local only)
+docs/
