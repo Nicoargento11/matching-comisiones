@@ -6,6 +6,7 @@ import {
   BadRequestError,
 } from '../../common/errors/business-error';
 import { ComisionesRepository } from './repositories/comisiones.repository';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { mapearComisionResponse } from './comisiones.mapper';
 import { ComisionResponseDto } from './dto/comision-response.dto';
 import { AddEstudianteDto } from './dto/add-estudiante.dto';
@@ -21,7 +22,10 @@ import {
 
 @Injectable()
 export class ComisionesService {
-  constructor(private readonly comisionesRepository: ComisionesRepository) {}
+  constructor(
+    private readonly comisionesRepository: ComisionesRepository,
+    private readonly notificacionesService: NotificacionesService,
+  ) {}
 
   /**
    * Obtiene todas las comisiones con paginación
@@ -140,15 +144,39 @@ export class ComisionesService {
       );
     }
     if (existing) {
-      return this.comisionesRepository.reactivarInscripcion(
+      const inscripcion = await this.comisionesRepository.reactivarInscripcion(
         dto.id_usuario,
         idComision,
       );
+      await this.notificacionesService.crearNotificacion({
+        id_usuario: dto.id_usuario,
+        tipo: 'SISTEMA',
+        titulo: 'Fuiste agregado a una comisión',
+        mensaje: `El profesor te inscribió en "${comision.nombre_comision ?? `Comisión ${idComision}`}"`,
+        datos: {
+          id_comision: comision.id_comision,
+          nombre_comision: comision.nombre_comision,
+          nombre_materia: comision.materia.nombre_materia,
+        },
+      });
+      return inscripcion;
     }
-    return this.comisionesRepository.crearInscripcion(
+    const inscripcion = await this.comisionesRepository.crearInscripcion(
       dto.id_usuario,
       idComision,
     );
+    await this.notificacionesService.crearNotificacion({
+      id_usuario: dto.id_usuario,
+      tipo: 'SISTEMA',
+      titulo: 'Fuiste agregado a una comisión',
+      mensaje: `El profesor te inscribió en "${comision.nombre_comision ?? `Comisión ${idComision}`}"`,
+      datos: {
+        id_comision: comision.id_comision,
+        nombre_comision: comision.nombre_comision,
+        nombre_materia: comision.materia.nombre_materia,
+      },
+    });
+    return inscripcion;
   }
 
   /**

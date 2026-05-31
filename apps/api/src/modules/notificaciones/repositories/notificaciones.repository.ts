@@ -73,6 +73,19 @@ export class NotificacionesRepository {
     });
   }
 
+  async crear(data: CrearNotificacionData) {
+    return this.prisma.notificacion.create({
+      data: {
+        id_usuario: data.id_usuario,
+        tipo: data.tipo,
+        titulo: data.titulo,
+        mensaje: data.mensaje,
+        datos: data.datos ?? undefined,
+      },
+      select: NOTIFICACION_SELECT,
+    });
+  }
+
   /**
    * Crea una notificación dentro de una transacción Prisma activa
    * @param tx - Cliente de transacción Prisma

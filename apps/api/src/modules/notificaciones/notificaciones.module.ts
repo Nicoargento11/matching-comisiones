@@ -6,6 +6,6 @@ import { NotificacionesRepository } from './repositories/notificaciones.reposito
 @Module({
   controllers: [NotificacionesController],
   providers: [NotificacionesService, NotificacionesRepository],
-  exports: [NotificacionesRepository],
+  exports: [NotificacionesRepository, NotificacionesService],
 })
 export class NotificacionesModule {}

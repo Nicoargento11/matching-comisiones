@@ -117,7 +117,12 @@ export class ComisionesRepository {
   async verificarExistencia(idComision: number) {
     return this.prisma.comision.findUnique({
       where: { id_comision: idComision },
-      select: { id_comision: true, id_materia: true },
+      select: {
+        id_comision: true,
+        id_materia: true,
+        nombre_comision: true,
+        materia: { select: { nombre_materia: true } },
+      },
     });
   }
 

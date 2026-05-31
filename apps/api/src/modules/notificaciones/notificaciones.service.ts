@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ForbiddenError, NotFoundError } from '../../common/errors/business-error';
-import { NotificacionesRepository } from './repositories/notificaciones.repository';
+import { NotificacionesRepository, CrearNotificacionData } from './repositories/notificaciones.repository';
 import { mapearNotificacionResponse } from './notificaciones.mapper';
 import { NotificacionResponseDto } from './dto/notificacion-response.dto';
 
 @Injectable()
 export class NotificacionesService {
   constructor(private readonly notificacionesRepository: NotificacionesRepository) {}
+
+  async crearNotificacion(data: CrearNotificacionData): Promise<void> {
+    await this.notificacionesRepository.crear(data);
+  }
 
   /**
    * Obtiene todas las notificaciones del usuario autenticado
