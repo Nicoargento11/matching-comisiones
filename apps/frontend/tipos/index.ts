@@ -146,22 +146,26 @@ export interface PerfilEstudiante {
   comisiones: Comision[]
 }
 
+export type Rol = {
+  id_rol: number
+  nombre_rol: string
+}
+
 export type UsuarioBusquedaPorDni = {
   id_usuario: number
   nombre_usuario: string
   apellido_usuario: string
   correo: string
-  roles?: { id_rol?: number; nombre_rol?: string }[]
+  roles: Rol[]
 }
 
-// GET /auth/me — misma estructura plana que UsuarioBusquedaPorDni
 export type UsuarioPerfil = {
   id_usuario: number
   nombre_usuario: string
   apellido_usuario: string
   correo: string
   activo: boolean
-  roles: { id_rol: number; nombre_rol: string }[]
+  roles: Rol[]
 }
 
 export type ItemComisionConEstado = {
