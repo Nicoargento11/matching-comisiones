@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateTareaDto {
@@ -19,4 +19,24 @@ export class CreateTareaDto {
   @IsOptional()
   @IsString()
   descripcion?: string;
+
+  @ApiPropertyOptional({ example: 90 })
+  @IsOptional()
+  @IsInt()
+  estimacion_min?: number;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  id_materia?: number;
+
+  @ApiPropertyOptional({ example: 3 })
+  @IsOptional()
+  @IsInt()
+  id_evento?: number;
+
+  @ApiPropertyOptional({ example: '2026-06-15T00:00:00.000Z' })
+  @IsOptional()
+  @IsString()
+  fecha_vencimiento?: string;
 }

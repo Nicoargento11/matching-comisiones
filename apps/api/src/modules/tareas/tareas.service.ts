@@ -32,6 +32,10 @@ export class TareasService {
       prioridad: dto.prioridad as PrioridadTarea,
       id_columna: columna.id_columna,
       descripcion: dto.descripcion,
+      estimacion_min: dto.estimacion_min,
+      id_materia: dto.id_materia,
+      id_evento: dto.id_evento,
+      fecha_vencimiento: dto.fecha_vencimiento ? new Date(dto.fecha_vencimiento) : undefined,
     });
 
     return mapearTareaTableroResponse(tarea);

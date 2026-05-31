@@ -7,8 +7,18 @@ const TAREA_SELECT = {
   titulo: true,
   descripcion: true,
   prioridad: true,
+  estimacion_min: true,
+  fecha_vencimiento: true,
+  id_materia: true,
+  id_evento: true,
   columna: {
     select: { nombre: true },
+  },
+  materia: {
+    select: { id_materia: true, nombre_materia: true },
+  },
+  evento: {
+    select: { id_evento: true, titulo: true, tipo_evento: true, fecha_inicio: true },
   },
 } as const;
 
@@ -38,6 +48,10 @@ export class TareasRepository {
       prioridad: PrioridadTarea;
       id_columna: number;
       descripcion?: string;
+      estimacion_min?: number;
+      id_materia?: number;
+      id_evento?: number;
+      fecha_vencimiento?: Date;
     },
   ) {
     return this.prisma.tarea.create({
@@ -47,6 +61,10 @@ export class TareasRepository {
         id_columna: data.id_columna,
         id_usuario: idUsuario,
         descripcion: data.descripcion,
+        estimacion_min: data.estimacion_min,
+        id_materia: data.id_materia,
+        id_evento: data.id_evento,
+        fecha_vencimiento: data.fecha_vencimiento,
       },
       select: TAREA_SELECT,
     });
