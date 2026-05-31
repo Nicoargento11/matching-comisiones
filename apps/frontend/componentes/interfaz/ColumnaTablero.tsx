@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { EstadoTarea, TareaTablero } from '@/tipos'
+import type { EstadoTarea, PrioridadTarea, TareaTablero } from '@/tipos'
 import TarjetaTarea from './TarjetaTarea'
+
+type DatosTarea = { titulo: string; prioridad: PrioridadTarea; descripcion?: string }
 
 const CONFIG: Record<EstadoTarea, { label: string; headerColor: string; dotColor: string }> = {
   POR_HACER: {
@@ -31,7 +33,7 @@ interface Props {
   onDragLeave: () => void
   onDragStartTarea: (idTarea: string) => void
   onEliminarTarea: (idTarea: string) => void
-  onAgregarTarea: (estado: EstadoTarea, titulo: string) => void
+  onAgregarTarea: (estado: EstadoTarea, datos: DatosTarea) => void
 }
 
 export default function ColumnaTablero({
@@ -46,14 +48,26 @@ export default function ColumnaTablero({
   onAgregarTarea,
 }: Props) {
   const config = CONFIG[estado]
-  const [inputVisible, setInputVisible] = useState(false)
+  const [formVisible, setFormVisible] = useState(false)
   const [titulo, setTitulo] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [prioridad, setPrioridad] = useState<PrioridadTarea>('MEDIA')
 
   function confirmar() {
     const t = titulo.trim()
-    if (t) onAgregarTarea(estado, t)
+    if (!t) return
+    onAgregarTarea(estado, { titulo: t, prioridad, descripcion: descripcion.trim() || undefined })
     setTitulo('')
-    setInputVisible(false)
+    setDescripcion('')
+    setPrioridad('MEDIA')
+    setFormVisible(false)
+  }
+
+  function cancelar() {
+    setTitulo('')
+    setDescripcion('')
+    setPrioridad('MEDIA')
+    setFormVisible(false)
   }
 
   return (
@@ -86,28 +100,53 @@ export default function ColumnaTablero({
         ))}
       </div>
 
-      {inputVisible ? (
+      {formVisible ? (
         <div className="flex flex-col gap-2">
           <input
             autoFocus
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') confirmar()
-              if (e.key === 'Escape') { setTitulo(''); setInputVisible(false) }
-            }}
-            placeholder="Nombre de la tarea..."
+            onKeyDown={(e) => { if (e.key === 'Escape') cancelar() }}
+            placeholder="Título de la tarea *"
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
           />
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Descripción (opcional)"
+            rows={2}
+            className="resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
+          />
+          <div className="flex items-center gap-1">
+            {(['BAJA', 'MEDIA', 'ALTA'] as PrioridadTarea[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPrioridad(p)}
+                className={`flex-1 rounded-lg py-1 text-[10px] font-semibold transition-colors ${
+                  prioridad === p
+                    ? p === 'ALTA'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+                      : p === 'MEDIA'
+                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-gray-700/50 dark:text-gray-500 dark:hover:bg-gray-700'
+                }`}
+              >
+                {p === 'BAJA' ? 'Baja' : p === 'MEDIA' ? 'Media' : 'Alta'}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2">
             <button
               onClick={confirmar}
-              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+              disabled={!titulo.trim()}
+              className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Agregar
             </button>
             <button
-              onClick={() => { setTitulo(''); setInputVisible(false) }}
+              onClick={cancelar}
               className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
               Cancelar
@@ -116,7 +155,7 @@ export default function ColumnaTablero({
         </div>
       ) : (
         <button
-          onClick={() => setInputVisible(true)}
+          onClick={() => setFormVisible(true)}
           className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>

@@ -1,7 +1,6 @@
 // layout raiz de la aplicacion SIC
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,10 +42,12 @@ export default function RootLayout({
       className={`${geistSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      {/* el script se ejecuta antes de que react hidrate - evita el flash de tema */}
+      {/* script en head: se ejecuta antes de que react hidrate — evita el flash de tema */}
       {/* bg y color van por CSS variables en globals.css - no por clases dark: de tailwind */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: scriptTema }} />
+      </head>
       <body className="flex min-h-full flex-col">
-        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: scriptTema }} />
         {children}
       </body>
     </html>
