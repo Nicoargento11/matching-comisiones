@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const SUPABASE_TIMEOUT_MS = 3000
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -23,7 +25,13 @@ export async function middleware(request: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Si Supabase no responde en tiempo, tratamos al usuario como no autenticado
+  // para evitar que el middleware cuelgue y deje al usuario en limbo
+  const fallback = new Promise<{ data: { user: null }; error: null }>((resolve) =>
+    setTimeout(() => resolve({ data: { user: null }, error: null }), SUPABASE_TIMEOUT_MS),
+  )
+
+  const { data: { user } } = await Promise.race([supabase.auth.getUser(), fallback])
   const { pathname } = request.nextUrl
 
   if (!user && !pathname.startsWith('/login')) {
