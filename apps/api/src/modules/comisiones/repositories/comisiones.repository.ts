@@ -237,6 +237,39 @@ export class ComisionesRepository {
     });
   }
 
+  async darBajaAtomico(idUsuario: number, idComision: number) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.usuarioComision.update({
+        where: {
+          id_usuario_id_comision: { id_usuario: idUsuario, id_comision: idComision },
+        },
+        data: { estado: 'BAJA' },
+      });
+
+      const estadoRechazado = await tx.estado.findFirst({
+        where: { nombre_estado: 'RECHAZADO' },
+        select: { id_estado: true },
+      });
+      const estadoPendiente = await tx.estado.findFirst({
+        where: { nombre_estado: 'PENDIENTE' },
+        select: { id_estado: true },
+      });
+
+      if (estadoPendiente && estadoRechazado) {
+        await tx.intercambio.updateMany({
+          where: {
+            id_estado: estadoPendiente.id_estado,
+            OR: [
+              { id_usuario_ofrece: idUsuario, id_comision_ofrece: idComision },
+              { id_usuario_destino: idUsuario, id_comision_destino: idComision },
+            ],
+          },
+          data: { id_estado: estadoRechazado.id_estado },
+        });
+      }
+    });
+  }
+
   /**
    * Busca un día por su nombre (insensible a mayúsculas)
    * @param nombreDia - Nombre del día a buscar
