@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import type { EstadoTarea, PrioridadTarea, TareaTablero } from '@/tipos'
+import type { DatosTarea, EstadoTarea, PrioridadTarea, TareaTablero } from '@/tipos'
+import type { EventoOpcion, MateriaOpcion } from '@/componentes/funcionalidades/useTareaTablero'
 import TarjetaTarea from './TarjetaTarea'
-
-type DatosTarea = { titulo: string; prioridad: PrioridadTarea; descripcion?: string }
 
 const CONFIG: Record<EstadoTarea, { label: string; headerColor: string; dotColor: string }> = {
   POR_HACER: {
@@ -24,10 +23,15 @@ const CONFIG: Record<EstadoTarea, { label: string; headerColor: string; dotColor
   },
 }
 
+const INPUT_CLASS =
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 disabled:cursor-not-allowed disabled:opacity-50'
+
 interface Props {
   estado: EstadoTarea
   tareas: TareaTablero[]
   sobreLaColumna: boolean
+  materias: MateriaOpcion[]
+  getEventos: (idMateria: number) => EventoOpcion[]
   onDragOver: (e: React.DragEvent) => void
   onDrop: () => void
   onDragLeave: () => void
@@ -36,10 +40,21 @@ interface Props {
   onAgregarTarea: (estado: EstadoTarea, datos: DatosTarea) => void
 }
 
+const ESTADO_INICIAL: DatosTarea = {
+  titulo: '',
+  prioridad: 'MEDIA',
+  descripcion: undefined,
+  id_materia: undefined,
+  id_evento: undefined,
+  estimacion_min: undefined,
+}
+
 export default function ColumnaTablero({
   estado,
   tareas,
   sobreLaColumna,
+  materias,
+  getEventos,
   onDragOver,
   onDrop,
   onDragLeave,
@@ -49,24 +64,37 @@ export default function ColumnaTablero({
 }: Props) {
   const config = CONFIG[estado]
   const [formVisible, setFormVisible] = useState(false)
-  const [titulo, setTitulo] = useState('')
-  const [descripcion, setDescripcion] = useState('')
-  const [prioridad, setPrioridad] = useState<PrioridadTarea>('MEDIA')
+  const [datos, setDatos] = useState<DatosTarea>(ESTADO_INICIAL)
+
+  const eventosDisponibles: EventoOpcion[] =
+    datos.id_materia != null ? getEventos(datos.id_materia) : []
+
+  function setField<K extends keyof DatosTarea>(key: K, value: DatosTarea[K]) {
+    setDatos((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function handleMateriaChange(idMateriaStr: string) {
+    const idMateria = idMateriaStr ? Number(idMateriaStr) : undefined
+    setDatos((prev) => ({ ...prev, id_materia: idMateria, id_evento: undefined }))
+  }
 
   function confirmar() {
-    const t = titulo.trim()
-    if (!t) return
-    onAgregarTarea(estado, { titulo: t, prioridad, descripcion: descripcion.trim() || undefined })
-    setTitulo('')
-    setDescripcion('')
-    setPrioridad('MEDIA')
+    const titulo = datos.titulo.trim()
+    if (!titulo) return
+    onAgregarTarea(estado, {
+      titulo,
+      prioridad: datos.prioridad,
+      descripcion: datos.descripcion?.trim() || undefined,
+      id_materia: datos.id_materia,
+      id_evento: datos.id_evento,
+      estimacion_min: datos.estimacion_min,
+    })
+    setDatos(ESTADO_INICIAL)
     setFormVisible(false)
   }
 
   function cancelar() {
-    setTitulo('')
-    setDescripcion('')
-    setPrioridad('MEDIA')
+    setDatos(ESTADO_INICIAL)
     setFormVisible(false)
   }
 
@@ -104,27 +132,77 @@ export default function ColumnaTablero({
         <div className="flex flex-col gap-2">
           <input
             autoFocus
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
+            value={datos.titulo}
+            onChange={(e) => setField('titulo', e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Escape') cancelar() }}
             placeholder="Título de la tarea *"
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
+            className={INPUT_CLASS}
           />
+
           <textarea
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
+            value={datos.descripcion ?? ''}
+            onChange={(e) => setField('descripcion', e.target.value || undefined)}
             placeholder="Descripción (opcional)"
             rows={2}
-            className="resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500"
+            className={`${INPUT_CLASS} resize-none`}
           />
+
+          {materias.length > 0 && (
+            <>
+              <select
+                value={datos.id_materia ?? ''}
+                onChange={(e) => handleMateriaChange(e.target.value)}
+                className={INPUT_CLASS}
+              >
+                <option value="">— Materia (opcional) —</option>
+                {materias.map((m) => (
+                  <option key={m.id_materia} value={m.id_materia}>
+                    {m.nombre_materia}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={datos.id_evento ?? ''}
+                onChange={(e) => setField('id_evento', e.target.value ? Number(e.target.value) : undefined)}
+                disabled={datos.id_materia == null || eventosDisponibles.length === 0}
+                className={INPUT_CLASS}
+              >
+                <option value="">
+                  {datos.id_materia == null
+                    ? '— Seleccioná una materia primero —'
+                    : eventosDisponibles.length === 0
+                      ? '— Sin eventos disponibles —'
+                      : '— Evento (opcional) —'}
+                </option>
+                {eventosDisponibles.map((ev) => (
+                  <option key={ev.id_evento} value={ev.id_evento}>
+                    {ev.titulo}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              value={datos.estimacion_min ?? ''}
+              onChange={(e) => setField('estimacion_min', e.target.value ? Number(e.target.value) : undefined)}
+              placeholder="Estimación (min)"
+              className={INPUT_CLASS}
+            />
+          </div>
+
           <div className="flex items-center gap-1">
             {(['BAJA', 'MEDIA', 'ALTA'] as PrioridadTarea[]).map((p) => (
               <button
                 key={p}
                 type="button"
-                onClick={() => setPrioridad(p)}
+                onClick={() => setField('prioridad', p)}
                 className={`flex-1 rounded-lg py-1 text-[10px] font-semibold transition-colors ${
-                  prioridad === p
+                  datos.prioridad === p
                     ? p === 'ALTA'
                       ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
                       : p === 'MEDIA'
@@ -137,10 +215,11 @@ export default function ColumnaTablero({
               </button>
             ))}
           </div>
+
           <div className="flex gap-2">
             <button
               onClick={confirmar}
-              disabled={!titulo.trim()}
+              disabled={!datos.titulo.trim()}
               className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Agregar
