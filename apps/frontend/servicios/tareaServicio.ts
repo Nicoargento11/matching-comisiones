@@ -4,14 +4,9 @@
 // PATCH  /tareas/:idTarea/estado                → TareaTablero   body: { estado }
 // DELETE /tareas/:idTarea                       → void
 import { api } from './api'
-import type { EstadoTarea, PrioridadTarea, TareaTablero } from '@/tipos'
+import type { DatosTarea, EstadoTarea, TareaTablero } from '@/tipos'
 
-type CreateTareaData = {
-  titulo: string
-  estado: EstadoTarea
-  prioridad: PrioridadTarea
-  descripcion?: string
-}
+export type CreateTareaData = DatosTarea & { estado: EstadoTarea }
 
 export const tareaServicio = {
   obtenerPorUsuario: (idUsuario: number, token?: string): Promise<TareaTablero[]> =>
