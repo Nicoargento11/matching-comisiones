@@ -42,6 +42,7 @@ export class AuthGuard implements CanActivate {
     this.audience = 'authenticated';
     this.jwks = createRemoteJWKSet(
       new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+      { timeoutDuration: 5000 },
     );
   }
 
@@ -58,11 +59,18 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Token Bearer faltante');
     }
 
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('auth_timeout')), 8000),
+    );
+
     try {
-      const { payload } = await jwtVerify<JwtClaims>(token, this.jwks, {
-        issuer: this.issuer,
-        audience: this.audience,
-      });
+      const { payload } = await Promise.race([
+        jwtVerify<JwtClaims>(token, this.jwks, {
+          issuer: this.issuer,
+          audience: this.audience,
+        }),
+        timeout,
+      ]);
       const datosUsuario = await this.obtenerDatosUsuario(payload.sub);
       request['user'] = { ...payload, roles: datosUsuario.roles, id_usuario: datosUsuario.id_usuario };
       return true;
