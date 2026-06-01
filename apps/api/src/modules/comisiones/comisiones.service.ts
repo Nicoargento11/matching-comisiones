@@ -197,7 +197,7 @@ export class ComisionesService {
         'El estudiante no está en esta comisión',
       );
     }
-    await this.comisionesRepository.darBajaAtomico(idUsuario, idComision);
+    await this.comisionesRepository.darBajaInscripcion(idUsuario, idComision);
   }
 
   /**

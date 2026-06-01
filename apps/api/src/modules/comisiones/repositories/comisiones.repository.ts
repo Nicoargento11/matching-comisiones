@@ -226,18 +226,6 @@ export class ComisionesRepository {
    * @param idComision - ID de la comisión
    */
   async darBajaInscripcion(idUsuario: number, idComision: number) {
-    await this.prisma.usuarioComision.update({
-      where: {
-        id_usuario_id_comision: {
-          id_usuario: idUsuario,
-          id_comision: idComision,
-        },
-      },
-      data: { estado: 'BAJA' },
-    });
-  }
-
-  async darBajaAtomico(idUsuario: number, idComision: number) {
     await this.prisma.$transaction(async (tx) => {
       await tx.usuarioComision.update({
         where: {
