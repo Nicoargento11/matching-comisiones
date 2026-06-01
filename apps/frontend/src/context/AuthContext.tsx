@@ -44,6 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    // Cuando cualquier llamada al backend devuelve 401, el token expiró.
+    // Redirigimos a la ruta de signout que limpia la sesión de Supabase y lleva al login.
+    function manejarSesionExpirada() {
+      window.location.href = '/api/auth/signout'
+    }
+    window.addEventListener('auth:session-expired', manejarSesionExpirada)
+    return () => window.removeEventListener('auth:session-expired', manejarSesionExpirada)
+  }, [])
+
   return (
     <AuthContext.Provider value={{ token, yo, cargando }}>
       {children}
