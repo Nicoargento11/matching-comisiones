@@ -11,6 +11,8 @@ export default function TableroKanban() {
     tareas,
     cargando,
     columnaActiva,
+    materias,
+    getEventos,
     setTareaArrastrada,
     setColumnaActiva,
     eliminarTarea,
@@ -44,6 +46,8 @@ export default function TableroKanban() {
           estado={estado}
           tareas={tareas.filter((t) => t.estado === estado)}
           sobreLaColumna={columnaActiva === estado}
+          materias={materias}
+          getEventos={getEventos}
           onDragOver={(e) => { e.preventDefault(); setColumnaActiva(estado) }}
           onDrop={() => handleDrop(estado)}
           onDragLeave={() => setColumnaActiva(null)}
