@@ -218,8 +218,8 @@ export type DatosTarea = {
 
 export type TipoNotificacion =
   | 'MATCHING_COMISION'
-  | 'MATCHING_PROFESOR'
-  | 'TRASLADO_MANUAL_PROFESOR'
+  | 'INTERCAMBIO_EN_COMISION'
+  | 'ALUMNO_TRASLADADO_MANUAL'
   | 'SISTEMA'
 
 // ---------------------------------------------------------------------------

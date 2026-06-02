@@ -25,14 +25,14 @@ function configPorTipo(tipo: TipoNotificacion): ConfigTipo {
         colorPunto: 'bg-indigo-500',
         icono: <IconoMatchingAlumno />,
       }
-    case 'MATCHING_PROFESOR':
+    case 'INTERCAMBIO_EN_COMISION':
       return {
         claseBurbuja: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
         claseTarjetaNoLeida: 'border-indigo-200 bg-indigo-50/40 dark:border-indigo-800 dark:bg-indigo-900/10',
         colorPunto: 'bg-indigo-500',
         icono: <IconoMatchingProfesor />,
       }
-    case 'TRASLADO_MANUAL_PROFESOR':
+    case 'ALUMNO_TRASLADADO_MANUAL':
       return {
         claseBurbuja: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
         claseTarjetaNoLeida: 'border-amber-200 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-900/10',
