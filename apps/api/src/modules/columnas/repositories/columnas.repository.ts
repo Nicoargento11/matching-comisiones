@@ -32,14 +32,14 @@ export class ColumnasRepository {
 
   async obtenerGlobalPorNombre(nombre: string) {
     return this.prisma.columnaTablero.findFirst({
-      where: { nombre, id_usuario: null },
+      where: { nombre: { equals: nombre, mode: 'insensitive' }, id_usuario: null },
       select: { id_columna: true },
     });
   }
 
   async obtenerUsuarioPorNombre(idUsuario: number, nombre: string) {
     return this.prisma.columnaTablero.findFirst({
-      where: { nombre, id_usuario: idUsuario },
+      where: { nombre: { equals: nombre, mode: 'insensitive' }, id_usuario: idUsuario },
       select: { id_columna: true },
     });
   }

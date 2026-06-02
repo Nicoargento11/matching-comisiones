@@ -9,10 +9,12 @@ import {
   Post,
 } from '@nestjs/common';
 import { CurrentUser, CurrentUserClaims } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ColumnasService } from './columnas.service';
 import { CreateColumnaDto } from './dto/create-columna.dto';
 
 @Controller('columnas')
+@Roles('estudiante')
 export class ColumnasController {
   constructor(private readonly columnasService: ColumnasService) {}
 

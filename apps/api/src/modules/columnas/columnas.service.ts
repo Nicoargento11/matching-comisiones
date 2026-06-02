@@ -21,10 +21,15 @@ export class ColumnasService {
   }
 
   async crear(idUsuario: number, dto: CreateColumnaDto): Promise<ColumnaResponseDto> {
-    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(
-      idUsuario,
-      dto.nombre,
-    );
+    const global = await this.columnasRepository.obtenerGlobalPorNombre(dto.nombre);
+    if (global) {
+      throw new BadRequestError(
+        'COLUMNA_NOMBRE_RESERVADO',
+        `"${dto.nombre}" es el nombre de una columna global y no puede usarse`,
+      );
+    }
+
+    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(idUsuario, dto.nombre);
     if (existente) {
       throw new BadRequestError(
         'COLUMNA_DUPLICADA',
