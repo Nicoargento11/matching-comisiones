@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/src/lib/supabase";
-import { api } from "@/servicios/api";
 
 export default function PaginaLogin() {
   const router = useRouter();
@@ -35,21 +34,7 @@ export default function PaginaLogin() {
         return;
       }
 
-      const { data: sessionData } = await getSupabaseClient().auth.getSession()
-      const token = sessionData.session?.access_token
-
-      let destino = '/perfil'
-      if (token) {
-        try {
-          const usuario = await api.get<{ roles: { nombre_rol: string }[] }>('/auth/me', token)
-          const esProfesor = usuario.roles.some((r) => r.nombre_rol === 'profesor')
-          if (esProfesor) destino = '/profesor'
-        } catch {
-          // si falla /auth/me igual dejamos pasar, perfil va a mostrar el error
-        }
-      }
-
-      router.push(destino);
+      router.push('/perfil');
       router.refresh();
     } catch {
       setError("Error de conexión. Intentá de nuevo.");

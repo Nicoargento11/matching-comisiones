@@ -34,9 +34,16 @@ export class TareasRepository {
     });
   }
 
-  async obtenerColumnaPorNombre(nombre: string) {
+  async obtenerColumnaPorNombre(nombre: string, idUsuario?: number) {
+    if (idUsuario) {
+      const userCol = await this.prisma.columnaTablero.findFirst({
+        where: { nombre, id_usuario: idUsuario },
+        select: { id_columna: true },
+      });
+      if (userCol) return userCol;
+    }
     return this.prisma.columnaTablero.findFirst({
-      where: { nombre },
+      where: { nombre, id_usuario: null },
       select: { id_columna: true },
     });
   }

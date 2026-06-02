@@ -39,10 +39,10 @@ export class UsuariosService {
    * @throws NotFoundException si no existe el usuario
    */
   async obtenerPorDni(dni: number) {
-    if (dni < 1000000) {
+    if (dni < 1000000 || dni > 99999999) {
       throw new BadRequestError(
         'DNI_INVALIDO',
-        'El DNI debe tener al menos 7 dígitos',
+        'El DNI debe tener entre 7 y 8 dígitos',
       );
     }
     const usuario = await this.usuariosRepository.obtenerPorDni(dni);

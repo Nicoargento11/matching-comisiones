@@ -91,11 +91,11 @@ export default function SeccionAlumnos({ alumnosIniciales, alumnosBajaIniciales,
     setComisionesConflicto([])
     setConfirmarAgregarConConflicto(false)
 
-    if (idBusqueda.length < 8) {
+    const dniNum = Number(idBusqueda)
+    if (!idBusqueda || isNaN(dniNum) || dniNum < 1000000 || dniNum > 99999999) {
       setErrorAlumno('DNI no válido')
       return
     }
-    const dniNum = Number(idBusqueda)
 
     try {
       setBuscando(true)

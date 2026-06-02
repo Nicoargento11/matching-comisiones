@@ -70,6 +70,7 @@ model Usuario {
   conversacionParticipantes ConversacionParticipante[]
   mensajes                  Mensaje[]
   comisiones_como_profesor  Comision[]                 @relation("ProfesorComision")
+  columnas_tablero          ColumnaTablero[]
 
   @@map("usuario")
 }
@@ -274,12 +275,14 @@ model Evento {
 }
 
 model ColumnaTablero {
-  id_columna    Int     @id @default(autoincrement())
+  id_columna    Int      @id @default(autoincrement())
   nombre        String
   orden_columna Int
+  id_usuario    Int?
   tareas        Tarea[]
+  usuario       Usuario? @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
 
-  @@unique([nombre, orden_columna])
+  @@unique([nombre, id_usuario])
   @@map("columna_tablero")
 }
 

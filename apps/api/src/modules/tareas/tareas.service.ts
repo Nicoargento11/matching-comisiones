@@ -17,8 +17,8 @@ export class TareasService {
   }
 
   async crear(idUsuario: number, dto: CreateTareaDto): Promise<TareaTableroResponseDto> {
-    const nombreColumna = ESTADO_A_COLUMNA[dto.estado];
-    const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna);
+    const nombreColumna = ESTADO_A_COLUMNA[dto.estado] ?? dto.estado;
+    const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna, idUsuario);
 
     if (!columna) {
       throw new BadRequestError(
@@ -46,8 +46,8 @@ export class TareasService {
     estado: string,
     idUsuario: number,
   ): Promise<TareaTableroResponseDto> {
-    const nombreColumna = ESTADO_A_COLUMNA[estado];
-    const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna);
+    const nombreColumna = ESTADO_A_COLUMNA[estado] ?? estado;
+    const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna, idUsuario);
 
     if (!columna) {
       throw new BadRequestError(
