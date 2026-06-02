@@ -1,33 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import type { DatosTarea, EstadoTarea, PrioridadTarea, TareaTablero } from '@/tipos'
+import type { ColumnaKanban, DatosTarea, PrioridadTarea, TareaTablero } from '@/tipos'
 import type { EventoOpcion, MateriaOpcion } from '@/componentes/funcionalidades/useTareaTablero'
 import TarjetaTarea from './TarjetaTarea'
 
-const CONFIG: Record<EstadoTarea, { label: string; headerColor: string; dotColor: string }> = {
+const CONFIG_GLOBAL: Record<string, { headerColor: string; dotColor: string }> = {
   POR_HACER: {
-    label: 'Por hacer',
     headerColor: 'text-gray-700 dark:text-gray-300',
     dotColor: 'bg-gray-400',
   },
   EN_PROGRESO: {
-    label: 'En progreso',
     headerColor: 'text-indigo-700 dark:text-indigo-300',
     dotColor: 'bg-indigo-500',
   },
   COMPLETADO: {
-    label: 'Completado',
     headerColor: 'text-emerald-700 dark:text-emerald-300',
     dotColor: 'bg-emerald-500',
   },
+}
+
+const CONFIG_CUSTOM = {
+  headerColor: 'text-violet-700 dark:text-violet-300',
+  dotColor: 'bg-violet-400',
 }
 
 const INPUT_CLASS =
   'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-500 disabled:cursor-not-allowed disabled:opacity-50'
 
 interface Props {
-  estado: EstadoTarea
+  columna: ColumnaKanban
   tareas: TareaTablero[]
   sobreLaColumna: boolean
   materias: MateriaOpcion[]
@@ -37,7 +39,8 @@ interface Props {
   onDragLeave: () => void
   onDragStartTarea: (idTarea: string) => void
   onEliminarTarea: (idTarea: string) => void
-  onAgregarTarea: (estado: EstadoTarea, datos: DatosTarea) => void
+  onAgregarTarea: (identificador: string, datos: DatosTarea) => void
+  onEliminarColumna?: (idColumna: number) => void
 }
 
 const ESTADO_INICIAL: DatosTarea = {
@@ -50,7 +53,7 @@ const ESTADO_INICIAL: DatosTarea = {
 }
 
 export default function ColumnaTablero({
-  estado,
+  columna,
   tareas,
   sobreLaColumna,
   materias,
@@ -61,10 +64,12 @@ export default function ColumnaTablero({
   onDragStartTarea,
   onEliminarTarea,
   onAgregarTarea,
+  onEliminarColumna,
 }: Props) {
-  const config = CONFIG[estado]
+  const config = CONFIG_GLOBAL[columna.identificador] ?? CONFIG_CUSTOM
   const [formVisible, setFormVisible] = useState(false)
   const [datos, setDatos] = useState<DatosTarea>(ESTADO_INICIAL)
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false)
 
   const eventosDisponibles: EventoOpcion[] =
     datos.id_materia != null ? getEventos(datos.id_materia) : []
@@ -81,7 +86,7 @@ export default function ColumnaTablero({
   function confirmar() {
     const titulo = datos.titulo.trim()
     if (!titulo) return
-    onAgregarTarea(estado, {
+    onAgregarTarea(columna.identificador, {
       titulo,
       prioridad: datos.prioridad,
       descripcion: datos.descripcion?.trim() || undefined,
@@ -110,11 +115,46 @@ export default function ColumnaTablero({
       }`}
     >
       <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 rounded-full ${config.dotColor}`} aria-hidden />
-        <h2 className={`text-sm font-semibold ${config.headerColor}`}>{config.label}</h2>
+        <span className={`h-2 w-2 shrink-0 rounded-full ${config.dotColor}`} aria-hidden />
+        <h2 className={`text-sm font-semibold ${config.headerColor}`}>{columna.nombre}</h2>
         <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
           {tareas.length}
         </span>
+
+        {!columna.es_global && onEliminarColumna && (
+          <div className="ml-auto flex items-center gap-1">
+            {confirmarEliminar ? (
+              <>
+                <span className="text-xs text-red-500 dark:text-red-400">¿Eliminar?</span>
+                <button
+                  type="button"
+                  onClick={() => onEliminarColumna(columna.id_columna)}
+                  className="rounded px-1.5 py-0.5 text-xs font-medium text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30"
+                >
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmarEliminar(false)}
+                  className="rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
+                >
+                  No
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmarEliminar(true)}
+                aria-label="Eliminar columna"
+                className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+                  <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5a.75.75 0 0 1 .786-.711Z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex min-h-[4rem] flex-col gap-2">
