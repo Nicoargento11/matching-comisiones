@@ -216,13 +216,48 @@ export type DatosTarea = {
   estimacion_min?: number
 }
 
-export type TipoNotificacion = 'MATCHING_COMISION' | 'SISTEMA'
+export type TipoNotificacion =
+  | 'MATCHING_COMISION'
+  | 'MATCHING_PROFESOR'
+  | 'TRASLADO_MANUAL_PROFESOR'
+  | 'SISTEMA'
 
-export type NotificacionDatos = {
+// ---------------------------------------------------------------------------
+// Shapes de datos por tipo de notificación
+// El backend serializa estos objetos al campo `datos` (JSON).
+// ---------------------------------------------------------------------------
+
+export type DatosMatchingAlumno = {
+  id_intercambio: number
+  id_comision: number
+}
+
+export type DatosMatchingProfesor = {
+  alumno_sale: { nombre_usuario: string; apellido_usuario: string; dni: number }
+  alumno_entra: { nombre_usuario: string; apellido_usuario: string; dni: number }
+  comision_origen: { id_comision: number; nombre: string }
+  comision_destino: { id_comision: number; nombre: string }
+  profesor_otra_comision: { nombre_usuario: string; apellido_usuario: string }
+}
+
+export type DatosTrasladoManualProfesor = {
+  alumno_trasladado: { nombre_usuario: string; apellido_usuario: string; dni: number }
+  comision_origen: { id_comision: number; nombre: string }
+  comision_destino: { id_comision: number; nombre: string }
+  profesor_comision_destino: { nombre_usuario: string; apellido_usuario: string }
+}
+
+export type DatosSistema = {
   id_comision?: number
   nombre_comision?: string
   nombre_materia?: string
 }
+
+export type NotificacionDatos =
+  | DatosMatchingAlumno
+  | DatosMatchingProfesor
+  | DatosTrasladoManualProfesor
+  | DatosSistema
 
 export interface Notificacion {
   id_notificacion: number
