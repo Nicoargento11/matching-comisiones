@@ -1,8 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { KeyboardEvent } from 'react'
 import { getSupabaseClient } from '@/src/lib/supabase'
 import { api } from '@/servicios/api'
-import type { Conversacion, MensajeAPI, Usuario } from '@/tipos'
+import { ApiError } from '@/servicios/api'
+import { mensajeServicio } from '@/servicios/mensajeServicio'
+import { usuarioServicio } from '@/servicios/usuarioServicio'
+import type { Comision, Conversacion, MensajeAPI, Usuario } from '@/tipos'
 import { obtenerRol } from '@/lib/roles'
 
 export interface ToastMensaje {
@@ -25,6 +28,7 @@ function tieneNoLeidos(conv: Conversacion, yoId: number): boolean {
 
 export function useMensajeria(convId: number | null, token: string | null, yo: Usuario | null) {
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([])
+  const [comisiones, setComisiones] = useState<Comision[]>([])
   const [mensajes, setMensajes] = useState<MensajeAPI[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [nuevoMensaje, setNuevoMensaje] = useState('')
@@ -33,14 +37,26 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
   const mensajesRef = useRef<HTMLDivElement>(null)
   const toastContRef = useRef(0)
 
+  // carga inicial: conversaciones y comisiones del usuario en paralelo
   useEffect(() => {
-    if (!token) return
+    if (!token || !yo) return
     let vivo = true
-    api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token)
-      .then((convs) => { if (vivo) setConversaciones(Array.isArray(convs) ? convs : []) })
-      .catch(() => { if (vivo) setConversaciones([]) })
+    Promise.all([
+      api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token),
+      usuarioServicio.obtenerComisiones(yo.id_usuario, token),
+    ])
+      .then(([convs, coms]) => {
+        if (!vivo) return
+        setConversaciones(Array.isArray(convs) ? convs : [])
+        setComisiones(Array.isArray(coms) ? coms : [])
+      })
+      .catch(() => {
+        if (!vivo) return
+        setConversaciones([])
+        setComisiones([])
+      })
     return () => { vivo = false }
-  }, [token])
+  }, [token, yo?.id_usuario])
 
   useEffect(() => {
     if (!convId || !token) { setMensajes([]); return }
@@ -162,6 +178,26 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
       mensajesRef.current.scrollTop = mensajesRef.current.scrollHeight
   }, [mensajes.length, convId])
 
+  // Inicia o navega a una conversación existente con otro usuario.
+  // Devuelve el id_conversacion si tuvo éxito, null si falló.
+  const iniciarConversacion = useCallback(async (idUsuarioDestino: number): Promise<number | null> => {
+    if (!yo || !token) return null
+    try {
+      const nueva = await mensajeServicio.crearConversacion(yo.id_usuario, idUsuarioDestino, token)
+      setConversaciones((prev) => [nueva, ...prev])
+      return nueva.id_conversacion
+    } catch (e) {
+      // 409 = la conversación ya existe — navegamos a la existente
+      if (e instanceof ApiError && e.status === 409) {
+        const existente = conversaciones.find((c) =>
+          c.participantes.some((p) => p.usuario.id_usuario === idUsuarioDestino),
+        )
+        return existente?.id_conversacion ?? null
+      }
+      return null
+    }
+  }, [yo, token, conversaciones])
+
   function otroParticipante(conv: Conversacion) {
     return conv.participantes.find((p) => p.usuario.id_usuario !== yo?.id_usuario)?.usuario ?? null
   }
@@ -224,6 +260,7 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
 
   return {
     conversaciones,
+    comisiones,
     mensajes,
     busqueda,
     setBusqueda,
@@ -241,5 +278,6 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
     otroParticipante,
     enviarMensaje,
     manejarTecla,
+    iniciarConversacion,
   }
 }
