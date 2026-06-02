@@ -22,6 +22,13 @@ export const comisionServicio = {
       token,
     ),
 
+  trasladarEstudiante: (idComision: number, idUsuario: number, token?: string) =>
+    api.post<void>(
+      `/comisiones/${idComision}/estudiantes/trasladar`,
+      { id_usuario: idUsuario },
+      token,
+    ),
+
   agregarHorario: (
     idComision: number,
     datos: {
