@@ -150,13 +150,14 @@ export default function SeccionAlumnos({ alumnosIniciales, alumnosBajaIniciales,
     if (!alumnoEncontrado || procesando) return
     setProcesando(true)
     try {
-      for (const c of comisionesConflicto) {
-        await comisionServicio.darBajaEstudiante(c.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
+      if (comisionesConflicto.length > 0) {
+        await comisionServicio.trasladarEstudiante(comision.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
+      } else {
+        await comisionServicio.agregarEstudiante(comision.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
       }
-      await comisionServicio.agregarEstudiante(comision.id_comision, alumnoEncontrado.usuario.id_usuario, token ?? undefined)
       actualizarListas([...alumnos, alumnoEncontrado], alumnosDadosDeBaja)
       mostrarExito(
-        `${alumnoEncontrado.usuario.nombre_usuario} ${alumnoEncontrado.usuario.apellido_usuario} fue incorporado a la comision ${comision.numero_comision ?? comision.id_comision}`,
+        `${alumnoEncontrado.usuario.nombre_usuario} ${alumnoEncontrado.usuario.apellido_usuario} fue ${comisionesConflicto.length > 0 ? 'trasladado' : 'incorporado'} a la comision ${comision.numero_comision ?? comision.id_comision}`,
       )
       setAlumnoEncontrado(null)
       setIdBusqueda('')
