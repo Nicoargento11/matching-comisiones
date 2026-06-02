@@ -4,9 +4,9 @@
 // PATCH  /tareas/:idTarea/estado                → TareaTablero   body: { estado }
 // DELETE /tareas/:idTarea                       → void
 import { api } from './api'
-import type { DatosTarea, EstadoTarea, TareaTablero } from '@/tipos'
+import type { DatosTarea, TareaTablero } from '@/tipos'
 
-export type CreateTareaData = DatosTarea & { estado: EstadoTarea }
+export type CreateTareaData = DatosTarea & { estado: string }
 
 export const tareaServicio = {
   obtenerPorUsuario: (idUsuario: number, token?: string): Promise<TareaTablero[]> =>
@@ -15,7 +15,7 @@ export const tareaServicio = {
   crear: (data: CreateTareaData, token?: string): Promise<TareaTablero> =>
     api.post('/tareas', data, token),
 
-  actualizarEstado: (idTarea: string, estado: EstadoTarea, token?: string): Promise<TareaTablero> =>
+  actualizarEstado: (idTarea: string, estado: string, token?: string): Promise<TareaTablero> =>
     api.patch(`/tareas/${idTarea}/estado`, { estado }, token),
 
   eliminar: (idTarea: string, token?: string): Promise<void> =>
