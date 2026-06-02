@@ -7,6 +7,10 @@ import RolBadge from "@/componentes/interfaz/RolBadge";
 import { formatearHora, formatearFechaCorta } from "@/lib/fechas";
 import { obtenerRol } from "@/lib/roles";
 import { useMensajeria } from "./_hooks/useMensajeria";
+import BuscadorNuevaConversacion from "./BuscadorNuevaConversacion";
+import { useState, useRef, useEffect } from "react";
+
+type ModoPanel = 'lista' | 'busquedaConv' | 'nuevaConv'
 
 export default function VistaMensajeria() {
   const searchParams = useSearchParams();
@@ -15,6 +19,7 @@ export default function VistaMensajeria() {
 
   const { token, yo } = useAuth();
   const {
+    comisiones,
     mensajes,
     busqueda,
     setBusqueda,
@@ -31,7 +36,29 @@ export default function VistaMensajeria() {
     otroParticipante,
     enviarMensaje,
     manejarTecla,
+    iniciarConversacion,
   } = useMensajeria(convId, token, yo);
+
+  const [modoPanel, setModoPanel] = useState<ModoPanel>('lista')
+  const busquedaInputRef = useRef<HTMLInputElement>(null)
+
+  // cuando se activa el buscador de conversaciones, hacer foco en el input
+  useEffect(() => {
+    if (modoPanel === 'busquedaConv') {
+      busquedaInputRef.current?.focus()
+    }
+  }, [modoPanel])
+
+  function volverALista() {
+    setBusqueda('')
+    setModoPanel('lista')
+  }
+
+  async function handleConversacionIniciada(idUsuario: number) {
+    const convId = await iniciarConversacion(idUsuario)
+    setModoPanel('lista')
+    if (convId) router.push(`/mensajes?conv=${convId}`)
+  }
 
   return (
     <>
@@ -60,101 +87,143 @@ export default function VistaMensajeria() {
       </div>
 
       <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-        {/* ── Panel izquierdo: lista de conversaciones ── */}
+        {/* ── Panel izquierdo ── */}
         <div
           className={`flex w-full flex-col border-r border-gray-200 dark:border-gray-700 sm:w-80 sm:shrink-0 ${
             convId !== null ? "hidden sm:flex" : "flex"
           }`}
         >
-          <div className="border-b border-gray-200 px-4 py-4 dark:border-gray-700">
-            <h2 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
-              Mensajes
-            </h2>
-            <div className="relative">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <input
-                type="text"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar conversación..."
-                className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {convsFiltradas.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                No se encontraron conversaciones
-              </p>
-            ) : (
-              convsFiltradas.map((conv) => {
-                const otro = otroParticipante(conv);
-                if (!otro) return null;
-                const ultimo = conv.mensajes[0];
-                const esActiva = convId === conv.id_conversacion;
-                const rol = obtenerRol(otro.roles);
-                return (
-                  <button
-                    key={conv.id_conversacion}
-                    onClick={() => router.push(`/mensajes?conv=${conv.id_conversacion}`)}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
-                      esActiva ? "bg-indigo-50 dark:bg-indigo-900/20" : ""
-                    }`}
-                  >
-                    <Avatar
-                      id={otro.id_usuario}
-                      nombre={otro.nombre_usuario}
-                      apellido={otro.apellido_usuario}
-                      size="md"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="block truncate text-sm font-medium text-gray-700 dark:text-gray-200">
-                          {otro.nombre_usuario} {otro.apellido_usuario}
-                        </span>
-                        {rol && <RolBadge rol={rol} />}
-                      </div>
-                      {ultimo && (
-                        <p className="truncate text-xs text-gray-400 dark:text-gray-500">
-                          {ultimo.contenido}
-                        </p>
-                      )}
+          {modoPanel === 'nuevaConv' && token ? (
+            <BuscadorNuevaConversacion
+              token={token}
+              comisiones={comisiones}
+              onConversacionIniciada={handleConversacionIniciada}
+              onCancelar={volverALista}
+            />
+          ) : (
+            <>
+              {/* header con controles */}
+              <div className="border-b border-gray-200 px-4 py-4 dark:border-gray-700">
+                {modoPanel === 'busquedaConv' ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={volverALista}
+                      aria-label="Volver"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+                        <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <div className="relative flex-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden>
+                        <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" />
+                      </svg>
+                      <input
+                        ref={busquedaInputRef}
+                        type="text"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        placeholder="Buscar conversación..."
+                        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+                      />
                     </div>
-                    {ultimo && (
-                      <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-600">
-                        {formatearHora(ultimo.creado_en)}
-                      </span>
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Mensajes</h2>
+                    <div className="flex items-center gap-1">
+                      {/* buscar en conversaciones existentes */}
+                      <button
+                        onClick={() => setModoPanel('busquedaConv')}
+                        aria-label="Buscar conversación"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+                          <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      {/* iniciar nueva conversación */}
+                      <button
+                        onClick={() => setModoPanel('nuevaConv')}
+                        aria-label="Nueva conversación"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+                          <path d="M5.433 13.917l1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z" />
+                          <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-          {yo && (
-            <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-3 dark:border-gray-700">
-              <Avatar
-                id={yo.id_usuario}
-                nombre={yo.nombre_usuario}
-                apellido={yo.apellido_usuario}
-                size="sm"
-              />
-              <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-300">
-                {yo.nombre_usuario} {yo.apellido_usuario}
-              </p>
-            </div>
+              {/* lista de conversaciones */}
+              <div className="flex-1 overflow-y-auto">
+                {convsFiltradas.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                    {busqueda ? 'No se encontraron conversaciones' : 'No tenés conversaciones aún'}
+                  </p>
+                ) : (
+                  convsFiltradas.map((conv) => {
+                    const otro = otroParticipante(conv);
+                    if (!otro) return null;
+                    const ultimo = conv.mensajes[0];
+                    const esActiva = convId === conv.id_conversacion;
+                    const rol = obtenerRol(otro.roles);
+                    return (
+                      <button
+                        key={conv.id_conversacion}
+                        onClick={() => router.push(`/mensajes?conv=${conv.id_conversacion}`)}
+                        className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
+                          esActiva ? "bg-indigo-50 dark:bg-indigo-900/20" : ""
+                        }`}
+                      >
+                        <Avatar
+                          id={otro.id_usuario}
+                          nombre={otro.nombre_usuario}
+                          apellido={otro.apellido_usuario}
+                          size="md"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="block truncate text-sm font-medium text-gray-700 dark:text-gray-200">
+                              {otro.nombre_usuario} {otro.apellido_usuario}
+                            </span>
+                            {rol && <RolBadge rol={rol} />}
+                          </div>
+                          {ultimo && (
+                            <p className="truncate text-xs text-gray-400 dark:text-gray-500">
+                              {ultimo.contenido}
+                            </p>
+                          )}
+                        </div>
+                        {ultimo && (
+                          <span className="shrink-0 text-[10px] text-gray-400 dark:text-gray-600">
+                            {formatearHora(ultimo.creado_en)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {yo && (
+                <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-3 dark:border-gray-700">
+                  <Avatar
+                    id={yo.id_usuario}
+                    nombre={yo.nombre_usuario}
+                    apellido={yo.apellido_usuario}
+                    size="sm"
+                  />
+                  <p className="truncate text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {yo.nombre_usuario} {yo.apellido_usuario}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -327,7 +396,7 @@ export default function VistaMensajeria() {
                   Seleccioná una conversación
                 </p>
                 <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                  Elegí un contacto del panel izquierdo
+                  O usá el botón ✏️ para iniciar una nueva
                 </p>
               </div>
             </div>
