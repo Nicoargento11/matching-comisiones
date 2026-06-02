@@ -22,6 +22,13 @@ async function request<T>(
     headers,
     ...options,
   });
+
+  if (res.status === 401 && typeof window !== 'undefined') {
+    // El token expiró o es inválido — notificamos globalmente para que el
+    // AuthContext cierre la sesión sin que cada hook deba conocer esta lógica
+    window.dispatchEvent(new CustomEvent('auth:session-expired'))
+  }
+
   if (!res.ok) {
     const mensaje = await res.text().catch(() => res.statusText);
     throw new ApiError(res.status, `[${res.status}] ${path}: ${mensaje}`);

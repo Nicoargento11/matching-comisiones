@@ -193,6 +193,19 @@ export interface TareaTablero {
   descripcion?: string
   prioridad: PrioridadTarea
   estado: EstadoTarea
+  estimacion_min?: number
+  fecha_vencimiento?: string
+  materia?: { id_materia: number; nombre_materia: string }
+  evento?: { id_evento: number; titulo: string; tipo_evento: TipoEvento; fecha_inicio: string }
+}
+
+export type DatosTarea = {
+  titulo: string
+  prioridad: PrioridadTarea
+  descripcion?: string
+  id_materia?: number
+  id_evento?: number
+  estimacion_min?: number
 }
 
 export type TipoNotificacion = 'MATCHING_COMISION' | 'SISTEMA'

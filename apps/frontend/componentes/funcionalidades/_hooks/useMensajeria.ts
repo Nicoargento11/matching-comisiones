@@ -36,18 +36,18 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
   useEffect(() => {
     if (!token) return
     let vivo = true
-    api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token).then((convs) => {
-      if (vivo) setConversaciones(Array.isArray(convs) ? convs : [])
-    })
+    api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token)
+      .then((convs) => { if (vivo) setConversaciones(Array.isArray(convs) ? convs : []) })
+      .catch(() => { if (vivo) setConversaciones([]) })
     return () => { vivo = false }
   }, [token])
 
   useEffect(() => {
     if (!convId || !token) { setMensajes([]); return }
     let vivo = true
-    api.get<MensajeAPI[]>(`/mensajes/${convId}`, token).then((data) => {
-      if (vivo) setMensajes(data)
-    })
+    api.get<MensajeAPI[]>(`/mensajes/${convId}`, token)
+      .then((data) => { if (vivo) setMensajes(data) })
+      .catch(() => { if (vivo) setMensajes([]) })
     return () => { vivo = false }
   }, [convId, token])
 
