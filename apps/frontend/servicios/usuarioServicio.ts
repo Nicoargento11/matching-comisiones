@@ -18,4 +18,13 @@ export const usuarioServicio = {
   // devuelve todas las inscripciones con su estado, sin filtrar ni transformar
   obtenerComisionesConEstado: (id: number, token?: string) =>
     api.get<ItemComisionConEstado[]>(`/usuarios/${id}/comisiones`, token),
+
+  // GET /usuarios/buscar?q=xxx[&id_comision=X]
+  // Pendiente backend: búsqueda por nombre/apellido parcial (mínimo 3 chars)
+  // Opcionalmente filtrado por comisión cuando se provee id_comision
+  buscarParaMensajeria: (q: string, idComision?: number, token?: string): Promise<UsuarioBusquedaPorDni[]> => {
+    const params = new URLSearchParams({ q })
+    if (idComision) params.set('id_comision', String(idComision))
+    return api.get<UsuarioBusquedaPorDni[]>(`/usuarios/buscar?${params.toString()}`, token)
+  },
 }
