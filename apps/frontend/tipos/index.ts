@@ -187,12 +187,20 @@ export type ComisionConflicto = {
 export type EstadoTarea = 'POR_HACER' | 'EN_PROGRESO' | 'COMPLETADO'
 export type PrioridadTarea = 'BAJA' | 'MEDIA' | 'ALTA'
 
+export interface ColumnaKanban {
+  id_columna: number
+  nombre: string
+  orden_columna: number
+  es_global: boolean
+  identificador: string
+}
+
 export interface TareaTablero {
   id_tarea: string
   titulo: string
   descripcion?: string
   prioridad: PrioridadTarea
-  estado: EstadoTarea
+  estado: string
   estimacion_min?: number
   fecha_vencimiento?: string
   materia?: { id_materia: number; nombre_materia: string }
