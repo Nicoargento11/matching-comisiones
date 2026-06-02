@@ -7,8 +7,9 @@ export class CreateTareaDto {
   @IsNotEmpty()
   titulo: string;
 
-  @ApiProperty({ enum: ['POR_HACER', 'EN_PROGRESO', 'COMPLETADO'], example: 'POR_HACER' })
-  @IsEnum(['POR_HACER', 'EN_PROGRESO', 'COMPLETADO'])
+  @ApiProperty({ example: 'POR_HACER', description: 'Nombre de estado global o columna custom del usuario' })
+  @IsString()
+  @IsNotEmpty()
   estado: string;
 
   @ApiProperty({ enum: ['BAJA', 'MEDIA', 'ALTA'], example: 'MEDIA' })
