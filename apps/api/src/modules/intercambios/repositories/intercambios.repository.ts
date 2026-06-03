@@ -164,26 +164,26 @@ export class IntercambiosRepository {
         id_comision_destino: true,
         ofrece: {
           select: {
-            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true } },
+            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true, correo: true } },
             comision: {
               select: {
                 id_comision: true,
                 nombre_comision: true,
                 numero_comision: true,
-                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, correo: true } },
               },
             },
           },
         },
         destino: {
           select: {
-            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true } },
+            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true, correo: true } },
             comision: {
               select: {
                 id_comision: true,
                 nombre_comision: true,
                 numero_comision: true,
-                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, correo: true } },
               },
             },
           },

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   NotFoundError,
   ConflictError,
@@ -8,10 +8,22 @@ import { IntercambiosRepository } from './repositories/intercambios.repository';
 import { mapearIntercambioResponse } from './intercambios.mapper';
 import { IntercambioResponseDto } from './dto/intercambio-response.dto';
 import { CreateIntercambioDto } from './dto/create-intercambio.dto';
+import { ComprobantePdfService } from '../comprobantes/services/comprobante-pdf.service';
+import { ComprobantesStorageService } from '../comprobantes/services/comprobantes-storage.service';
+import { ComprobantesRepository } from '../comprobantes/repositories/comprobantes.repository';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class IntercambiosService {
-  constructor(private readonly intercambiosRepository: IntercambiosRepository) {}
+  private readonly logger = new Logger(IntercambiosService.name);
+
+  constructor(
+    private readonly intercambiosRepository: IntercambiosRepository,
+    private readonly comprobantePdf: ComprobantePdfService,
+    private readonly comprobantesStorage: ComprobantesStorageService,
+    private readonly comprobantesRepository: ComprobantesRepository,
+    private readonly email: EmailService,
+  ) {}
 
   /**
    * Obtiene todos los intercambios del usuario autenticado
@@ -170,5 +182,76 @@ export class IntercambiosService {
       estadoCompletado.id_estado,
       notificaciones,
     );
+
+    // Post-transaction: PDF → Storage → DB (hard-fail); emails (soft-fail)
+    const datosComprobante = {
+      idIntercambio,
+      fechaGeneracion: new Date(),
+      alumnoOfrece: {
+        nombre_usuario: datos.ofrece.usuario.nombre_usuario,
+        apellido_usuario: datos.ofrece.usuario.apellido_usuario,
+        dni: datos.ofrece.usuario.dni,
+      },
+      comisionOfrece: {
+        nombre_comision: datos.ofrece.comision.nombre_comision,
+        numero_comision: datos.ofrece.comision.numero_comision,
+        profesor: {
+          nombre_usuario: datos.ofrece.comision.profesor.nombre_usuario,
+          apellido_usuario: datos.ofrece.comision.profesor.apellido_usuario,
+        },
+      },
+      alumnoDestino: {
+        nombre_usuario: datos.destino.usuario.nombre_usuario,
+        apellido_usuario: datos.destino.usuario.apellido_usuario,
+        dni: datos.destino.usuario.dni,
+      },
+      comisionDestino: {
+        nombre_comision: datos.destino.comision.nombre_comision,
+        numero_comision: datos.destino.comision.numero_comision,
+        profesor: {
+          nombre_usuario: datos.destino.comision.profesor.nombre_usuario,
+          apellido_usuario: datos.destino.comision.profesor.apellido_usuario,
+        },
+      },
+    };
+
+    // Steps 1–3: hard-fail
+    const pdfBuffer = await this.comprobantePdf.generar(datosComprobante);
+    const publicUrl = await this.comprobantesStorage.subir(idIntercambio, pdfBuffer);
+    await this.comprobantesRepository.crear(idIntercambio, publicUrl);
+
+    // Step 4: email alumno ofrece (soft-fail)
+    try {
+      await this.email.enviarComprobanteAlumno(datos.ofrece.usuario.correo, datosComprobante, pdfBuffer);
+    } catch (err) {
+      this.logger.error(`Email fallido a ${datos.ofrece.usuario.correo}`, err);
+    }
+
+    // Step 5: email alumno destino (soft-fail)
+    try {
+      await this.email.enviarComprobanteAlumno(datos.destino.usuario.correo, datosComprobante, pdfBuffer);
+    } catch (err) {
+      this.logger.error(`Email fallido a ${datos.destino.usuario.correo}`, err);
+    }
+
+    // Step 6: email profesores deduplicados por id_usuario (soft-fail)
+    const profesoresUnicos = new Map<
+      number,
+      { correo: string }
+    >();
+    profesoresUnicos.set(datos.ofrece.comision.profesor.id_usuario, {
+      correo: datos.ofrece.comision.profesor.correo,
+    });
+    profesoresUnicos.set(datos.destino.comision.profesor.id_usuario, {
+      correo: datos.destino.comision.profesor.correo,
+    });
+
+    for (const [, prof] of profesoresUnicos) {
+      try {
+        await this.email.enviarNotificacionProfesor(prof.correo, datosComprobante);
+      } catch (err) {
+        this.logger.error(`Email fallido a ${prof.correo}`, err);
+      }
+    }
   }
 }
