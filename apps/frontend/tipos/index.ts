@@ -268,3 +268,8 @@ export interface Notificacion {
   creada_en: string // ISO datetime
   datos?: NotificacionDatos
 }
+
+export type RespuestaPaginada<T> = {
+  data: T[]
+  meta: unknown
+}
