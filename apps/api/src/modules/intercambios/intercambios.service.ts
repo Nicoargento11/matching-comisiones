@@ -77,27 +77,26 @@ export class IntercambiosService {
 
   /**
    * Completa un intercambio de forma atómica: intercambia las comisiones de
-   * ambos usuarios y envía notificaciones a los dos.
+   * ambos usuarios y envía notificaciones a los alumnos y profesores involucrados.
    * @param idIntercambio - ID del intercambio a completar
    * @throws NotFoundException si no existe el intercambio
    * @throws ConflictError si el intercambio no está en estado PENDIENTE
    */
   async completar(idIntercambio: number): Promise<void> {
-    const intercambio = await this.intercambiosRepository.verificarExistencia(idIntercambio);
-    if (!intercambio) {
+    const datos = await this.intercambiosRepository.obtenerDatosCompletos(idIntercambio);
+    if (!datos) {
       throw new NotFoundError('INTERCAMBIO_NO_ENCONTRADO', 'Intercambio no encontrado');
     }
 
-    const estadoActual = await this.intercambiosRepository.buscarEstadoPorNombre('PENDIENTE');
-    if (!estadoActual || intercambio.id_estado !== estadoActual.id_estado) {
+    const estadoPendiente = await this.intercambiosRepository.buscarEstadoPorNombre('PENDIENTE');
+    if (!estadoPendiente || datos.id_estado !== estadoPendiente.id_estado) {
       throw new ConflictError(
         'INTERCAMBIO_ESTADO_INVALIDO',
         'Solo se pueden completar intercambios en estado PENDIENTE',
       );
     }
 
-    const estadoCompletado =
-      await this.intercambiosRepository.buscarEstadoPorNombre('COMPLETADO');
+    const estadoCompletado = await this.intercambiosRepository.buscarEstadoPorNombre('COMPLETADO');
     if (!estadoCompletado) {
       throw new NotFoundError(
         'INTERCAMBIO_ESTADO_NO_ENCONTRADO',
@@ -105,30 +104,71 @@ export class IntercambiosService {
       );
     }
 
-    const notificacionOfrece = {
-      titulo: 'Cambio de comisión completado',
-      mensaje: `Tu intercambio de comisión fue completado exitosamente.`,
-      datos: {
-        id_intercambio: idIntercambio,
-        id_comision: intercambio.id_comision_destino,
-      },
-    };
+    const nombreComisionOfrece =
+      datos.ofrece.comision.nombre_comision ?? `Comisión ${datos.ofrece.comision.numero_comision}`;
+    const nombreComisionDestino =
+      datos.destino.comision.nombre_comision ?? `Comisión ${datos.destino.comision.numero_comision}`;
 
-    const notificacionDestino = {
-      titulo: 'Cambio de comisión completado',
-      mensaje: `Tu intercambio de comisión fue completado exitosamente.`,
-      datos: {
-        id_intercambio: idIntercambio,
-        id_comision: intercambio.id_comision_ofrece,
+    const todasLasNotificaciones = [
+      {
+        id_usuario: datos.ofrece.usuario.id_usuario,
+        tipo: 'MATCHING_COMISION' as const,
+        titulo: 'Cambio de comisión completado',
+        mensaje: 'Tu intercambio de comisión fue completado exitosamente.',
+        datos: { id_intercambio: idIntercambio, id_comision: datos.id_comision_destino },
       },
-    };
+      {
+        id_usuario: datos.destino.usuario.id_usuario,
+        tipo: 'MATCHING_COMISION' as const,
+        titulo: 'Cambio de comisión completado',
+        mensaje: 'Tu intercambio de comisión fue completado exitosamente.',
+        datos: { id_intercambio: idIntercambio, id_comision: datos.id_comision_ofrece },
+      },
+      {
+        id_usuario: datos.ofrece.comision.profesor.id_usuario,
+        tipo: 'INTERCAMBIO_EN_COMISION' as const,
+        titulo: 'Intercambio de alumnos en tu comisión',
+        mensaje: `${datos.ofrece.usuario.nombre_usuario} ${datos.ofrece.usuario.apellido_usuario} (DNI ${datos.ofrece.usuario.dni}) salió de tu comisión y fue reemplazado por ${datos.destino.usuario.nombre_usuario} ${datos.destino.usuario.apellido_usuario} (DNI ${datos.destino.usuario.dni}), proveniente de ${nombreComisionDestino} (Prof. ${datos.destino.comision.profesor.nombre_usuario} ${datos.destino.comision.profesor.apellido_usuario}).`,
+        datos: {
+          alumno_sale: { nombre_usuario: datos.ofrece.usuario.nombre_usuario, apellido_usuario: datos.ofrece.usuario.apellido_usuario, dni: datos.ofrece.usuario.dni },
+          alumno_entra: { nombre_usuario: datos.destino.usuario.nombre_usuario, apellido_usuario: datos.destino.usuario.apellido_usuario, dni: datos.destino.usuario.dni },
+          comision_origen: { id_comision: datos.id_comision_ofrece, nombre: nombreComisionOfrece },
+          comision_destino: { id_comision: datos.id_comision_destino, nombre: nombreComisionDestino },
+          profesor_otra_comision: { nombre_usuario: datos.destino.comision.profesor.nombre_usuario, apellido_usuario: datos.destino.comision.profesor.apellido_usuario },
+        },
+      },
+      {
+        id_usuario: datos.destino.comision.profesor.id_usuario,
+        tipo: 'INTERCAMBIO_EN_COMISION' as const,
+        titulo: 'Intercambio de alumnos en tu comisión',
+        mensaje: `${datos.destino.usuario.nombre_usuario} ${datos.destino.usuario.apellido_usuario} (DNI ${datos.destino.usuario.dni}) salió de tu comisión y fue reemplazado por ${datos.ofrece.usuario.nombre_usuario} ${datos.ofrece.usuario.apellido_usuario} (DNI ${datos.ofrece.usuario.dni}), proveniente de ${nombreComisionOfrece} (Prof. ${datos.ofrece.comision.profesor.nombre_usuario} ${datos.ofrece.comision.profesor.apellido_usuario}).`,
+        datos: {
+          alumno_sale: { nombre_usuario: datos.destino.usuario.nombre_usuario, apellido_usuario: datos.destino.usuario.apellido_usuario, dni: datos.destino.usuario.dni },
+          alumno_entra: { nombre_usuario: datos.ofrece.usuario.nombre_usuario, apellido_usuario: datos.ofrece.usuario.apellido_usuario, dni: datos.ofrece.usuario.dni },
+          comision_origen: { id_comision: datos.id_comision_destino, nombre: nombreComisionDestino },
+          comision_destino: { id_comision: datos.id_comision_ofrece, nombre: nombreComisionOfrece },
+          profesor_otra_comision: { nombre_usuario: datos.ofrece.comision.profesor.nombre_usuario, apellido_usuario: datos.ofrece.comision.profesor.apellido_usuario },
+        },
+      },
+    ];
+
+    const seen = new Set<number>();
+    const notificaciones = todasLasNotificaciones.filter((n) => {
+      if (seen.has(n.id_usuario)) return false;
+      seen.add(n.id_usuario);
+      return true;
+    });
 
     await this.intercambiosRepository.completarAtomico(
       idIntercambio,
-      intercambio,
+      {
+        id_usuario_ofrece: datos.ofrece.usuario.id_usuario,
+        id_comision_ofrece: datos.id_comision_ofrece,
+        id_usuario_destino: datos.destino.usuario.id_usuario,
+        id_comision_destino: datos.id_comision_destino,
+      },
       estadoCompletado.id_estado,
-      notificacionOfrece,
-      notificacionDestino,
+      notificaciones,
     );
   }
 }

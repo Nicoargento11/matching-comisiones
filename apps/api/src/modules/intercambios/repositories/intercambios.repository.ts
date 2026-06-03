@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { TipoNotificacion } from '@prisma/client';
 import { CreateIntercambioDto } from '../dto/create-intercambio.dto';
 
 const INTERCAMBIO_SELECT = {
@@ -149,13 +150,55 @@ export class IntercambiosRepository {
   }
 
   /**
+   * Obtiene los datos completos de un intercambio con usuarios, comisiones y profesores
+   * @param idIntercambio - ID del intercambio
+   * @returns Datos completos o null si no existe
+   */
+  async obtenerDatosCompletos(idIntercambio: number) {
+    return this.prisma.intercambio.findUnique({
+      where: { id_intercambio: idIntercambio },
+      select: {
+        id_intercambio: true,
+        id_estado: true,
+        id_comision_ofrece: true,
+        id_comision_destino: true,
+        ofrece: {
+          select: {
+            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true } },
+            comision: {
+              select: {
+                id_comision: true,
+                nombre_comision: true,
+                numero_comision: true,
+                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+              },
+            },
+          },
+        },
+        destino: {
+          select: {
+            usuario: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true } },
+            comision: {
+              select: {
+                id_comision: true,
+                nombre_comision: true,
+                numero_comision: true,
+                profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
    * Completa un intercambio de forma atómica: cambia el estado, intercambia las
-   * inscripciones de ambos usuarios y crea dos notificaciones MATCHING_COMISION.
+   * inscripciones de ambos usuarios y crea las notificaciones recibidas.
    * @param idIntercambio - ID del intercambio a completar
-   * @param intercambio - Datos actuales del intercambio (obtenidos de verificarExistencia)
+   * @param intercambio - Datos del intercambio (IDs de usuarios y comisiones)
    * @param idEstadoCompletado - ID del estado COMPLETADO
-   * @param notificacionOfrece - Datos de la notificación para el usuario oferente
-   * @param notificacionDestino - Datos de la notificación para el usuario destinatario
+   * @param notificaciones - Array de notificaciones a crear (alumnos + profesores, ya deduplicadas)
    */
   async completarAtomico(
     idIntercambio: number,
@@ -166,8 +209,13 @@ export class IntercambiosRepository {
       id_comision_destino: number;
     },
     idEstadoCompletado: number,
-    notificacionOfrece: { titulo: string; mensaje: string; datos: object },
-    notificacionDestino: { titulo: string; mensaje: string; datos: object },
+    notificaciones: Array<{
+      id_usuario: number;
+      tipo: TipoNotificacion;
+      titulo: string;
+      mensaje: string;
+      datos: object;
+    }>,
   ) {
     return this.prisma.$transaction(async (tx) => {
       await tx.intercambio.update({
@@ -251,25 +299,9 @@ export class IntercambiosRepository {
         });
       }
 
-      await tx.notificacion.create({
-        data: {
-          id_usuario: intercambio.id_usuario_ofrece,
-          tipo: 'MATCHING_COMISION',
-          titulo: notificacionOfrece.titulo,
-          mensaje: notificacionOfrece.mensaje,
-          datos: notificacionOfrece.datos,
-        },
-      });
-
-      await tx.notificacion.create({
-        data: {
-          id_usuario: intercambio.id_usuario_destino,
-          tipo: 'MATCHING_COMISION',
-          titulo: notificacionDestino.titulo,
-          mensaje: notificacionDestino.mensaje,
-          datos: notificacionDestino.datos,
-        },
-      });
+      for (const n of notificaciones) {
+        await tx.notificacion.create({ data: n });
+      }
     });
   }
 }
