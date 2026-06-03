@@ -120,8 +120,10 @@ export class ComisionesRepository {
       select: {
         id_comision: true,
         id_materia: true,
+        numero_comision: true,
         nombre_comision: true,
         materia: { select: { nombre_materia: true } },
+        profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
       },
     });
   }
@@ -492,9 +494,22 @@ export class ComisionesRepository {
             id_comision: true,
             numero_comision: true,
             nombre_comision: true,
+            profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
           },
         },
       },
+    });
+  }
+
+  /**
+   * Obtiene nombre, apellido y DNI de un usuario
+   * @param idUsuario - ID del usuario
+   * @returns Datos básicos del usuario o null
+   */
+  async buscarDatosAlumno(idUsuario: number) {
+    return this.prisma.usuario.findUnique({
+      where: { id_usuario: idUsuario },
+      select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true },
     });
   }
 }

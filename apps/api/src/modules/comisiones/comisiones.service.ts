@@ -495,5 +495,27 @@ export class ComisionesService {
         });
       }
     });
+
+    const alumno = await this.comisionesRepository.buscarDatosAlumno(idUsuario);
+    if (!alumno) return;
+
+    const nombreComisionOrigen =
+      inscripcionOrigen.comision.nombre_comision ??
+      `Comisión ${inscripcionOrigen.comision.numero_comision}`;
+    const nombreComisionDestino =
+      comisionDestino.nombre_comision ?? `Comisión ${comisionDestino.numero_comision}`;
+
+    await this.notificacionesService.crearNotificacion({
+      id_usuario: inscripcionOrigen.comision.profesor.id_usuario,
+      tipo: 'ALUMNO_TRASLADADO_MANUAL',
+      titulo: 'Un alumno fue trasladado manualmente desde tu comisión',
+      mensaje: `${alumno.nombre_usuario} ${alumno.apellido_usuario} (DNI ${alumno.dni}) fue trasladado a "${nombreComisionDestino}" (Prof. ${comisionDestino.profesor.nombre_usuario} ${comisionDestino.profesor.apellido_usuario}) por intervención manual de un profesor.`,
+      datos: {
+        alumno_trasladado: { nombre_usuario: alumno.nombre_usuario, apellido_usuario: alumno.apellido_usuario, dni: alumno.dni },
+        comision_origen: { id_comision: inscripcionOrigen.id_comision, nombre: nombreComisionOrigen },
+        comision_destino: { id_comision: idComisionDestino, nombre: nombreComisionDestino },
+        profesor_comision_destino: { nombre_usuario: comisionDestino.profesor.nombre_usuario, apellido_usuario: comisionDestino.profesor.apellido_usuario },
+      },
+    });
   }
 }
