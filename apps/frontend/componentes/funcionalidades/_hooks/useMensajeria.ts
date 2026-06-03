@@ -5,7 +5,7 @@ import { api } from '@/servicios/api'
 import { ApiError } from '@/servicios/api'
 import { mensajeServicio } from '@/servicios/mensajeServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
-import type { Comision, Conversacion, MensajeAPI, Usuario } from '@/tipos'
+import type { Comision, Conversacion, MensajeAPI, RespuestaPaginada, Usuario } from '@/tipos'
 import { obtenerRol } from '@/lib/roles'
 
 export interface ToastMensaje {
@@ -49,12 +49,12 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
     if (!token || !yo) return
     let vivo = true
     Promise.all([
-      api.get<Conversacion[]>('/conversaciones/mis-conversaciones', token),
+      api.get<RespuestaPaginada<Conversacion>>('/conversaciones/mis-conversaciones', token),
       usuarioServicio.obtenerComisiones(yo.id_usuario, token),
     ])
       .then(([convs, coms]) => {
         if (!vivo) return
-        setConversaciones(Array.isArray(convs) ? convs : [])
+        setConversaciones(convs.data ?? [])
         setComisiones(Array.isArray(coms) ? coms : [])
       })
       .catch(() => {
@@ -194,16 +194,16 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
       setConversaciones((prev) => [{ ...nueva, mensajes: nueva.mensajes ?? [] }, ...prev])
       return nueva.id_conversacion
     } catch (e) {
-      // 409 = la conversación ya existe — navegamos a la existente
+      // 409 = la conversación ya existe — usamos ref para leer el estado fresco
       if (e instanceof ApiError && e.status === 409) {
-        const existente = conversaciones.find((c) =>
+        const existente = conversacionesRef.current.find((c) =>
           c.participantes.some((p) => p.usuario.id_usuario === idUsuarioDestino),
         )
         return existente?.id_conversacion ?? null
       }
       return null
     }
-  }, [yo, token, conversaciones])
+  }, [yo, token])
 
   function otroParticipante(conv: Conversacion) {
     return conv.participantes.find((p) => p.usuario.id_usuario !== yo?.id_usuario)?.usuario ?? null
