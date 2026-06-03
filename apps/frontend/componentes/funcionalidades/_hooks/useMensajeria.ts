@@ -7,6 +7,7 @@ import { mensajeServicio } from '@/servicios/mensajeServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
 import type { Comision, Conversacion, MensajeAPI, RespuestaPaginada, Usuario } from '@/tipos'
 import { obtenerRol } from '@/lib/roles'
+import { tieneNoLeidos } from '@/lib/mensajeria'
 
 export interface ToastMensaje {
   id: number
@@ -15,15 +16,6 @@ export interface ToastMensaje {
   idUsuario: number
   contenido: string
   convId: number
-}
-
-function tieneNoLeidos(conv: Conversacion, yoId: number): boolean {
-  const ultimo = conv.mensajes[0]
-  if (!ultimo) return false
-  if (ultimo.id_usuario_emisor === yoId) return false
-  const miPart = conv.participantes.find((p) => p.usuario.id_usuario === yoId)
-  if (!miPart?.ultimo_leido) return true
-  return new Date(ultimo.creado_en) > new Date(miPart.ultimo_leido)
 }
 
 export function useMensajeria(convId: number | null, token: string | null, yo: Usuario | null) {
