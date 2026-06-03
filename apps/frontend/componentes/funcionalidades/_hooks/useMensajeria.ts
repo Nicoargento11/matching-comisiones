@@ -37,6 +37,13 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
   const mensajesRef = useRef<HTMLDivElement>(null)
   const toastContRef = useRef(0)
 
+  // refs para leer datos frescos dentro de callbacks de Supabase
+  // sin que los efectos de suscripción necesiten re-ejecutarse
+  const conversacionesRef = useRef(conversaciones)
+  conversacionesRef.current = conversaciones
+  const convIdRef = useRef(convId)
+  convIdRef.current = convId
+
   // carga inicial: conversaciones y comisiones del usuario en paralelo
   useEffect(() => {
     if (!token || !yo) return
@@ -95,7 +102,6 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
 
   useEffect(() => {
     if (!convId || !yo) return
-    const conv = conversaciones.find((c) => c.id_conversacion === convId)
     const supabase = getSupabaseClient()
     const channel = supabase
       .channel(`conv-${convId}`)
@@ -112,9 +118,10 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
             id_usuario_emisor: number
           }
           if (row.id_conversacion !== convId || row.id_usuario_emisor === yo.id_usuario) return
-          const emisorData = conv?.participantes.find(
-            (p) => p.usuario.id_usuario === row.id_usuario_emisor,
-          )?.usuario
+          const emisorData = conversacionesRef.current
+            .find((c) => c.id_conversacion === convId)
+            ?.participantes.find((p) => p.usuario.id_usuario === row.id_usuario_emisor)
+            ?.usuario
           if (!emisorData) return
           setMensajes((prev) =>
             prev.some((m) => m.id_mensaje === row.id_mensaje)
@@ -125,10 +132,10 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [convId, yo, conversaciones])
+  }, [convId, yo])
 
   useEffect(() => {
-    if (!yo || conversaciones.length === 0) return
+    if (!yo) return
     const supabase = getSupabaseClient()
     const channel = supabase
       .channel('all-convs-notify')
@@ -144,9 +151,9 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
             id_conversacion: number
             id_usuario_emisor: number
           }
-          if (row.id_conversacion === convId) return
+          if (row.id_conversacion === convIdRef.current) return
           if (row.id_usuario_emisor === yo.id_usuario) return
-          const conv = conversaciones.find((c) => c.id_conversacion === row.id_conversacion)
+          const conv = conversacionesRef.current.find((c) => c.id_conversacion === row.id_conversacion)
           if (!conv) return
           const emisor = conv.participantes.find(
             (p) => p.usuario.id_usuario === row.id_usuario_emisor,
@@ -171,7 +178,7 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [yo, conversaciones, convId])
+  }, [yo])
 
   useEffect(() => {
     if (mensajesRef.current)
