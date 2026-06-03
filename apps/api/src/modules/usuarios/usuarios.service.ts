@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  NotFoundError,
-  BadRequestError,
-} from '../../common/errors/business-error';
+import { NotFoundError } from '../../common/errors/business-error';
 import { UsuariosRepository } from './repositories/usuarios.repository';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 import {
@@ -39,12 +36,6 @@ export class UsuariosService {
    * @throws NotFoundException si no existe el usuario
    */
   async obtenerPorDni(dni: number) {
-    if (dni < 1000000 || dni > 99999999) {
-      throw new BadRequestError(
-        'DNI_INVALIDO',
-        'El DNI debe tener entre 7 y 8 dígitos',
-      );
-    }
     const usuario = await this.usuariosRepository.obtenerPorDni(dni);
     if (!usuario) {
       throw new NotFoundError(
