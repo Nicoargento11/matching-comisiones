@@ -174,6 +174,32 @@ export class UsuariosRepository {
   }
 
   /**
+   * Busca usuarios por nombre o apellido, excluyendo al usuario actual
+   * @param q - Texto a buscar (case-insensitive, partial match)
+   * @param idUsuarioActual - ID del usuario que hace la consulta (excluido de resultados)
+   * @param idComision - Si se provee, filtra a usuarios con inscripción ACTIVO en esa comisión
+   * @returns Lista de hasta 15 usuarios con roles
+   */
+  async buscarPorNombre(q: string, idUsuarioActual: number, idComision?: number) {
+    return this.prisma.usuario.findMany({
+      where: {
+        id_usuario: { not: idUsuarioActual },
+        OR: [
+          { nombre_usuario: { contains: q, mode: 'insensitive' } },
+          { apellido_usuario: { contains: q, mode: 'insensitive' } },
+        ],
+        ...(idComision !== undefined && {
+          comisiones: {
+            some: { id_comision: idComision, estado: 'ACTIVO' },
+          },
+        }),
+      },
+      select: USUARIO_SELECT,
+      take: 15,
+    });
+  }
+
+  /**
    * Obtiene las conversaciones en las que participa un usuario
    * @param idUsuario - ID del usuario
    * @returns Lista de participaciones con datos de conversación y último mensaje

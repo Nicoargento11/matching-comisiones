@@ -7,9 +7,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserClaims } from 'src/common/decorators/current-user.decorator';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { BuscarUsuariosDto } from './dto/buscar-usuarios.dto';
 
 @ApiTags('Usuarios')
 @Controller('usuarios')
@@ -58,6 +59,26 @@ export class UsuariosController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   obtenerPorDni(@Param('dni', ParseIntPipe) dni: number) {
     return this.usuariosService.obtenerPorDni(dni);
+  }
+
+  /**
+   * Busca usuarios por nombre o apellido (partial match, case-insensitive)
+   * @param dto - Query params: q (texto) e id_comision (opcional)
+   * @param user - Usuario autenticado (excluido de resultados)
+   * @returns Lista de hasta 15 usuarios que coinciden
+   */
+  @Get('buscar')
+  @Roles('estudiante', 'profesor')
+  @ApiOperation({ summary: 'Buscar usuarios por nombre o apellido' })
+  @ApiQuery({ name: 'q', required: true, type: String, description: 'Texto a buscar (mínimo 3 caracteres)' })
+  @ApiQuery({ name: 'id_comision', required: false, type: Number, description: 'Filtrar por comisión con inscripción ACTIVO' })
+  @ApiResponse({ status: 200, description: 'Lista de usuarios encontrados (máximo 15)' })
+  @ApiResponse({ status: 400, description: 'Parámetro q inválido (muy corto o faltante)' })
+  buscar(
+    @Query() dto: BuscarUsuariosDto,
+    @CurrentUser() user: CurrentUserClaims,
+  ) {
+    return this.usuariosService.buscar(dto.q, user.id_usuario!, dto.id_comision);
   }
 
   /**

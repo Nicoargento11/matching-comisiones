@@ -122,6 +122,18 @@ export class UsuariosService {
   }
 
   /**
+   * Busca usuarios por nombre o apellido, excluyendo al usuario actual
+   * @param q - Texto a buscar
+   * @param idUsuarioActual - ID del usuario autenticado
+   * @param idComision - Si se provee, filtra por comisión con inscripción ACTIVO
+   * @returns Lista de usuarios con roles (máximo 15)
+   */
+  async buscar(q: string, idUsuarioActual: number, idComision?: number) {
+    const usuarios = await this.usuariosRepository.buscarPorNombre(q, idUsuarioActual, idComision);
+    return usuarios.map((u) => ({ ...u, roles: u.roles.map((r) => r.rol) }));
+  }
+
+  /**
    * Obtiene las conversaciones de un usuario
    * @param idUsuario - ID del usuario
    * @returns Lista de conversaciones con último mensaje
