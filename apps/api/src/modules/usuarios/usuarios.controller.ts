@@ -1,4 +1,5 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { DniParsePipe } from 'src/common/pipes/dni-parse.pipe';
 import {
   ApiOperation,
   ApiParam,
@@ -57,7 +58,7 @@ export class UsuariosController {
   @ApiParam({ name: 'dni', type: Number })
   @ApiResponse({ status: 200, description: 'Datos del usuario' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  obtenerPorDni(@Param('dni', ParseIntPipe) dni: number) {
+  obtenerPorDni(@Param('dni', DniParsePipe) dni: number) {
     return this.usuariosService.obtenerPorDni(dni);
   }
 
