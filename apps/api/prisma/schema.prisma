@@ -20,6 +20,8 @@ enum EstadoInscripcion {
 enum TipoNotificacion {
   SISTEMA
   MATCHING_COMISION
+  INTERCAMBIO_EN_COMISION
+  ALUMNO_TRASLADADO_MANUAL
 }
 
 enum TipoEvento {
