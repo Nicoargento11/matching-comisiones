@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useNotificaciones } from '@/src/context/NotificacionesContext'
+import { useMensajesNoLeidos } from '@/src/context/MensajesNoLeidosContext'
 
 export default function Navbar() {
   const { noLeidas } = useNotificaciones()
+  const { mensajesNoLeidos } = useMensajesNoLeidos()
   const [oscuro, setOscuro] = useState(false)
   const [montado, setMontado] = useState(false)
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -55,13 +57,18 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           <Link
             href="/mensajes"
-            aria-label="Mensajes"
+            aria-label={mensajesNoLeidos > 0 ? `Mensajes — ${mensajesNoLeidos} sin leer` : 'Mensajes'}
             title="Mensajes"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-400"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path fillRule="evenodd" d="M3.43 2.524A41.29 41.29 0 0 1 10 2c2.236 0 4.43.18 6.57.524 1.437.231 2.43 1.49 2.43 2.902v5.148c0 1.413-.993 2.67-2.43 2.902a41.202 41.202 0 0 1-5.183.501.78.78 0 0 0-.528.224l-3.579 3.58A.75.75 0 0 1 6 17.75v-2.824c-.528-.055-1.052-.12-1.57-.195C2.993 14.42 2 13.163 2 11.75V5.426c0-1.413.993-2.67 2.43-2.902Z" clipRule="evenodd" />
             </svg>
+            {mensajesNoLeidos > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-0.5 text-[10px] font-bold leading-none text-white">
+                {mensajesNoLeidos > 99 ? '99+' : mensajesNoLeidos}
+              </span>
+            )}
           </Link>
 
           <Link
