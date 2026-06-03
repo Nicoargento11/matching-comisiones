@@ -7,11 +7,13 @@ import {
 } from '@nestjs/common';
 import { ComisionesService } from './comisiones.service';
 import { ComisionesRepository } from './repositories/comisiones.repository';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 
 describe('ComisionesService', () => {
   let service: ComisionesService;
   let repository: jest.Mocked<ComisionesRepository>;
+  let notificacionesService: jest.Mocked<NotificacionesService>;
 
   const mockComision = {
     id_comision: 1,
@@ -62,13 +64,19 @@ describe('ComisionesService', () => {
             obtenerHorariosActivosPorDia: jest.fn(),
             buscarInscripcionActivaEnMateria: jest.fn(),
             buscarComisionConProfesor: jest.fn(),
+            buscarDatosAlumno: jest.fn(),
           },
+        },
+        {
+          provide: NotificacionesService,
+          useValue: { crearNotificacion: jest.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();
 
     service = module.get<ComisionesService>(ComisionesService);
     repository = module.get(ComisionesRepository);
+    notificacionesService = module.get(NotificacionesService);
   });
 
   describe('obtenerTodas', () => {
@@ -110,6 +118,10 @@ describe('ComisionesService', () => {
       repository.verificarExistencia.mockResolvedValue({
         id_comision: 1,
         id_materia: 1,
+        numero_comision: 1,
+        nombre_comision: 'Comisión A',
+        materia: { nombre_materia: 'Matemática' },
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
       } as any);
       repository.verificarEsEstudiante.mockResolvedValue({
         id_usuario: 5,
@@ -274,31 +286,41 @@ describe('ComisionesService', () => {
   });
 
   describe('trasladarEstudiante', () => {
-    it('debe ejecutar baja en origen y alta en destino atómicamente', async () => {
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 2,
-        id_materia: 1,
-      } as any);
-      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
+    const mockComisionDestino = {
+      id_comision: 2,
+      id_materia: 1,
+      numero_comision: 2,
+      nombre_comision: 'Comisión B',
+      materia: { nombre_materia: 'Matemática' },
+      profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+    };
+
+    const mockInscripcionOrigen = {
+      id_comision: 1,
+      comision: {
         id_comision: 1,
-        comision: {
-          id_comision: 1,
-          numero_comision: 1,
-          nombre_comision: 'Comisión A',
-        },
-      } as any);
+        numero_comision: 1,
+        nombre_comision: 'Comisión A',
+        profesor: { id_usuario: 20, nombre_usuario: 'Otro', apellido_usuario: 'Profe' },
+      },
+    };
+
+    it('debe ejecutar baja en origen y alta en destino atómicamente', async () => {
+      repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
       repository.ejecutarTransaccion.mockResolvedValue(undefined);
+      repository.buscarDatosAlumno.mockResolvedValue({
+        id_usuario: 5, nombre_usuario: 'Juan', apellido_usuario: 'Pérez', dni: 12345678,
+      } as any);
 
       await service.trasladarEstudiante(2, 5);
 
       expect(repository.ejecutarTransaccion).toHaveBeenCalled();
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalled();
     });
 
     it('debe lanzar NotFoundException si el alumno no tiene inscripción activa en la materia', async () => {
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 2,
-        id_materia: 1,
-      } as any);
+      repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
       repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
 
       await expect(service.trasladarEstudiante(2, 5)).rejects.toThrow(

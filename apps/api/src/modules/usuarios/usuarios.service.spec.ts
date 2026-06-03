@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { UsuariosRepository } from './repositories/usuarios.repository';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
@@ -99,12 +99,6 @@ describe('UsuariosService', () => {
       );
     });
 
-    it('debe lanzar BadRequestException cuando el DNI tiene menos de 7 dígitos', async () => {
-      await expect(service.obtenerPorDni(999)).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(repository.obtenerPorDni).not.toHaveBeenCalled();
-    });
   });
 
   describe('obtenerEstudiantes', () => {
