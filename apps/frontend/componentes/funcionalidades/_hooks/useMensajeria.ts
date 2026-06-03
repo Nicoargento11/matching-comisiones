@@ -184,7 +184,7 @@ export function useMensajeria(convId: number | null, token: string | null, yo: U
     if (!yo || !token) return null
     try {
       const nueva = await mensajeServicio.crearConversacion(yo.id_usuario, idUsuarioDestino, token)
-      setConversaciones((prev) => [nueva, ...prev])
+      setConversaciones((prev) => [{ ...nueva, mensajes: nueva.mensajes ?? [] }, ...prev])
       return nueva.id_conversacion
     } catch (e) {
       // 409 = la conversación ya existe — navegamos a la existente
