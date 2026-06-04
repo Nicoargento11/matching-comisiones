@@ -9,7 +9,9 @@ export class ComprobantesStorageService {
 
   constructor(private readonly config: ConfigService) {
     const supabaseUrl = this.config.getOrThrow<string>('SUPABASE_URL');
-    const serviceRoleKey = this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY');
+    const serviceRoleKey = this.config.getOrThrow<string>(
+      'SUPABASE_SERVICE_ROLE_KEY',
+    );
     this.bucket = this.config.getOrThrow<string>('SUPABASE_STORAGE_BUCKET');
     this.client = createClient(supabaseUrl, serviceRoleKey);
   }

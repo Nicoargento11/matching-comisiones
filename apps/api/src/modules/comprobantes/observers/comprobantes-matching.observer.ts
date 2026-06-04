@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { DatosComprobante } from '../comprobante.template';
 import { ComprobantePdfService } from '../services/comprobante-pdf.service';
 import { ComprobantesStorageService } from '../services/comprobantes-storage.service';
-import { IMatchingObserver, MatchingCompletadoData } from '../../matching/interfaces/matching-observer.interface';
+import {
+  IMatchingObserver,
+  MatchingCompletadoData,
+} from '../../matching/interfaces/matching-observer.interface';
 
 @Injectable()
 export class ComprobantesMatchingObserver implements IMatchingObserver {
@@ -44,7 +47,12 @@ export class ComprobantesMatchingObserver implements IMatchingObserver {
     };
 
     const pdf = await this.comprobantePdfService.generar(datosSimulados);
-    const url = await this.comprobantesStorageService.subir(data.intercambioId, pdf);
-    console.log(`Comprobante generado para intercambio ${data.intercambioId}: ${url}`);
+    const url = await this.comprobantesStorageService.subir(
+      data.intercambioId,
+      pdf,
+    );
+    console.log(
+      `Comprobante generado para intercambio ${data.intercambioId}: ${url}`,
+    );
   }
 }
