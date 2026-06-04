@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { NotificacionesController } from './notificaciones.controller';
 import { NotificacionesService } from './notificaciones.service';
-import { NotificacionesRepository } from './repositories/notificaciones.repository';
+import { NotificacionesRepository, PrismaNotificacionesRepository } from './repositories/notificaciones.repository';
 
 @Module({
   controllers: [NotificacionesController],
-  providers: [NotificacionesService, NotificacionesRepository],
+  providers: [NotificacionesService, { provide: NotificacionesRepository, useClass: PrismaNotificacionesRepository }],
   exports: [NotificacionesRepository, NotificacionesService],
 })
 export class NotificacionesModule {}

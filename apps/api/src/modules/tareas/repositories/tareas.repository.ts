@@ -22,9 +22,29 @@ const TAREA_SELECT = {
   },
 } as const;
 
+export abstract class TareasRepository {
+  abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaTareasRepository['obtenerPorUsuario']>;
+  abstract obtenerColumnaPorNombre(nombre: string, idUsuario?: number): ReturnType<PrismaTareasRepository['obtenerColumnaPorNombre']>;
+  abstract crear(idUsuario: number, data: {
+    titulo: string;
+    prioridad: PrioridadTarea;
+    id_columna: number;
+    descripcion?: string;
+    estimacion_min?: number;
+    id_materia?: number;
+    id_evento?: number;
+    fecha_vencimiento?: Date;
+  }): ReturnType<PrismaTareasRepository['crear']>;
+  abstract actualizarEstado(idTarea: number, idUsuario: number, idColumna: number): ReturnType<PrismaTareasRepository['actualizarEstado']>;
+  abstract obtenerPorId(idTarea: number): ReturnType<PrismaTareasRepository['obtenerPorId']>;
+  abstract eliminar(idTarea: number, idUsuario: number): ReturnType<PrismaTareasRepository['eliminar']>;
+}
+
 @Injectable()
-export class TareasRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaTareasRepository extends TareasRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   async obtenerPorUsuario(idUsuario: number) {
     return this.prisma.tarea.findMany({

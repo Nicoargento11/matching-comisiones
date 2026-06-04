@@ -21,9 +21,39 @@ const INTERCAMBIO_SELECT = {
   },
 } as const;
 
+export abstract class IntercambiosRepository {
+  abstract verificarExistencia(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['verificarExistencia']>;
+  abstract obtenerPorId(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerPorId']>;
+  abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaIntercambiosRepository['obtenerPorUsuario']>;
+  abstract buscarEstadoPorNombre(nombreEstado: string): ReturnType<PrismaIntercambiosRepository['buscarEstadoPorNombre']>;
+  abstract verificarInscripcionesActivas(dto: CreateIntercambioDto): Promise<boolean>;
+  abstract buscarIntercambioPendiente(dto: CreateIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
+  abstract crear(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crear']>;
+  abstract obtenerDatosCompletos(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerDatosCompletos']>;
+  abstract completarAtomico(
+    idIntercambio: number,
+    intercambio: {
+      id_usuario_ofrece: number;
+      id_comision_ofrece: number;
+      id_usuario_destino: number;
+      id_comision_destino: number;
+    },
+    idEstadoCompletado: number,
+    notificaciones: Array<{
+      id_usuario: number;
+      tipo: TipoNotificacion;
+      titulo: string;
+      mensaje: string;
+      datos: object;
+    }>,
+  ): ReturnType<PrismaIntercambiosRepository['completarAtomico']>;
+}
+
 @Injectable()
-export class IntercambiosRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaIntercambiosRepository extends IntercambiosRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Verifica si existe un intercambio por su ID

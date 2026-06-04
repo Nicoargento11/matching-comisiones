@@ -30,9 +30,24 @@ const USUARIO_SELECT_MINIMO = {
   id_usuario: true,
 } as const;
 
+export abstract class UsuariosRepository {
+  abstract obtenerPorId(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerPorId']>;
+  abstract obtenerPorDni(dni: number): ReturnType<PrismaUsuariosRepository['obtenerPorDni']>;
+  abstract obtenerTodos(paginacion: PaginacionParams): ReturnType<PrismaUsuariosRepository['obtenerTodos']>;
+  abstract contar(): Promise<number>;
+  abstract verificarExistencia(idUsuario: number): ReturnType<PrismaUsuariosRepository['verificarExistencia']>;
+  abstract obtenerPrimerEstudianteUsuarioId(): ReturnType<PrismaUsuariosRepository['obtenerPrimerEstudianteUsuarioId']>;
+  abstract obtenerPrimerProfesorUsuarioId(): ReturnType<PrismaUsuariosRepository['obtenerPrimerProfesorUsuarioId']>;
+  abstract obtenerComisionesDeEstudiante(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerComisionesDeEstudiante']>;
+  abstract buscarPorNombre(q: string, idUsuarioActual: number, idComision?: number): ReturnType<PrismaUsuariosRepository['buscarPorNombre']>;
+  abstract obtenerConversaciones(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerConversaciones']>;
+}
+
 @Injectable()
-export class UsuariosRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaUsuariosRepository extends UsuariosRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Obtiene un usuario por su id_usuario, incluyendo roles
