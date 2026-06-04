@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ApiError } from '@/servicios/api'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
-import type { Comision, UsuarioBusquedaPorDni } from '@/tipos'
+import type { Comision, UsuarioConRoles } from '@/tipos'
 import Avatar from '@/componentes/interfaz/Avatar'
 import RolBadge from '@/componentes/interfaz/RolBadge'
 import { obtenerRol } from '@/lib/roles'
@@ -24,7 +24,7 @@ function esDni(valor: string): boolean {
 export default function BuscadorNuevaConversacion({ token, comisiones, onConversacionIniciada, onCancelar }: Props) {
   const [query, setQuery] = useState('')
   const [comisionFiltro, setComisionFiltro] = useState<number | null>(null)
-  const [resultados, setResultados] = useState<UsuarioBusquedaPorDni[]>([])
+  const [resultados, setResultados] = useState<UsuarioConRoles[]>([])
   const [estado, setEstado] = useState<EstadoBusqueda>('idle')
   const [seleccionando, setSeleccionando] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -78,7 +78,7 @@ export default function BuscadorNuevaConversacion({ token, comisiones, onConvers
     return () => clearTimeout(delay)
   }, [query, comisionFiltro, token])
 
-  async function seleccionarUsuario(usuario: UsuarioBusquedaPorDni) {
+  async function seleccionarUsuario(usuario: UsuarioConRoles) {
     if (seleccionando !== null) return
     setSeleccionando(usuario.id_usuario)
     try {

@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation'
 import { profesorServicio } from '@/servicios/profesorServicio'
 import { api } from '@/servicios/api'
 import { getServerSession } from '@/lib/supabase-server'
-import { UsuarioPerfil } from '@/tipos'
+import { UsuarioConRoles } from '@/tipos'
 
 export default async function PaginaMisComisiones() {
   const session = await getServerSession()
   if (!session) redirect('/login')
 
   const token = session.access_token
-  const profesor = await api.get<UsuarioPerfil>('/auth/me', token)
+  const profesor = await api.get<UsuarioConRoles>('/auth/me', token)
   const comisiones = await profesorServicio.obtenerComisiones(profesor.id_usuario, token)
 
   return (

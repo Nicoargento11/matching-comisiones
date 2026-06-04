@@ -5,7 +5,7 @@ import { comisionServicio } from '@/servicios/comisionServicio'
 import { usuarioServicio } from '@/servicios/usuarioServicio'
 import BannerExito from '@/componentes/interfaz/BannerExito'
 import { esEstudiante } from '@/lib/roles'
-import type { Comision, ComisionConflicto, EstadoInscripcion, UsuarioBusquedaPorDni, UsuarioInComision } from '@/tipos'
+import type { Comision, ComisionConflicto, EstadoInscripcion, UsuarioConRoles, UsuarioInComision } from '@/tipos'
 
 type Props = {
   alumnosIniciales: UsuarioInComision[]
@@ -99,7 +99,7 @@ export default function SeccionAlumnos({ alumnosIniciales, alumnosBajaIniciales,
 
     try {
       setBuscando(true)
-      const usuario = await usuarioServicio.obtenerPorDni(dniNum, token ?? undefined) as UsuarioBusquedaPorDni
+      const usuario = await usuarioServicio.obtenerPorDni(dniNum, token ?? undefined) as UsuarioConRoles
       const esEstudianteUsuario = esEstudiante(usuario.roles)
 
       if (!esEstudianteUsuario) {
