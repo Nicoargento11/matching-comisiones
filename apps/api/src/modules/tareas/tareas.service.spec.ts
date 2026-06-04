@@ -28,10 +28,10 @@ describe('TareasService', () => {
           useValue: {
             obtenerPorUsuario: jest.fn(),
             obtenerColumnaPorNombre: jest.fn(),
-            crear: jest.fn(),
+            crearTarea: jest.fn(),
             actualizarEstado: jest.fn(),
             obtenerPorId: jest.fn(),
-            eliminar: jest.fn(),
+            eliminarTarea: jest.fn(),
           },
         },
       ],
@@ -65,31 +65,31 @@ describe('TareasService', () => {
 
     it('debe crear una tarea cuando la columna existe', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
-      repository.crear.mockResolvedValue(mockTareaRaw as any);
+      repository.crearTarea.mockResolvedValue(mockTareaRaw as any);
 
-      await service.crear(1, {
+      await service.crearTarea(1, {
         titulo: 'Nueva tarea',
         prioridad: 'MEDIA',
         estado: 'POR_HACER',
       } as any);
 
       expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('Por hacer', 1);
-      expect(repository.crear).toHaveBeenCalled();
+      expect(repository.crearTarea).toHaveBeenCalled();
     });
 
     it('debe lanzar BadRequestException cuando la columna no existe', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(null);
 
       await expect(
-        service.crear(1, { titulo: 'Tarea', prioridad: 'ALTA', estado: 'POR_HACER' } as any),
+        service.crearTarea(1, { titulo: 'Tarea', prioridad: 'ALTA', estado: 'POR_HACER' } as any),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('debe usar el nombre de columna del mapper ESTADO_A_COLUMNA', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
-      repository.crear.mockResolvedValue(mockTareaRaw as any);
+      repository.crearTarea.mockResolvedValue(mockTareaRaw as any);
 
-      await service.crear(1, { titulo: 'T', prioridad: 'BAJA', estado: 'EN_PROGRESO' } as any);
+      await service.crearTarea(1, { titulo: 'T', prioridad: 'BAJA', estado: 'EN_PROGRESO' } as any);
 
       // EN_PROGRESO → 'En progreso'
       expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('En progreso', 1);
@@ -97,25 +97,25 @@ describe('TareasService', () => {
 
     it('usa el estado directamente como nombre cuando no está en el mapa', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
-      repository.crear.mockResolvedValue(mockTareaRaw as any);
+      repository.crearTarea.mockResolvedValue(mockTareaRaw as any);
 
-      await service.crear(1, { titulo: 'T', prioridad: 'MEDIA', estado: 'CUSTOM' } as any);
+      await service.crearTarea(1, { titulo: 'T', prioridad: 'MEDIA', estado: 'CUSTOM' } as any);
 
       expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('CUSTOM', 1);
     });
 
     it('pasa fecha_vencimiento como Date cuando se provee', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
-      repository.crear.mockResolvedValue(mockTareaRaw as any);
+      repository.crearTarea.mockResolvedValue(mockTareaRaw as any);
 
-      await service.crear(1, {
+      await service.crearTarea(1, {
         titulo: 'T',
         prioridad: 'MEDIA',
         estado: 'POR_HACER',
         fecha_vencimiento: '2026-12-31',
       } as any);
 
-      expect(repository.crear).toHaveBeenCalledWith(
+      expect(repository.crearTarea).toHaveBeenCalledWith(
         1,
         expect.objectContaining({ fecha_vencimiento: new Date('2026-12-31') }),
       );
@@ -166,17 +166,17 @@ describe('TareasService', () => {
 
   describe('eliminar', () => {
     it('debe eliminar la tarea cuando el usuario es el dueño', async () => {
-      repository.eliminar.mockResolvedValue({ count: 1 } as any);
+      repository.eliminarTarea.mockResolvedValue({ count: 1 } as any);
 
-      await service.eliminar(1, 1);
+      await service.eliminarTarea(1, 1);
 
-      expect(repository.eliminar).toHaveBeenCalledWith(1, 1);
+      expect(repository.eliminarTarea).toHaveBeenCalledWith(1, 1);
     });
 
     it('debe lanzar ForbiddenException cuando el usuario no es el dueño', async () => {
-      repository.eliminar.mockResolvedValue({ count: 0 } as any);
+      repository.eliminarTarea.mockResolvedValue({ count: 0 } as any);
 
-      await expect(service.eliminar(1, 99)).rejects.toThrow(ForbiddenException);
+      await expect(service.eliminarTarea(1, 99)).rejects.toThrow(ForbiddenException);
     });
   });
 });

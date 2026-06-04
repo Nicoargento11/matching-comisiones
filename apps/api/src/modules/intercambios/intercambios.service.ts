@@ -56,7 +56,7 @@ export class IntercambiosService {
    * @throws BadRequestError si alguna inscripción no está activa
    * @throws ConflictError si ya existe un intercambio pendiente igual
    */
-  async crear(dto: CreateIntercambioDto): Promise<IntercambioResponseDto> {
+  async crearIntercambio(dto: CreateIntercambioDto): Promise<IntercambioResponseDto> {
     const inscripcionesActivas =
       await this.intercambiosRepository.verificarInscripcionesActivas(dto);
     if (!inscripcionesActivas) {
@@ -83,7 +83,7 @@ export class IntercambiosService {
       );
     }
 
-    const intercambio = await this.intercambiosRepository.crear(dto, estadoPendiente.id_estado);
+    const intercambio = await this.intercambiosRepository.crearIntercambio(dto, estadoPendiente.id_estado);
     return mapearIntercambioResponse(intercambio);
   }
 
@@ -218,7 +218,7 @@ export class IntercambiosService {
     // Steps 1–3: hard-fail
     const pdfBuffer = await this.comprobantePdf.generar(datosComprobante);
     const publicUrl = await this.comprobantesStorage.subir(idIntercambio, pdfBuffer);
-    await this.comprobantesRepository.crear(idIntercambio, publicUrl);
+    await this.comprobantesRepository.crearComprobante(idIntercambio, publicUrl);
 
     // Step 4: email alumno ofrece (soft-fail)
     try {

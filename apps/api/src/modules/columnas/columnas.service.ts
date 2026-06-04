@@ -20,7 +20,7 @@ export class ColumnasService {
     );
   }
 
-  async crear(idUsuario: number, dto: CreateColumnaDto): Promise<ColumnaResponseDto> {
+  async crearColumna(idUsuario: number, dto: CreateColumnaDto): Promise<ColumnaResponseDto> {
     const global = await this.columnasRepository.obtenerGlobalPorNombre(dto.nombre);
     if (global) {
       throw new BadRequestError(
@@ -40,7 +40,7 @@ export class ColumnasService {
     const maxOrden = await this.columnasRepository.maxOrdenUsuario(idUsuario);
     const orden = Math.max(maxOrden, 3) + 1;
 
-    const columna = await this.columnasRepository.crear(idUsuario, dto.nombre, orden);
+    const columna = await this.columnasRepository.crearColumna(idUsuario, dto.nombre, orden);
     return plainToInstance(
       ColumnaResponseDto,
       { ...columna, es_global: false },
@@ -48,8 +48,8 @@ export class ColumnasService {
     );
   }
 
-  async eliminar(idColumna: number, idUsuario: number): Promise<void> {
-    const result = await this.columnasRepository.eliminar(idColumna, idUsuario);
+  async eliminarColumna(idColumna: number, idUsuario: number): Promise<void> {
+    const result = await this.columnasRepository.eliminarColumna(idColumna, idUsuario);
     if (result.count === 0) {
       throw new ForbiddenError(
         'COLUMNA_NO_AUTORIZADA',

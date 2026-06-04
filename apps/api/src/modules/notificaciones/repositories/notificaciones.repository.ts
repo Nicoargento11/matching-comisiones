@@ -87,7 +87,7 @@ export class PrismaNotificacionesRepository extends NotificacionesRepository {
     });
   }
 
-  async crear(data: CrearNotificacionData) {
+  async crearNotificacion(data: CrearNotificacionData) {
     return this.prisma.notificacion.create({
       data: {
         id_usuario: data.id_usuario,

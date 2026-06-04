@@ -9,7 +9,7 @@ export class NotificacionesService {
   constructor(private readonly notificacionesRepository: NotificacionesRepository) {}
 
   async crearNotificacion(data: CrearNotificacionData): Promise<void> {
-    await this.notificacionesRepository.crear(data);
+    await this.notificacionesRepository.crearNotificacion(data);
   }
 
   /**

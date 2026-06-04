@@ -34,7 +34,7 @@ export class PrismaColumnasRepository extends ColumnasRepository {
     return result._max.orden_columna ?? 3;
   }
 
-  async crear(idUsuario: number, nombre: string, orden: number) {
+  async crearColumna(idUsuario: number, nombre: string, orden: number) {
     return this.prisma.columnaTablero.create({
       data: { nombre, orden_columna: orden, id_usuario: idUsuario },
       select: { id_columna: true, nombre: true, orden_columna: true, id_usuario: true },
@@ -55,7 +55,7 @@ export class PrismaColumnasRepository extends ColumnasRepository {
     });
   }
 
-  async eliminar(idColumna: number, idUsuario: number): Promise<{ count: number }> {
+  async eliminarColumna(idColumna: number, idUsuario: number): Promise<{ count: number }> {
     return this.prisma.columnaTablero.deleteMany({
       where: { id_columna: idColumna, id_usuario: idUsuario },
     });

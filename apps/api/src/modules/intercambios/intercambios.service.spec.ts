@@ -83,7 +83,7 @@ describe('IntercambiosService', () => {
             obtenerPorId: jest.fn(),
             verificarInscripcionesActivas: jest.fn(),
             buscarIntercambioPendiente: jest.fn(),
-            crear: jest.fn(),
+            crearIntercambio: jest.fn(),
           },
         },
         {
@@ -96,7 +96,7 @@ describe('IntercambiosService', () => {
         },
         {
           provide: ComprobantesRepository,
-          useValue: { crear: jest.fn().mockResolvedValue({ id_comprobante: 1 }) },
+          useValue: { crearComprobante: jest.fn().mockResolvedValue({ id_comprobante: 1 }) },
         },
         {
           provide: EmailService,
@@ -188,26 +188,26 @@ describe('IntercambiosService', () => {
     it('debe lanzar BadRequestException cuando alguna inscripción no está activa', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(false as any);
 
-      await expect(service.crear(mockDto as any)).rejects.toThrow(BadRequestException);
+      await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(BadRequestException);
     });
 
     it('debe lanzar ConflictException cuando ya existe un intercambio pendiente entre esas comisiones', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue({ id_intercambio: 3 } as any);
 
-      await expect(service.crear(mockDto as any)).rejects.toThrow(ConflictException);
+      await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(ConflictException);
     });
 
     it('debe crear el intercambio en estado PENDIENTE cuando todas las validaciones pasan', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
-      intercambiosRepo.crear.mockResolvedValue(
+      intercambiosRepo.crearIntercambio.mockResolvedValue(
         { fecha_solicitud: new Date(), id_intercambio: 5 } as any,
       );
 
-      const result = await service.crear(mockDto as any);
+      const result = await service.crearIntercambio(mockDto as any);
 
-      expect(intercambiosRepo.crear).toHaveBeenCalledWith(mockDto, estadoPendiente.id_estado);
+      expect(intercambiosRepo.crearIntercambio).toHaveBeenCalledWith(mockDto, estadoPendiente.id_estado);
       expect(result).toBeDefined();
     });
 
@@ -216,7 +216,7 @@ describe('IntercambiosService', () => {
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
       intercambiosRepo.buscarEstadoPorNombre.mockResolvedValue(null);
 
-      await expect(service.crear(mockDto as any)).rejects.toThrow(NotFoundException);
+      await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -229,6 +229,7 @@ describe('IntercambiosService', () => {
       await expect(service.completar(10)).rejects.toThrow(NotFoundException);
     });
 
+<<<<<<< Updated upstream
     it('lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
       intercambiosRepo.obtenerDatosCompletos.mockResolvedValue({
         ...buildDatosCompletos(),
@@ -289,7 +290,7 @@ describe('IntercambiosService', () => {
       storageService.subir.mockRejectedValue(new Error('Storage unavailable'));
 
       await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
-      expect(comprobantesRepo.crear).not.toHaveBeenCalled();
+      expect(comprobantesRepo.crearComprobante).not.toHaveBeenCalled();
     });
 
     it('genera el PDF y lo sube al storage con el id del intercambio', async () => {
@@ -302,7 +303,7 @@ describe('IntercambiosService', () => {
     it('guarda el comprobante en base de datos con la URL del storage', async () => {
       await service.completar(10);
 
-      expect(comprobantesRepo.crear).toHaveBeenCalledWith(10, 'https://cdn.example.com/1.pdf');
+      expect(comprobantesRepo.crearComprobante).toHaveBeenCalledWith(10, 'https://cdn.example.com/1.pdf');
     });
 
     it('envía el comprobante por email a ambos alumnos del intercambio', async () => {

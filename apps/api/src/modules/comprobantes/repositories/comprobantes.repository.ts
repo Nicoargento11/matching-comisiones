@@ -16,7 +16,7 @@ export class PrismaComprobantesRepository extends ComprobantesRepository {
    * Persiste un comprobante asociado al intercambio.
    * Lanza un error si ya existe un comprobante para ese intercambio (unique constraint).
    */
-  async crear(idIntercambio: number, archivoPdfUrl: string): Promise<Comprobante> {
+  async crearComprobante(idIntercambio: number, archivoPdfUrl: string): Promise<Comprobante> {
     return this.prisma.comprobante.create({
       data: {
         id_intercambio: idIntercambio,

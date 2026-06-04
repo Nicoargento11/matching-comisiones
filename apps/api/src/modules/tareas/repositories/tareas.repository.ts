@@ -68,7 +68,7 @@ export class PrismaTareasRepository extends TareasRepository {
     });
   }
 
-  async crear(
+  async crearTarea(
     idUsuario: number,
     data: {
       titulo: string;
@@ -111,7 +111,7 @@ export class PrismaTareasRepository extends TareasRepository {
     });
   }
 
-  async eliminar(idTarea: number, idUsuario: number) {
+  async eliminarTarea(idTarea: number, idUsuario: number) {
     return this.prisma.tarea.deleteMany({
       where: { id_tarea: idTarea, id_usuario: idUsuario },
     });

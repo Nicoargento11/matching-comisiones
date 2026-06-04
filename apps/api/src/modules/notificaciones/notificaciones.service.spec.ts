@@ -25,7 +25,7 @@ describe('NotificacionesService', () => {
         {
           provide: NotificacionesRepository,
           useValue: {
-            crear: jest.fn(),
+            crearNotificacion: jest.fn(),
             obtenerPorUsuario: jest.fn(),
             verificarExistencia: jest.fn(),
             marcarLeida: jest.fn(),
@@ -41,7 +41,7 @@ describe('NotificacionesService', () => {
 
   describe('crearNotificacion', () => {
     it('debe llamar al repositorio con los datos recibidos', async () => {
-      repository.crear.mockResolvedValue(undefined as any);
+      repository.crearNotificacion.mockResolvedValue(undefined as any);
 
       await service.crearNotificacion({
         id_usuario: 5,
@@ -51,7 +51,7 @@ describe('NotificacionesService', () => {
         datos: {},
       });
 
-      expect(repository.crear).toHaveBeenCalledTimes(1);
+      expect(repository.crearNotificacion).toHaveBeenCalledTimes(1);
     });
   });
 

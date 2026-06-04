@@ -37,9 +37,9 @@ export class TareasController {
   @ApiOperation({ summary: 'Crear una nueva tarea' })
   @ApiResponse({ status: 201, description: 'Tarea creada' })
   @ApiResponse({ status: 400, description: 'Columna no encontrada o datos inválidos' })
-  crear(@Body() dto: CreateTareaDto, @CurrentUser() user: CurrentUserClaims) {
+  crearTarea(@Body() dto: CreateTareaDto, @CurrentUser() user: CurrentUserClaims) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.crear(user.id_usuario, dto);
+    return this.tareasService.crearTarea(user.id_usuario, dto);
   }
 
   @Patch(':idTarea/estado')
@@ -63,11 +63,11 @@ export class TareasController {
   @ApiParam({ name: 'idTarea', type: Number })
   @ApiResponse({ status: 204, description: 'Tarea eliminada' })
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
-  async eliminar(
+  async eliminarTarea(
     @Param('idTarea', ParseIntPipe) idTarea: number,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    await this.tareasService.eliminar(idTarea, user.id_usuario);
+    await this.tareasService.eliminarTarea(idTarea, user.id_usuario);
   }
 }

@@ -8,6 +8,7 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiParam,
@@ -23,6 +24,7 @@ import {
 import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Intercambios')
+@ApiBearerAuth()
 @Controller('intercambios')
 export class IntercambiosController {
   constructor(private readonly intercambiosService: IntercambiosService) {}
@@ -64,8 +66,8 @@ export class IntercambiosController {
   @ApiResponse({ status: 201, description: 'Intercambio creado en estado PENDIENTE' })
   @ApiResponse({ status: 400, description: 'Inscripciones inactivas' })
   @ApiResponse({ status: 409, description: 'Ya existe un intercambio pendiente' })
-  crear(@Body() dto: CreateIntercambioDto) {
-    return this.intercambiosService.crear(dto);
+  crearIntercambio(@Body() dto: CreateIntercambioDto) {
+    return this.intercambiosService.crearIntercambio(dto);
   }
 
   /**

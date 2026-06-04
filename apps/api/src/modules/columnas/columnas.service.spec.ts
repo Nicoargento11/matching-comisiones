@@ -25,8 +25,8 @@ describe('ColumnasService', () => {
             obtenerGlobalPorNombre: jest.fn(),
             obtenerUsuarioPorNombre: jest.fn(),
             maxOrdenUsuario: jest.fn(),
-            crear: jest.fn(),
-            eliminar: jest.fn(),
+            crearColumna: jest.fn(),
+            eliminarColumna: jest.fn(),
           },
         },
       ],
@@ -64,12 +64,12 @@ describe('ColumnasService', () => {
       repository.obtenerGlobalPorNombre.mockResolvedValue(null);
       repository.obtenerUsuarioPorNombre.mockResolvedValue(null);
       repository.maxOrdenUsuario.mockResolvedValue(3);
-      repository.crear.mockResolvedValue(mockColumnaRaw as any);
+      repository.crearColumna.mockResolvedValue(mockColumnaRaw as any);
 
-      await service.crear(1, { nombre: 'Mi columna' } as any);
+      await service.crearColumna(1, { nombre: 'Mi columna' } as any);
 
       // orden debe ser max(3, 3) + 1 = 4
-      expect(repository.crear).toHaveBeenCalledWith(1, 'Mi columna', 4);
+      expect(repository.crearColumna).toHaveBeenCalledWith(1, 'Mi columna', 4);
     });
 
     it('debe lanzar BadRequestException si el nombre colisiona con una columna global', async () => {
@@ -78,7 +78,7 @@ describe('ColumnasService', () => {
         nombre: 'Por hacer',
       } as any);
 
-      await expect(service.crear(1, { nombre: 'Por hacer' } as any)).rejects.toThrow(
+      await expect(service.crearColumna(1, { nombre: 'Por hacer' } as any)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -90,7 +90,7 @@ describe('ColumnasService', () => {
         nombre: 'Revisión',
       } as any);
 
-      await expect(service.crear(1, { nombre: 'Revisión' } as any)).rejects.toThrow(
+      await expect(service.crearColumna(1, { nombre: 'Revisión' } as any)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -99,27 +99,27 @@ describe('ColumnasService', () => {
       repository.obtenerGlobalPorNombre.mockResolvedValue(null);
       repository.obtenerUsuarioPorNombre.mockResolvedValue(null);
       repository.maxOrdenUsuario.mockResolvedValue(0); // maxOrden = 0, Math.max(0,3) = 3, orden = 4
-      repository.crear.mockResolvedValue(mockColumnaRaw as any);
+      repository.crearColumna.mockResolvedValue(mockColumnaRaw as any);
 
-      await service.crear(1, { nombre: 'Nueva' } as any);
+      await service.crearColumna(1, { nombre: 'Nueva' } as any);
 
-      expect(repository.crear).toHaveBeenCalledWith(1, 'Nueva', 4);
+      expect(repository.crearColumna).toHaveBeenCalledWith(1, 'Nueva', 4);
     });
   });
 
   describe('eliminar', () => {
     it('debe eliminar la columna cuando el usuario es el dueño', async () => {
-      repository.eliminar.mockResolvedValue({ count: 1 } as any);
+      repository.eliminarColumna.mockResolvedValue({ count: 1 } as any);
 
-      await service.eliminar(10, 1);
+      await service.eliminarColumna(10, 1);
 
-      expect(repository.eliminar).toHaveBeenCalledWith(10, 1);
+      expect(repository.eliminarColumna).toHaveBeenCalledWith(10, 1);
     });
 
     it('debe lanzar ForbiddenException cuando el usuario no es el dueño o la columna no existe', async () => {
-      repository.eliminar.mockResolvedValue({ count: 0 } as any);
+      repository.eliminarColumna.mockResolvedValue({ count: 0 } as any);
 
-      await expect(service.eliminar(99, 1)).rejects.toThrow(ForbiddenException);
+      await expect(service.eliminarColumna(99, 1)).rejects.toThrow(ForbiddenException);
     });
   });
 });

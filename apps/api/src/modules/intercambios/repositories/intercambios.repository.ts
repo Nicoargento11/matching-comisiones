@@ -166,7 +166,7 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
    * @param idEstadoPendiente - ID del estado PENDIENTE
    * @returns El intercambio creado con relaciones
    */
-  async crear(dto: CreateIntercambioDto, idEstadoPendiente: number) {
+  async crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number) {
     return this.prisma.intercambio.create({
       data: {
         id_estado: idEstadoPendiente,

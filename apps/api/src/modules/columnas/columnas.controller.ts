@@ -24,16 +24,16 @@ export class ColumnasController {
   }
 
   @Post()
-  crear(@Body() dto: CreateColumnaDto, @CurrentUser() user: CurrentUserClaims) {
-    return this.columnasService.crear(user.id_usuario!, dto);
+  crearColumna(@Body() dto: CreateColumnaDto, @CurrentUser() user: CurrentUserClaims) {
+    return this.columnasService.crearColumna(user.id_usuario!, dto);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  async eliminar(
+  async eliminarColumna(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: CurrentUserClaims,
   ) {
-    await this.columnasService.eliminar(id, user.id_usuario!);
+    await this.columnasService.eliminarColumna(id, user.id_usuario!);
   }
 }

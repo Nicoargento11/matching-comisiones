@@ -16,7 +16,7 @@ export class TareasService {
     return tareas.map(mapearTareaTableroResponse);
   }
 
-  async crear(idUsuario: number, dto: CreateTareaDto): Promise<TareaTableroResponseDto> {
+  async crearTarea(idUsuario: number, dto: CreateTareaDto): Promise<TareaTableroResponseDto> {
     const nombreColumna = ESTADO_A_COLUMNA[dto.estado] ?? dto.estado;
     const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna, idUsuario);
 
@@ -27,7 +27,7 @@ export class TareasService {
       );
     }
 
-    const tarea = await this.tareasRepository.crear(idUsuario, {
+    const tarea = await this.tareasRepository.crearTarea(idUsuario, {
       titulo: dto.titulo,
       prioridad: dto.prioridad as PrioridadTarea,
       id_columna: columna.id_columna,
@@ -73,8 +73,8 @@ export class TareasService {
     return mapearTareaTableroResponse(actualizada!);
   }
 
-  async eliminar(idTarea: number, idUsuario: number): Promise<void> {
-    const result = await this.tareasRepository.eliminar(idTarea, idUsuario);
+  async eliminarTarea(idTarea: number, idUsuario: number): Promise<void> {
+    const result = await this.tareasRepository.eliminarTarea(idTarea, idUsuario);
 
     if (result.count === 0) {
       throw new ForbiddenError(
