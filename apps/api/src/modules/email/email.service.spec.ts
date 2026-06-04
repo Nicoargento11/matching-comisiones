@@ -124,12 +124,71 @@ describe('EmailService', () => {
       expect(args.html).toContain('Comisión 5');
     });
 
+    it('usa fallback con número para comisionDestino cuando nombre_comision es null', async () => {
+      sendMail.mockResolvedValue({ messageId: '5' });
+      const datosConNull = {
+        ...mockDatos,
+        comisionDestino: { ...mockDatos.comisionDestino, nombre_comision: null, numero_comision: 7 },
+      };
+
+      await service.enviarNotificacionProfesor('profe@test.com', datosConNull as any);
+
+      const args = sendMail.mock.calls[0][0];
+      expect(args.html).toContain('Comisión 7');
+    });
+
     it('debe propagar el error cuando sendMail falla', async () => {
       sendMail.mockRejectedValue(new Error('Timeout SMTP'));
 
       await expect(
         service.enviarNotificacionProfesor('profe@test.com', mockDatos as any),
       ).rejects.toThrow('Timeout SMTP');
+    });
+
+    it('usa "Comisión" como fallback cuando nombre_comision y numero_comision son ambos null', async () => {
+      sendMail.mockResolvedValue({ messageId: '4' });
+      const datosConNull = {
+        ...mockDatos,
+        comisionOfrece: { ...mockDatos.comisionOfrece, nombre_comision: null, numero_comision: null },
+        comisionDestino: { ...mockDatos.comisionDestino, nombre_comision: null, numero_comision: null },
+      };
+
+      await service.enviarNotificacionProfesor('profe@test.com', datosConNull as any);
+
+      const args = sendMail.mock.calls[0][0];
+      expect(args.html).not.toContain('undefined');
+      expect(args.html).not.toContain('null');
+    });
+  });
+
+  describe('constructor — SMTP_PORT usa default 587 cuando no está configurado', () => {
+    it('instancia el servicio correctamente cuando SMTP_PORT es undefined', async () => {
+      const { Test: NestTest } = await import('@nestjs/testing');
+      const { ConfigService: CS } = await import('@nestjs/config');
+
+      const module = await NestTest.createTestingModule({
+        providers: [
+          EmailService,
+          {
+            provide: CS,
+            useValue: {
+              getOrThrow: jest.fn((key: string) => {
+                const map: Record<string, string> = {
+                  SMTP_FROM: 'noreply@test.com',
+                  SMTP_HOST: 'smtp.test.com',
+                  SMTP_USER: 'user',
+                  SMTP_PASSWORD: 'pass',
+                };
+                return map[key];
+              }),
+              get: jest.fn(() => undefined),
+            },
+          },
+        ],
+      }).compile();
+
+      const s = module.get<EmailService>(EmailService);
+      expect(s).toBeDefined();
     });
   });
 });

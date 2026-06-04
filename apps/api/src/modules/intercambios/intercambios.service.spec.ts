@@ -246,6 +246,24 @@ describe('IntercambiosService', () => {
     await expect(service.completar(10)).rejects.toThrow(NotFoundException);
   });
 
+  // ── completar — soft-fail en email de profesor ────────────────────────────
+  it('completar — logger.error cuando enviarNotificacionProfesor falla (soft-fail)', async () => {
+    emailService.enviarNotificacionProfesor.mockRejectedValue(new Error('SMTP timeout'));
+
+    await expect(service.completar(10)).resolves.toBeUndefined();
+    expect(Logger.prototype.error).toHaveBeenCalled();
+  });
+
+  // ── completar — fallback de nombre de comisión ────────────────────────────
+  it('completar — usa fallback cuando nombre_comision es null en ambas comisiones', async () => {
+    const datos = buildDatosCompletos();
+    (datos.ofrece.comision as any).nombre_comision = null;
+    (datos.destino.comision as any).nombre_comision = null;
+    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(datos as any);
+
+    await expect(service.completar(10)).resolves.toBeUndefined();
+  });
+
   // ── Task 5.4: soft-fail when enviarComprobanteAlumno throws ────────────────
   it('5.4 — resolves and calls logger.error when email throws (soft-fail)', async () => {
     emailService.enviarComprobanteAlumno.mockRejectedValue(new Error('SMTP down'));

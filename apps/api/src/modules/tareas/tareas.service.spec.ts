@@ -94,6 +94,32 @@ describe('TareasService', () => {
       // EN_PROGRESO → 'En progreso'
       expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('En progreso', 1);
     });
+
+    it('usa el estado directamente como nombre cuando no está en el mapa', async () => {
+      repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
+      repository.crear.mockResolvedValue(mockTareaRaw as any);
+
+      await service.crear(1, { titulo: 'T', prioridad: 'MEDIA', estado: 'CUSTOM' } as any);
+
+      expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('CUSTOM', 1);
+    });
+
+    it('pasa fecha_vencimiento como Date cuando se provee', async () => {
+      repository.obtenerColumnaPorNombre.mockResolvedValue(mockColumna as any);
+      repository.crear.mockResolvedValue(mockTareaRaw as any);
+
+      await service.crear(1, {
+        titulo: 'T',
+        prioridad: 'MEDIA',
+        estado: 'POR_HACER',
+        fecha_vencimiento: '2026-12-31',
+      } as any);
+
+      expect(repository.crear).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ fecha_vencimiento: new Date('2026-12-31') }),
+      );
+    });
   });
 
   describe('actualizarEstado', () => {
@@ -112,6 +138,15 @@ describe('TareasService', () => {
       await expect(service.actualizarEstado(1, 'EN_PROGRESO', 99)).rejects.toThrow(
         ForbiddenException,
       );
+    });
+
+    it('usa el estado directamente cuando no está en el mapa', async () => {
+      repository.obtenerColumnaPorNombre.mockResolvedValue(null);
+
+      await expect(service.actualizarEstado(1, 'COLUMNA_CUSTOM', 1)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('COLUMNA_CUSTOM', 1);
     });
 
     it('debe actualizar el estado y retornar la tarea actualizada', async () => {

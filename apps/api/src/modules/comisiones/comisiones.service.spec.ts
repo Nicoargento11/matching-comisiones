@@ -65,6 +65,8 @@ describe('ComisionesService', () => {
             buscarInscripcionActivaEnMateria: jest.fn(),
             buscarComisionConProfesor: jest.fn(),
             buscarDatosAlumno: jest.fn(),
+            upsertAula: jest.fn(),
+            crearHorario: jest.fn(),
           },
         },
         {
@@ -243,6 +245,25 @@ describe('ComisionesService', () => {
       expect(repository.ejecutarTransaccion).toHaveBeenCalled();
     });
 
+    it('debe crear horario cuando existen horarios en el día pero no se solapan', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.buscarDiaPorNombre.mockResolvedValue(mockDia as any);
+      repository.buscarModalidadPorNombre.mockResolvedValue(mockModalidad as any);
+      repository.obtenerHorariosActivosPorDia.mockResolvedValue([
+        { id_horario_comision: 5, hora_inicio: '09:00', hora_fin: '11:00' },
+      ] as any);
+      repository.ejecutarTransaccion.mockResolvedValue({} as any);
+
+      await service.agregarHorario(1, {
+        hora_inicio: '14:00',
+        hora_fin: '16:00',
+        nombre_dia: 'Lunes',
+        nombre_modalidad: 'PRESENCIAL',
+      } as any);
+
+      expect(repository.ejecutarTransaccion).toHaveBeenCalled();
+    });
+
     it('debe lanzar NotFoundException si el día no existe', async () => {
       repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
       repository.buscarDiaPorNombre.mockResolvedValue(null);
@@ -255,6 +276,52 @@ describe('ComisionesService', () => {
           nombre_modalidad: 'PRESENCIAL',
         } as any),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe crear horario sin aula cuando nombre_aula no se provee', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.buscarDiaPorNombre.mockResolvedValue(mockDia as any);
+      repository.buscarModalidadPorNombre.mockResolvedValue(mockModalidad as any);
+      repository.obtenerHorariosActivosPorDia.mockResolvedValue([]);
+      repository.crearHorario.mockResolvedValue({ id_horario_comision: 1 } as any);
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn({}));
+
+      await service.agregarHorario(1, {
+        hora_inicio: '14:00',
+        hora_fin: '16:00',
+        nombre_dia: 'Lunes',
+        nombre_modalidad: 'PRESENCIAL',
+      } as any);
+
+      expect(repository.upsertAula).not.toHaveBeenCalled();
+      expect(repository.crearHorario).toHaveBeenCalledWith(
+        {},
+        expect.not.objectContaining({ id_aula: expect.anything() }),
+      );
+    });
+
+    it('debe crear horario con aula cuando se provee nombre_aula', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.buscarDiaPorNombre.mockResolvedValue(mockDia as any);
+      repository.buscarModalidadPorNombre.mockResolvedValue(mockModalidad as any);
+      repository.obtenerHorariosActivosPorDia.mockResolvedValue([]);
+      repository.upsertAula.mockResolvedValue({ id_aula: 5 } as any);
+      repository.crearHorario.mockResolvedValue({ id_horario_comision: 1 } as any);
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn({}));
+
+      await service.agregarHorario(1, {
+        hora_inicio: '14:00',
+        hora_fin: '16:00',
+        nombre_dia: 'Lunes',
+        nombre_modalidad: 'PRESENCIAL',
+        nombre_aula: 'Aula 101',
+      } as any);
+
+      expect(repository.upsertAula).toHaveBeenCalledWith({}, 'Aula 101');
+      expect(repository.crearHorario).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({ id_aula: 5 }),
+      );
     });
 
     it('debe lanzar NotFoundException si la modalidad no existe', async () => {
@@ -338,6 +405,61 @@ describe('ComisionesService', () => {
         service.agregarEstudiante(1, { id_usuario: 5 } as any),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('usa el número de comisión como fallback en el mensaje de conflicto cuando nombre_comision es null', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
+        id_comision: 2,
+        comision: { id_comision: 2, numero_comision: 2, nombre_comision: null },
+      } as any);
+
+      await expect(
+        service.agregarEstudiante(1, { id_usuario: 5 } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('usa fallback de nombre en notificación al reactivar cuando nombre_comision es null', async () => {
+      repository.verificarExistencia.mockResolvedValue({
+        id_comision: 1,
+        id_materia: 1,
+        numero_comision: 1,
+        nombre_comision: null,
+        materia: { nombre_materia: 'Matemática' },
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+      } as any);
+      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
+      repository.buscarInscripcion.mockResolvedValue({ estado: 'BAJA' } as any);
+      repository.reactivarInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
+
+      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
+
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
+        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
+      );
+    });
+
+    it('usa fallback de nombre en notificación al crear inscripción cuando nombre_comision es null', async () => {
+      repository.verificarExistencia.mockResolvedValue({
+        id_comision: 1,
+        id_materia: 1,
+        numero_comision: 1,
+        nombre_comision: null,
+        materia: { nombre_materia: 'Matemática' },
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+      } as any);
+      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
+      repository.buscarInscripcion.mockResolvedValue(null);
+      repository.crearInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
+
+      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
+
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
+        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
+      );
+    });
   });
 
   describe('trasladarEstudiante', () => {
@@ -372,6 +494,74 @@ describe('ComisionesService', () => {
 
       expect(repository.ejecutarTransaccion).toHaveBeenCalled();
       expect(notificacionesService.crearNotificacion).toHaveBeenCalled();
+    });
+
+    it('crea inscripción en destino cuando no existe previa (rama create)', async () => {
+      const mockTx = {
+        usuarioComision: {
+          update: jest.fn().mockResolvedValue({}),
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(mockTx));
+      repository.buscarDatosAlumno.mockResolvedValue(null);
+
+      await service.trasladarEstudiante(2, 5);
+
+      expect(mockTx.usuarioComision.create).toHaveBeenCalled();
+      expect(mockTx.usuarioComision.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('reactiva inscripción en destino cuando ya existía (rama update)', async () => {
+      const mockTx = {
+        usuarioComision: {
+          update: jest.fn().mockResolvedValue({}),
+          findUnique: jest.fn().mockResolvedValue({ id_usuario: 5, id_comision: 2 }),
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(mockTx));
+      repository.buscarDatosAlumno.mockResolvedValue(null);
+
+      await service.trasladarEstudiante(2, 5);
+
+      expect(mockTx.usuarioComision.create).not.toHaveBeenCalled();
+      expect(mockTx.usuarioComision.update).toHaveBeenCalledTimes(2);
+    });
+
+    it('usa fallback de nombre en la notificación cuando las comisiones no tienen nombre', async () => {
+      const comisionDestinoSinNombre = {
+        ...mockComisionDestino,
+        nombre_comision: null,
+        numero_comision: 2,
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+      };
+      const inscripcionOrigenSinNombre = {
+        ...mockInscripcionOrigen,
+        comision: { ...mockInscripcionOrigen.comision, nombre_comision: null, numero_comision: 1 },
+      };
+      repository.verificarExistencia.mockResolvedValue(comisionDestinoSinNombre as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(inscripcionOrigenSinNombre as any);
+      repository.ejecutarTransaccion.mockResolvedValue(undefined);
+      repository.buscarDatosAlumno.mockResolvedValue({
+        id_usuario: 5, nombre_usuario: 'Juan', apellido_usuario: 'Pérez', dni: 12345678,
+      } as any);
+
+      await service.trasladarEstudiante(2, 5);
+
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          datos: expect.objectContaining({
+            comision_origen: expect.objectContaining({ nombre: 'Comisión 1' }),
+            comision_destino: expect.objectContaining({ nombre: 'Comisión 2' }),
+          }),
+        }),
+      );
     });
 
     it('no llama a crearNotificacion cuando buscarDatosAlumno retorna null post-transacción', async () => {
