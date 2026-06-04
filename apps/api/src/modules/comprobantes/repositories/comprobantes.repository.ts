@@ -3,7 +3,7 @@ import { Comprobante } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 export abstract class ComprobantesRepository {
-  abstract crear(idIntercambio: number, archivoPdfUrl: string): Promise<Comprobante>;
+  abstract crearComprobante(idIntercambio: number, archivoPdfUrl: string): Promise<Comprobante>;
 }
 
 @Injectable()

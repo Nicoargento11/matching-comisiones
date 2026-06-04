@@ -25,7 +25,7 @@ export abstract class NotificacionesRepository {
   abstract verificarExistencia(idNotificacion: number): ReturnType<PrismaNotificacionesRepository['verificarExistencia']>;
   abstract marcarLeida(idNotificacion: number): ReturnType<PrismaNotificacionesRepository['marcarLeida']>;
   abstract marcarTodasLeidas(idUsuario: number): Promise<void>;
-  abstract crear(data: CrearNotificacionData): ReturnType<PrismaNotificacionesRepository['crear']>;
+  abstract crearNotificacion(data: CrearNotificacionData): ReturnType<PrismaNotificacionesRepository['crearNotificacion']>;
   abstract crearEnTransaccion(
     tx: Omit<PrismaService, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
     data: CrearNotificacionData,

@@ -28,7 +28,7 @@ export abstract class IntercambiosRepository {
   abstract buscarEstadoPorNombre(nombreEstado: string): ReturnType<PrismaIntercambiosRepository['buscarEstadoPorNombre']>;
   abstract verificarInscripcionesActivas(dto: CreateIntercambioDto): Promise<boolean>;
   abstract buscarIntercambioPendiente(dto: CreateIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
-  abstract crear(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crear']>;
+  abstract crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crearIntercambio']>;
   abstract obtenerDatosCompletos(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerDatosCompletos']>;
   abstract completarAtomico(
     idIntercambio: number,

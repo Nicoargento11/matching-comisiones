@@ -229,7 +229,6 @@ describe('IntercambiosService', () => {
       await expect(service.completar(10)).rejects.toThrow(NotFoundException);
     });
 
-<<<<<<< Updated upstream
     it('lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
       intercambiosRepo.obtenerDatosCompletos.mockResolvedValue({
         ...buildDatosCompletos(),

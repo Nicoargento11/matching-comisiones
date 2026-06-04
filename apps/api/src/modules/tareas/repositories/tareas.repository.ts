@@ -25,7 +25,7 @@ const TAREA_SELECT = {
 export abstract class TareasRepository {
   abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaTareasRepository['obtenerPorUsuario']>;
   abstract obtenerColumnaPorNombre(nombre: string, idUsuario?: number): ReturnType<PrismaTareasRepository['obtenerColumnaPorNombre']>;
-  abstract crear(idUsuario: number, data: {
+  abstract crearTarea(idUsuario: number, data: {
     titulo: string;
     prioridad: PrioridadTarea;
     id_columna: number;
@@ -34,10 +34,10 @@ export abstract class TareasRepository {
     id_materia?: number;
     id_evento?: number;
     fecha_vencimiento?: Date;
-  }): ReturnType<PrismaTareasRepository['crear']>;
+  }): ReturnType<PrismaTareasRepository['crearTarea']>;
   abstract actualizarEstado(idTarea: number, idUsuario: number, idColumna: number): ReturnType<PrismaTareasRepository['actualizarEstado']>;
   abstract obtenerPorId(idTarea: number): ReturnType<PrismaTareasRepository['obtenerPorId']>;
-  abstract eliminar(idTarea: number, idUsuario: number): ReturnType<PrismaTareasRepository['eliminar']>;
+  abstract eliminarTarea(idTarea: number, idUsuario: number): ReturnType<PrismaTareasRepository['eliminarTarea']>;
 }
 
 @Injectable()

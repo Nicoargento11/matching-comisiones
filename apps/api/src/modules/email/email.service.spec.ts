@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from './email.service';
-import { sendMail } from 'nodemailer';
+import { sendMail } from '../../__mocks__/nodemailer';
 
 const mockDatos = {
   idIntercambio: 1,

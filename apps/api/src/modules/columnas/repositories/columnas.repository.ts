@@ -4,10 +4,10 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export abstract class ColumnasRepository {
   abstract obtenerParaUsuario(idUsuario: number): ReturnType<PrismaColumnasRepository['obtenerParaUsuario']>;
   abstract maxOrdenUsuario(idUsuario: number): Promise<number>;
-  abstract crear(idUsuario: number, nombre: string, orden: number): ReturnType<PrismaColumnasRepository['crear']>;
+  abstract crearColumna(idUsuario: number, nombre: string, orden: number): ReturnType<PrismaColumnasRepository['crearColumna']>;
   abstract obtenerGlobalPorNombre(nombre: string): ReturnType<PrismaColumnasRepository['obtenerGlobalPorNombre']>;
   abstract obtenerUsuarioPorNombre(idUsuario: number, nombre: string): ReturnType<PrismaColumnasRepository['obtenerUsuarioPorNombre']>;
-  abstract eliminar(idColumna: number, idUsuario: number): Promise<{ count: number }>;
+  abstract eliminarColumna(idColumna: number, idUsuario: number): Promise<{ count: number }>;
 }
 
 @Injectable()
