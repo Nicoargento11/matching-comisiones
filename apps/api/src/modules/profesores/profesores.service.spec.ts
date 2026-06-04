@@ -57,6 +57,12 @@ describe('ProfesoresService', () => {
   });
 
   describe('obtenerComision', () => {
+    it('debe lanzar NotFoundException cuando el usuario no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue(null);
+
+      await expect(service.obtenerComision(999)).rejects.toThrow(NotFoundException);
+    });
+
     it('debe retornar la primera comisión del profesor', async () => {
       repository.verificarExistencia.mockResolvedValue({
         id_usuario: 10,

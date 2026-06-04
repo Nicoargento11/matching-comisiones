@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
 import { MensajesRepository } from './repositories/mensajes.repository';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
@@ -112,6 +112,82 @@ describe('MensajesService', () => {
           id_usuario_emisor: 5,
         } as any),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('crearConversacion', () => {
+    it('debe crear la conversación cuando no existe una previa', async () => {
+      const mockConversacion = { id_conversacion: 5, participantes: [] };
+      repository.buscarConversacionExistente.mockResolvedValue(null);
+      repository.crearConversacion.mockResolvedValue(mockConversacion as any);
+
+      const result = await service.crearConversacion({
+        id_usuario_1: 1,
+        id_usuario_2: 2,
+      } as any);
+
+      expect(repository.buscarConversacionExistente).toHaveBeenCalledWith(1, 2);
+      expect(repository.crearConversacion).toHaveBeenCalled();
+      expect(result).toEqual(mockConversacion);
+    });
+
+    it('debe lanzar ConflictException cuando ya existe una conversación entre los usuarios', async () => {
+      repository.buscarConversacionExistente.mockResolvedValue({
+        id_conversacion: 3,
+      } as any);
+
+      await expect(
+        service.crearConversacion({ id_usuario_1: 1, id_usuario_2: 2 } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('marcarLeido', () => {
+    it('debe actualizar ultimo_leido cuando el participante existe', async () => {
+      repository.buscarParticipante.mockResolvedValue({
+        id_conversacion: 1,
+        id_usuario: 5,
+      } as any);
+      repository.actualizarUltimoLeido.mockResolvedValue({
+        id_conversacion: 1,
+        id_usuario: 5,
+        ultimo_leido: new Date(),
+      } as any);
+
+      await service.marcarLeido(1, { id_usuario: 5 } as any);
+
+      expect(repository.actualizarUltimoLeido).toHaveBeenCalledWith(1, 5);
+    });
+
+    it('debe lanzar NotFoundException cuando el usuario no pertenece a la conversación', async () => {
+      repository.buscarParticipante.mockResolvedValue(null);
+
+      await expect(
+        service.marcarLeido(1, { id_usuario: 99 } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('obtenerMensajes', () => {
+    it('debe retornar los mensajes cuando la conversación existe', async () => {
+      const mockMensajes = [{ id_mensaje: 1, contenido: 'Hola' }];
+      repository.verificarExistenciaConversacion.mockResolvedValue({
+        id_conversacion: 1,
+      } as any);
+      repository.obtenerMensajes.mockResolvedValue(mockMensajes as any);
+
+      const result = await service.obtenerMensajes(1);
+
+      expect(repository.obtenerMensajes).toHaveBeenCalledWith(1);
+      expect(result).toEqual(mockMensajes);
+    });
+
+    it('debe lanzar NotFoundException cuando la conversación no existe', async () => {
+      repository.verificarExistenciaConversacion.mockResolvedValue(null);
+
+      await expect(service.obtenerMensajes(999)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

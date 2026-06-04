@@ -50,6 +50,7 @@ describe('UsuariosService', () => {
             obtenerPrimerProfesorUsuarioId: jest.fn(),
             obtenerComisionesDeEstudiante: jest.fn(),
             obtenerConversaciones: jest.fn(),
+            buscarPorNombre: jest.fn(),
           },
         },
       ],
@@ -144,6 +145,86 @@ describe('UsuariosService', () => {
       await expect(service.obtenerComisionesDeEstudiante(999)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('obtenerPrimerEstudianteUsuarioId', () => {
+    it('debe retornar el id cuando hay estudiantes', async () => {
+      repository.obtenerPrimerEstudianteUsuarioId.mockResolvedValue(42);
+
+      const result = await service.obtenerPrimerEstudianteUsuarioId();
+
+      expect(repository.obtenerPrimerEstudianteUsuarioId).toHaveBeenCalled();
+      expect(result).toBe(42);
+    });
+
+    it('debe lanzar NotFoundException cuando no hay estudiantes', async () => {
+      repository.obtenerPrimerEstudianteUsuarioId.mockResolvedValue(null);
+
+      await expect(service.obtenerPrimerEstudianteUsuarioId()).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('obtenerPrimerProfesorUsuarioId', () => {
+    it('debe retornar el id cuando hay profesores', async () => {
+      repository.obtenerPrimerProfesorUsuarioId.mockResolvedValue(10);
+
+      const result = await service.obtenerPrimerProfesorUsuarioId();
+
+      expect(repository.obtenerPrimerProfesorUsuarioId).toHaveBeenCalled();
+      expect(result).toBe(10);
+    });
+
+    it('debe lanzar NotFoundException cuando no hay profesores', async () => {
+      repository.obtenerPrimerProfesorUsuarioId.mockResolvedValue(null);
+
+      await expect(service.obtenerPrimerProfesorUsuarioId()).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('buscar', () => {
+    it('debe retornar usuarios con roles aplanados', async () => {
+      repository.buscarPorNombre.mockResolvedValue([mockUsuario] as any);
+
+      const result = await service.buscar('Juan', 99);
+
+      expect(repository.buscarPorNombre).toHaveBeenCalledWith('Juan', 99, undefined);
+      expect(result).toEqual([mockUsuarioAplanado]);
+    });
+
+    it('debe pasar el idComision al repositorio cuando se provee', async () => {
+      repository.buscarPorNombre.mockResolvedValue([]);
+
+      await service.buscar('Ana', 99, 5);
+
+      expect(repository.buscarPorNombre).toHaveBeenCalledWith('Ana', 99, 5);
+    });
+
+    it('debe retornar array vacío cuando no hay coincidencias', async () => {
+      repository.buscarPorNombre.mockResolvedValue([]);
+
+      const result = await service.buscar('xyzxyz', 1);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('obtenerConversaciones', () => {
+    it('debe retornar las conversaciones cuando el usuario existe', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_usuario: 1 } as any);
+      repository.obtenerConversaciones.mockResolvedValue([{ id_conversacion: 1 }] as any);
+
+      const result = await service.obtenerConversaciones(1);
+
+      expect(repository.verificarExistencia).toHaveBeenCalledWith(1);
+      expect(repository.obtenerConversaciones).toHaveBeenCalledWith(1);
+      expect(result).toEqual([{ id_conversacion: 1 }]);
+    });
+
+    it('debe lanzar NotFoundException cuando el usuario no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue(null);
+
+      await expect(service.obtenerConversaciones(999)).rejects.toThrow(NotFoundException);
     });
   });
 });

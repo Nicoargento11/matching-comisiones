@@ -80,4 +80,14 @@ describe('construirHtmlComprobante', () => {
     const result = construirHtmlComprobante(datosConNull);
     expect(result).toContain('Comisión 1');
   });
+
+  it('falls back to "Comisión" when both nombre_comision and numero_comision are null', () => {
+    const datosConNull: DatosComprobante = {
+      ...datosMock,
+      comisionOfrece: { ...datosMock.comisionOfrece, nombre_comision: null, numero_comision: null },
+      comisionDestino: { ...datosMock.comisionDestino, nombre_comision: null, numero_comision: null },
+    };
+    const result = construirHtmlComprobante(datosConNull);
+    expect(result).toContain('Comisión');
+  });
 });

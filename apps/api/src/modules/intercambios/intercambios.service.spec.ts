@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
+import { Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { IntercambiosService } from './intercambios.service';
 import { IntercambiosRepository } from './repositories/intercambios.repository';
 import { ComprobantePdfService } from '../comprobantes/services/comprobante-pdf.service';
@@ -61,7 +61,7 @@ const buildDatosCompletos = (mismoProfesor = false) => ({
 
 // ─── Test suite ───────────────────────────────────────────────────────────────
 
-describe('IntercambiosService.completar()', () => {
+describe('IntercambiosService', () => {
   let service: IntercambiosService;
   let intercambiosRepo: jest.Mocked<IntercambiosRepository>;
   let pdfService: jest.Mocked<ComprobantePdfService>;
@@ -79,6 +79,11 @@ describe('IntercambiosService.completar()', () => {
             obtenerDatosCompletos: jest.fn(),
             buscarEstadoPorNombre: jest.fn(),
             completarAtomico: jest.fn().mockResolvedValue(undefined),
+            obtenerPorUsuario: jest.fn(),
+            obtenerPorId: jest.fn(),
+            verificarInscripcionesActivas: jest.fn(),
+            buscarIntercambioPendiente: jest.fn(),
+            crear: jest.fn(),
           },
         },
         {
@@ -124,6 +129,121 @@ describe('IntercambiosService.completar()', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  // ─── obtenerPorUsuario ────────────────────────────────────────────────────
+
+  describe('obtenerPorUsuario', () => {
+    it('debe retornar la lista de intercambios del usuario', async () => {
+      intercambiosRepo.obtenerPorUsuario.mockResolvedValue([
+        { fecha_solicitud: new Date(), id_intercambio: 1 },
+      ] as any);
+
+      const result = await service.obtenerPorUsuario(1);
+
+      expect(intercambiosRepo.obtenerPorUsuario).toHaveBeenCalledWith(1);
+      expect(result).toHaveLength(1);
+    });
+
+    it('debe retornar array vacío cuando el usuario no tiene intercambios', async () => {
+      intercambiosRepo.obtenerPorUsuario.mockResolvedValue([]);
+
+      const result = await service.obtenerPorUsuario(1);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ─── obtenerPorId ─────────────────────────────────────────────────────────
+
+  describe('obtenerPorId', () => {
+    it('debe retornar el intercambio cuando existe', async () => {
+      intercambiosRepo.obtenerPorId.mockResolvedValue(
+        { fecha_solicitud: new Date(), id_intercambio: 10 } as any,
+      );
+
+      const result = await service.obtenerPorId(10);
+
+      expect(intercambiosRepo.obtenerPorId).toHaveBeenCalledWith(10);
+      expect(result).toBeDefined();
+    });
+
+    it('debe lanzar NotFoundException cuando el intercambio no existe', async () => {
+      intercambiosRepo.obtenerPorId.mockResolvedValue(null);
+
+      await expect(service.obtenerPorId(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── crear ────────────────────────────────────────────────────────────────
+
+  describe('crear', () => {
+    const mockDto = {
+      id_comision_ofrece: 1,
+      id_usuario_ofrece: 1,
+      id_comision_destino: 2,
+      id_usuario_destino: 2,
+    };
+
+    it('debe lanzar BadRequestException cuando alguna inscripción no está activa', async () => {
+      intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(false as any);
+
+      await expect(service.crear(mockDto as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe lanzar ConflictException cuando ya existe un intercambio pendiente entre esas comisiones', async () => {
+      intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue({ id_intercambio: 3 } as any);
+
+      await expect(service.crear(mockDto as any)).rejects.toThrow(ConflictException);
+    });
+
+    it('debe crear el intercambio en estado PENDIENTE cuando todas las validaciones pasan', async () => {
+      intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
+      intercambiosRepo.crear.mockResolvedValue(
+        { fecha_solicitud: new Date(), id_intercambio: 5 } as any,
+      );
+
+      const result = await service.crear(mockDto as any);
+
+      expect(intercambiosRepo.crear).toHaveBeenCalledWith(mockDto, estadoPendiente.id_estado);
+      expect(result).toBeDefined();
+    });
+
+    it('debe lanzar NotFoundException cuando el estado PENDIENTE no está configurado en BD', async () => {
+      intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
+      intercambiosRepo.buscarEstadoPorNombre.mockResolvedValue(null);
+
+      await expect(service.crear(mockDto as any)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── completar ────────────────────────────────────────────────────────────
+
+  // ── completar — sad paths ──────────────────────────────────────────────────
+  it('completar — lanza NotFoundException cuando el intercambio no existe', async () => {
+    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(null);
+
+    await expect(service.completar(10)).rejects.toThrow(NotFoundException);
+  });
+
+  it('completar — lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
+    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue({
+      ...buildDatosCompletos(),
+      id_estado: 99,
+    } as any);
+
+    await expect(service.completar(10)).rejects.toThrow(ConflictException);
+  });
+
+  it('completar — lanza NotFoundException cuando el estado COMPLETADO no está configurado en BD', async () => {
+    intercambiosRepo.buscarEstadoPorNombre.mockImplementation(async (nombre) =>
+      nombre === 'PENDIENTE' ? estadoPendiente as any : null,
+    );
+
+    await expect(service.completar(10)).rejects.toThrow(NotFoundException);
   });
 
   // ── Task 5.4: soft-fail when enviarComprobanteAlumno throws ────────────────

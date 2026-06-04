@@ -92,6 +92,18 @@ describe('ComisionesService', () => {
         meta: { total: 1, pagina: 1, limite: 10, totalPaginas: 1 },
       });
     });
+
+    it('debe retornar lista vacía cuando no hay comisiones', async () => {
+      const paginacionDto = new PaginacionDto();
+      repository.obtenerTodas.mockResolvedValue([]);
+      repository.contar.mockResolvedValue(0);
+
+      const result = await service.obtenerTodas(paginacionDto);
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(result.meta.totalPaginas).toBe(0);
+    });
   });
 
   describe('obtenerDetalleComision', () => {
@@ -230,6 +242,35 @@ describe('ComisionesService', () => {
 
       expect(repository.ejecutarTransaccion).toHaveBeenCalled();
     });
+
+    it('debe lanzar NotFoundException si el día no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.buscarDiaPorNombre.mockResolvedValue(null);
+
+      await expect(
+        service.agregarHorario(1, {
+          hora_inicio: '14:00',
+          hora_fin: '16:00',
+          nombre_dia: 'Inexistente',
+          nombre_modalidad: 'PRESENCIAL',
+        } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe lanzar NotFoundException si la modalidad no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.buscarDiaPorNombre.mockResolvedValue(mockDia as any);
+      repository.buscarModalidadPorNombre.mockResolvedValue(null);
+
+      await expect(
+        service.agregarHorario(1, {
+          hora_inicio: '14:00',
+          hora_fin: '16:00',
+          nombre_dia: 'Lunes',
+          nombre_modalidad: 'INEXISTENTE',
+        } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('agregarEvento', () => {
@@ -246,6 +287,20 @@ describe('ComisionesService', () => {
           fecha_fin: '2026-06-20T08:00:00.000Z',
         } as any),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe crear el evento cuando las fechas son válidas', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
+      repository.crearEvento.mockResolvedValue({ id_evento: 1, titulo: 'Parcial' } as any);
+
+      const result = await service.agregarEvento(1, {
+        titulo: 'Parcial',
+        fecha_inicio: '2026-06-20T08:00:00.000Z',
+        fecha_fin: '2026-06-20T10:00:00.000Z',
+      } as any);
+
+      expect(repository.crearEvento).toHaveBeenCalledWith(1, expect.objectContaining({ titulo: 'Parcial' }));
+      expect(result).toEqual({ id_evento: 1, titulo: 'Parcial' });
     });
   });
 
@@ -319,6 +374,17 @@ describe('ComisionesService', () => {
       expect(notificacionesService.crearNotificacion).toHaveBeenCalled();
     });
 
+    it('no llama a crearNotificacion cuando buscarDatosAlumno retorna null post-transacción', async () => {
+      repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
+      repository.ejecutarTransaccion.mockResolvedValue(undefined);
+      repository.buscarDatosAlumno.mockResolvedValue(null);
+
+      await service.trasladarEstudiante(2, 5);
+
+      expect(notificacionesService.crearNotificacion).not.toHaveBeenCalled();
+    });
+
     it('debe lanzar NotFoundException si el alumno no tiene inscripción activa en la materia', async () => {
       repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
       repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
@@ -347,6 +413,155 @@ describe('ComisionesService', () => {
       await service.eliminarHorario(1, 10);
 
       expect(repository.desactivarHorario).toHaveBeenCalledWith(10);
+    });
+  });
+
+  describe('reactivarHorario', () => {
+    it('debe lanzar NotFoundException cuando el horario no pertenece a la comisión', async () => {
+      repository.buscarHorario.mockResolvedValue(null);
+
+      await expect(service.reactivarHorario(1, 999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe reactivar el horario cuando existe', async () => {
+      repository.buscarHorario.mockResolvedValue({ id_horario_comision: 10 } as any);
+      repository.reactivarHorario.mockResolvedValue({ id_horario_comision: 10, activo: true } as any);
+
+      const result = await service.reactivarHorario(1, 10);
+
+      expect(repository.reactivarHorario).toHaveBeenCalledWith(10);
+      expect(result).toEqual({ id_horario_comision: 10, activo: true });
+    });
+  });
+
+  describe('obtenerComisionesDeUsuario', () => {
+    it('debe retornar las comisiones cuando el usuario existe', async () => {
+      repository.verificarExistenciaUsuario.mockResolvedValue({ id_usuario: 5 } as any);
+      repository.obtenerComisionesDeUsuario.mockResolvedValue([{ id_comision: 1 }] as any);
+
+      const result = await service.obtenerComisionesDeUsuario(5);
+
+      expect(repository.verificarExistenciaUsuario).toHaveBeenCalledWith(5);
+      expect(repository.obtenerComisionesDeUsuario).toHaveBeenCalledWith(5);
+      expect(result).toEqual([{ id_comision: 1 }]);
+    });
+
+    it('debe lanzar NotFoundException cuando el usuario no existe', async () => {
+      repository.verificarExistenciaUsuario.mockResolvedValue(null);
+
+      await expect(service.obtenerComisionesDeUsuario(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('darBajaEstudiante', () => {
+    it('debe dar de baja al estudiante cuando existe la inscripción', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1 } as any);
+      repository.buscarInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
+      repository.darBajaInscripcion.mockResolvedValue(undefined);
+
+      await service.darBajaEstudiante(1, 5);
+
+      expect(repository.darBajaInscripcion).toHaveBeenCalledWith(5, 1);
+    });
+
+    it('debe lanzar NotFoundException cuando la comisión no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue(null);
+
+      await expect(service.darBajaEstudiante(999, 5)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe lanzar NotFoundException cuando el estudiante no está inscripto en la comisión', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1 } as any);
+      repository.buscarInscripcion.mockResolvedValue(null);
+
+      await expect(service.darBajaEstudiante(1, 99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('modificarEvento', () => {
+    it('debe lanzar BadRequestException si fecha_fin <= fecha_inicio cuando ambas se proveen', async () => {
+      await expect(
+        service.modificarEvento(1, 5, {
+          fecha_inicio: '2026-06-20T10:00:00.000Z',
+          fecha_fin: '2026-06-20T08:00:00.000Z',
+        } as any),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('debe lanzar NotFoundException cuando el evento no pertenece a la comisión', async () => {
+      repository.buscarEvento.mockResolvedValue(null);
+
+      await expect(service.modificarEvento(1, 999, {} as any)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe modificar el evento cuando existe y los datos son válidos', async () => {
+      repository.buscarEvento.mockResolvedValue({ id_evento: 5, titulo: 'Parcial' } as any);
+      repository.modificarEvento.mockResolvedValue({ id_evento: 5, titulo: 'Parcial actualizado' } as any);
+
+      const result = await service.modificarEvento(1, 5, { titulo: 'Parcial actualizado' } as any);
+
+      expect(repository.buscarEvento).toHaveBeenCalledWith(5, 1);
+      expect(repository.modificarEvento).toHaveBeenCalledWith(5, { titulo: 'Parcial actualizado' });
+      expect(result).toEqual({ id_evento: 5, titulo: 'Parcial actualizado' });
+    });
+  });
+
+  describe('eliminarEvento', () => {
+    it('debe lanzar NotFoundException cuando el evento no pertenece a la comisión', async () => {
+      repository.buscarEvento.mockResolvedValue(null);
+
+      await expect(service.eliminarEvento(1, 999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe desactivar el evento cuando existe', async () => {
+      repository.buscarEvento.mockResolvedValue({ id_evento: 5 } as any);
+      repository.desactivarEvento.mockResolvedValue(undefined);
+
+      await service.eliminarEvento(1, 5);
+
+      expect(repository.desactivarEvento).toHaveBeenCalledWith(5);
+    });
+  });
+
+  describe('reactivarEvento', () => {
+    it('debe lanzar NotFoundException cuando el evento no pertenece a la comisión', async () => {
+      repository.buscarEvento.mockResolvedValue(null);
+
+      await expect(service.reactivarEvento(1, 999)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe reactivar el evento cuando existe', async () => {
+      repository.buscarEvento.mockResolvedValue({ id_evento: 5 } as any);
+      repository.reactivarEvento.mockResolvedValue({ id_evento: 5, activo: true } as any);
+
+      const result = await service.reactivarEvento(1, 5);
+
+      expect(repository.reactivarEvento).toHaveBeenCalledWith(5);
+      expect(result).toEqual({ id_evento: 5, activo: true });
+    });
+  });
+
+  describe('verificarProfesorDeComision', () => {
+    it('no lanza excepción cuando la comisión no tiene profesor asignado', async () => {
+      repository.buscarComisionConProfesor.mockResolvedValue(null);
+
+      await expect(service.verificarProfesorDeComision('auth-123', 1)).resolves.toBeUndefined();
+    });
+
+    it('no lanza excepción cuando el auth ID coincide con el del profesor', async () => {
+      repository.buscarComisionConProfesor.mockResolvedValue({
+        profesor: { supabase_auth_id: 'auth-abc' },
+      } as any);
+
+      await expect(service.verificarProfesorDeComision('auth-abc', 1)).resolves.toBeUndefined();
+    });
+
+    it('debe lanzar ForbiddenException cuando el auth ID no coincide con el del profesor', async () => {
+      repository.buscarComisionConProfesor.mockResolvedValue({
+        profesor: { supabase_auth_id: 'auth-abc' },
+      } as any);
+
+      await expect(service.verificarProfesorDeComision('auth-otro', 1)).rejects.toThrow(ForbiddenException);
     });
   });
 });

@@ -54,6 +54,23 @@ describe('ComprobantePdfService', () => {
     jest.clearAllMocks();
   });
 
+  it('returns a Buffer when puppeteer succeeds', async () => {
+    const mockPage = {
+      setContent: jest.fn().mockResolvedValue(undefined),
+      pdf: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+    };
+    const mockBrowser = {
+      newPage: jest.fn().mockResolvedValue(mockPage),
+      close: jest.fn().mockResolvedValue(undefined),
+    };
+    mockLaunch.mockResolvedValue(mockBrowser);
+
+    const result = await service.generar(datosMock);
+
+    expect(result).toBeInstanceOf(Buffer);
+    expect(mockBrowser.close).toHaveBeenCalled();
+  });
+
   it('propagates error when puppeteer launch throws', async () => {
     mockLaunch.mockRejectedValue(new Error('Chrome not found'));
 
