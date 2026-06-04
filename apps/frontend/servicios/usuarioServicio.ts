@@ -1,6 +1,6 @@
 // GET /usuarios/:id y /usuarios/:id/comisiones
 import { api } from './api'
-import { ComisionSinColor, ItemComisionConEstado, Usuario, UsuarioBusquedaPorDni } from '@/tipos'
+import { ComisionSinColor, ItemComisionConEstado, Usuario, UsuarioConRoles } from '@/tipos'
 import { agregarColor } from '@/lib/colores'
 
 export const usuarioServicio = {
@@ -8,7 +8,7 @@ export const usuarioServicio = {
     api.get<Usuario>(`/usuarios/${id}`, token),
 
   obtenerPorDni: (dni: number, token?: string) =>
-    api.get<UsuarioBusquedaPorDni>(`/usuarios/dni/${dni}`, token),
+    api.get<UsuarioConRoles>(`/usuarios/dni/${dni}`, token),
 
   // el endpoint devuelve { estado, comision }[] — solo mostramos las activas
   obtenerComisiones: (id: number, token?: string) =>
@@ -22,9 +22,9 @@ export const usuarioServicio = {
   // GET /usuarios/buscar?q=xxx[&id_comision=X]
   // Pendiente backend: búsqueda por nombre/apellido parcial (mínimo 3 chars)
   // Opcionalmente filtrado por comisión cuando se provee id_comision
-  buscarParaMensajeria: (q: string, idComision?: number, token?: string): Promise<UsuarioBusquedaPorDni[]> => {
+  buscarParaMensajeria: (q: string, idComision?: number, token?: string): Promise<UsuarioConRoles[]> => {
     const params = new URLSearchParams({ q })
     if (idComision) params.set('id_comision', String(idComision))
-    return api.get<UsuarioBusquedaPorDni[]>(`/usuarios/buscar?${params.toString()}`, token)
+    return api.get<UsuarioConRoles[]>(`/usuarios/buscar?${params.toString()}`, token)
   },
 }

@@ -151,15 +151,7 @@ export type Rol = {
   nombre_rol: string
 }
 
-export type UsuarioBusquedaPorDni = {
-  id_usuario: number
-  nombre_usuario: string
-  apellido_usuario: string
-  correo: string
-  roles: Rol[]
-}
-
-export type UsuarioPerfil = {
+export type UsuarioConRoles = {
   id_usuario: number
   nombre_usuario: string
   apellido_usuario: string
