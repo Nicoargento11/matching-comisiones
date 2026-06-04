@@ -27,6 +27,12 @@ export default async function PaginaMisComisiones() {
         <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
           {comisiones.length}
         </span>
+        <Link
+          href="/profesor/simular-matching"
+          className="ml-auto rounded-lg border border-indigo-200 px-3 py-1.5 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:border-indigo-800 dark:text-indigo-400 dark:hover:bg-indigo-900/20"
+        >
+          Simular matching
+        </Link>
       </div>
 
       {comisiones.length === 0 ? (

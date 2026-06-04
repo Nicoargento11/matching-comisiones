@@ -16,6 +16,7 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
 import { IntercambiosModule } from './modules/intercambios/intercambios.module';
 import { TareasModule } from './modules/tareas/tareas.module';
 import { ColumnasModule } from './modules/columnas/columnas.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { validationSchema } from './config/validation.schema';
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { validationSchema } from './config/validation.schema';
     IntercambiosModule,
     TareasModule,
     ColumnasModule,
+    MatchingModule,
   ],
   controllers: [AppController],
   providers: [

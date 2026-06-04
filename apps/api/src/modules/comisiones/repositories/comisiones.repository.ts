@@ -74,42 +74,107 @@ const HORARIO_SELECT = {
 } as const;
 
 export abstract class ComisionesRepository {
-  abstract obtenerTodas(paginacion: PaginacionParams): ReturnType<PrismaComisionesRepository['obtenerTodas']>;
+  abstract obtenerTodas(
+    paginacion: PaginacionParams,
+  ): ReturnType<PrismaComisionesRepository['obtenerTodas']>;
   abstract contar(): Promise<number>;
-  abstract obtenerPorId(idComision: number): ReturnType<PrismaComisionesRepository['obtenerPorId']>;
-  abstract verificarExistencia(idComision: number): ReturnType<PrismaComisionesRepository['verificarExistencia']>;
-  abstract buscarComisionConProfesor(idComision: number): ReturnType<PrismaComisionesRepository['buscarComisionConProfesor']>;
-  abstract verificarExistenciaUsuario(idUsuario: number): ReturnType<PrismaComisionesRepository['verificarExistenciaUsuario']>;
-  abstract obtenerComisionesDeUsuario(idUsuario: number): ReturnType<PrismaComisionesRepository['obtenerComisionesDeUsuario']>;
-  abstract buscarInscripcion(idUsuario: number, idComision: number): ReturnType<PrismaComisionesRepository['buscarInscripcion']>;
-  abstract reactivarInscripcion(idUsuario: number, idComision: number): ReturnType<PrismaComisionesRepository['reactivarInscripcion']>;
-  abstract crearInscripcion(idUsuario: number, idComision: number): ReturnType<PrismaComisionesRepository['crearInscripcion']>;
-  abstract darBajaInscripcion(idUsuario: number, idComision: number): Promise<void>;
-  abstract buscarDiaPorNombre(nombreDia: string): ReturnType<PrismaComisionesRepository['buscarDiaPorNombre']>;
-  abstract buscarModalidadPorNombre(nombreModalidad: string): ReturnType<PrismaComisionesRepository['buscarModalidadPorNombre']>;
-  abstract crearHorario(tx: Prisma.TransactionClient, data: {
-    hora_inicio: string;
-    hora_fin: string;
-    numero_dia: number;
-    id_modalidad: number;
-    formato: FormatoClase;
-    id_comision: number;
-    id_aula?: number;
-  }): ReturnType<PrismaComisionesRepository['crearHorario']>;
-  abstract upsertAula(tx: Prisma.TransactionClient, nombreAula: string): ReturnType<PrismaComisionesRepository['upsertAula']>;
-  abstract ejecutarTransaccion<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T>;
-  abstract buscarHorario(idHorario: number, idComision: number): ReturnType<PrismaComisionesRepository['buscarHorario']>;
+  abstract obtenerPorId(
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['obtenerPorId']>;
+  abstract verificarExistencia(
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['verificarExistencia']>;
+  abstract buscarComisionConProfesor(
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['buscarComisionConProfesor']>;
+  abstract verificarExistenciaUsuario(
+    idUsuario: number,
+  ): ReturnType<PrismaComisionesRepository['verificarExistenciaUsuario']>;
+  abstract obtenerComisionesDeUsuario(
+    idUsuario: number,
+  ): ReturnType<PrismaComisionesRepository['obtenerComisionesDeUsuario']>;
+  abstract buscarInscripcion(
+    idUsuario: number,
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['buscarInscripcion']>;
+  abstract reactivarInscripcion(
+    idUsuario: number,
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['reactivarInscripcion']>;
+  abstract crearInscripcion(
+    idUsuario: number,
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['crearInscripcion']>;
+  abstract darBajaInscripcion(
+    idUsuario: number,
+    idComision: number,
+  ): Promise<void>;
+  abstract buscarDiaPorNombre(
+    nombreDia: string,
+  ): ReturnType<PrismaComisionesRepository['buscarDiaPorNombre']>;
+  abstract buscarModalidadPorNombre(
+    nombreModalidad: string,
+  ): ReturnType<PrismaComisionesRepository['buscarModalidadPorNombre']>;
+  abstract crearHorario(
+    tx: Prisma.TransactionClient,
+    data: {
+      hora_inicio: string;
+      hora_fin: string;
+      numero_dia: number;
+      id_modalidad: number;
+      formato: FormatoClase;
+      id_comision: number;
+      id_aula?: number;
+    },
+  ): ReturnType<PrismaComisionesRepository['crearHorario']>;
+  abstract upsertAula(
+    tx: Prisma.TransactionClient,
+    nombreAula: string,
+  ): ReturnType<PrismaComisionesRepository['upsertAula']>;
+  abstract ejecutarTransaccion<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T>;
+  abstract buscarHorario(
+    idHorario: number,
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['buscarHorario']>;
   abstract desactivarHorario(idHorario: number): Promise<void>;
-  abstract reactivarHorario(idHorario: number): ReturnType<PrismaComisionesRepository['reactivarHorario']>;
-  abstract crearEvento(idComision: number, dto: CreateEventoDto): ReturnType<PrismaComisionesRepository['crearEvento']>;
-  abstract buscarEvento(idEvento: number, idComision: number): ReturnType<PrismaComisionesRepository['buscarEvento']>;
-  abstract modificarEvento(idEvento: number, dto: Prisma.EventoUpdateInput & { fecha_inicio?: string; fecha_fin?: string }): ReturnType<PrismaComisionesRepository['modificarEvento']>;
+  abstract reactivarHorario(
+    idHorario: number,
+  ): ReturnType<PrismaComisionesRepository['reactivarHorario']>;
+  abstract crearEvento(
+    idComision: number,
+    dto: CreateEventoDto,
+  ): ReturnType<PrismaComisionesRepository['crearEvento']>;
+  abstract buscarEvento(
+    idEvento: number,
+    idComision: number,
+  ): ReturnType<PrismaComisionesRepository['buscarEvento']>;
+  abstract modificarEvento(
+    idEvento: number,
+    dto: Prisma.EventoUpdateInput & {
+      fecha_inicio?: string;
+      fecha_fin?: string;
+    },
+  ): ReturnType<PrismaComisionesRepository['modificarEvento']>;
   abstract desactivarEvento(idEvento: number): Promise<void>;
-  abstract reactivarEvento(idEvento: number): ReturnType<PrismaComisionesRepository['reactivarEvento']>;
-  abstract verificarEsEstudiante(idUsuario: number): ReturnType<PrismaComisionesRepository['verificarEsEstudiante']>;
-  abstract obtenerHorariosActivosPorDia(idComision: number, numeroDia: number): ReturnType<PrismaComisionesRepository['obtenerHorariosActivosPorDia']>;
-  abstract buscarInscripcionActivaEnMateria(idUsuario: number, idMateria: number): ReturnType<PrismaComisionesRepository['buscarInscripcionActivaEnMateria']>;
-  abstract buscarDatosAlumno(idUsuario: number): ReturnType<PrismaComisionesRepository['buscarDatosAlumno']>;
+  abstract reactivarEvento(
+    idEvento: number,
+  ): ReturnType<PrismaComisionesRepository['reactivarEvento']>;
+  abstract verificarEsEstudiante(
+    idUsuario: number,
+  ): ReturnType<PrismaComisionesRepository['verificarEsEstudiante']>;
+  abstract obtenerHorariosActivosPorDia(
+    idComision: number,
+    numeroDia: number,
+  ): ReturnType<PrismaComisionesRepository['obtenerHorariosActivosPorDia']>;
+  abstract buscarInscripcionActivaEnMateria(
+    idUsuario: number,
+    idMateria: number,
+  ): ReturnType<PrismaComisionesRepository['buscarInscripcionActivaEnMateria']>;
+  abstract buscarDatosAlumno(
+    idUsuario: number,
+  ): ReturnType<PrismaComisionesRepository['buscarDatosAlumno']>;
 }
 
 @Injectable()
@@ -164,7 +229,13 @@ export class PrismaComisionesRepository extends ComisionesRepository {
         numero_comision: true,
         nombre_comision: true,
         materia: { select: { nombre_materia: true } },
-        profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+        profesor: {
+          select: {
+            id_usuario: true,
+            nombre_usuario: true,
+            apellido_usuario: true,
+          },
+        },
       },
     });
   }
@@ -272,7 +343,10 @@ export class PrismaComisionesRepository extends ComisionesRepository {
     await this.prisma.$transaction(async (tx) => {
       await tx.usuarioComision.update({
         where: {
-          id_usuario_id_comision: { id_usuario: idUsuario, id_comision: idComision },
+          id_usuario_id_comision: {
+            id_usuario: idUsuario,
+            id_comision: idComision,
+          },
         },
         data: { estado: 'BAJA' },
       });
@@ -292,7 +366,10 @@ export class PrismaComisionesRepository extends ComisionesRepository {
             id_estado: estadoPendiente.id_estado,
             OR: [
               { id_usuario_ofrece: idUsuario, id_comision_ofrece: idComision },
-              { id_usuario_destino: idUsuario, id_comision_destino: idComision },
+              {
+                id_usuario_destino: idUsuario,
+                id_comision_destino: idComision,
+              },
             ],
           },
           data: { id_estado: estadoRechazado.id_estado },
@@ -535,7 +612,13 @@ export class PrismaComisionesRepository extends ComisionesRepository {
             id_comision: true,
             numero_comision: true,
             nombre_comision: true,
-            profesor: { select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true } },
+            profesor: {
+              select: {
+                id_usuario: true,
+                nombre_usuario: true,
+                apellido_usuario: true,
+              },
+            },
           },
         },
       },
@@ -550,7 +633,12 @@ export class PrismaComisionesRepository extends ComisionesRepository {
   async buscarDatosAlumno(idUsuario: number) {
     return this.prisma.usuario.findUnique({
       where: { id_usuario: idUsuario },
-      select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true },
+      select: {
+        id_usuario: true,
+        nombre_usuario: true,
+        apellido_usuario: true,
+        dni: true,
+      },
     });
   }
 }
