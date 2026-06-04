@@ -8,6 +8,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
   imports: [NotificacionesModule],
   controllers: [ComisionesController],
   providers: [ComisionesService, { provide: ComisionesRepository, useClass: PrismaComisionesRepository }],
-  exports: [ComisionesService],
+  exports: [ComisionesService, ComisionesRepository],
 })
 export class ComisionesModule {}
