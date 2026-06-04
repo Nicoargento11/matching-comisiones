@@ -2,9 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { COMISION_SELECT } from '../../comisiones/repositories/comisiones.repository';
 
+export abstract class ProfesoresRepository {
+  abstract verificarExistencia(idUsuario: number): ReturnType<PrismaProfesoresRepository['verificarExistencia']>;
+  abstract obtenerComisiones(idUsuario: number): ReturnType<PrismaProfesoresRepository['obtenerComisiones']>;
+  abstract obtenerPrimeraComision(idUsuario: number): ReturnType<PrismaProfesoresRepository['obtenerPrimeraComision']>;
+}
+
 @Injectable()
-export class ProfesoresRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaProfesoresRepository extends ProfesoresRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Verifica si existe un usuario por su ID

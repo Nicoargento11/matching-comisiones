@@ -4,9 +4,25 @@ import { PaginacionParams } from '../../../common/helpers/paginacion';
 import { CreateMensajeDto } from '../dto/create-mensaje.dto';
 import { CreateConversacionDto } from '../dto/create-conversacion.dto';
 
+export abstract class MensajesRepository {
+  abstract buscarConversacionExistente(idUsuario1: number, idUsuario2: number): ReturnType<PrismaMensajesRepository['buscarConversacionExistente']>;
+  abstract crearConversacion(dto: CreateConversacionDto): ReturnType<PrismaMensajesRepository['crearConversacion']>;
+  abstract obtenerConversacion(idConversacion: number): ReturnType<PrismaMensajesRepository['obtenerConversacion']>;
+  abstract buscarParticipante(idConversacion: number, idUsuario: number): ReturnType<PrismaMensajesRepository['buscarParticipante']>;
+  abstract actualizarUltimoLeido(idConversacion: number, idUsuario: number): ReturnType<PrismaMensajesRepository['actualizarUltimoLeido']>;
+  abstract verificarExistenciaConversacion(idConversacion: number): ReturnType<PrismaMensajesRepository['verificarExistenciaConversacion']>;
+  abstract obtenerMensajes(idConversacion: number): ReturnType<PrismaMensajesRepository['obtenerMensajes']>;
+  abstract buscarUsuarioPorAuthId(supabaseAuthId: string): ReturnType<PrismaMensajesRepository['buscarUsuarioPorAuthId']>;
+  abstract obtenerConversacionesDeUsuario(idUsuario: number, paginacion: PaginacionParams): ReturnType<PrismaMensajesRepository['obtenerConversacionesDeUsuario']>;
+  abstract contarConversacionesDeUsuario(idUsuario: number): Promise<number>;
+  abstract crearMensaje(dto: CreateMensajeDto): ReturnType<PrismaMensajesRepository['crearMensaje']>;
+}
+
 @Injectable()
-export class MensajesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaMensajesRepository extends MensajesRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Busca una conversación existente entre dos usuarios

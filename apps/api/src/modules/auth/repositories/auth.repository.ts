@@ -13,9 +13,15 @@ const AUTH_USUARIO_SELECT = {
   },
 } as const;
 
+export abstract class AuthRepository {
+  abstract obtenerPorAuthId(supabaseAuthId: string): ReturnType<PrismaAuthRepository['obtenerPorAuthId']>;
+}
+
 @Injectable()
-export class AuthRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaAuthRepository extends AuthRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Obtiene los datos de un usuario por su supabase_auth_id

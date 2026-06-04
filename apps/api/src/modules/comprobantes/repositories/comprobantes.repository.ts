@@ -2,9 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { Comprobante } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
+export abstract class ComprobantesRepository {
+  abstract crear(idIntercambio: number, archivoPdfUrl: string): Promise<Comprobante>;
+}
+
 @Injectable()
-export class ComprobantesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaComprobantesRepository extends ComprobantesRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Persiste un comprobante asociado al intercambio.

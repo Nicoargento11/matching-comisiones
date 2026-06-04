@@ -1,9 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
+export abstract class ColumnasRepository {
+  abstract obtenerParaUsuario(idUsuario: number): ReturnType<PrismaColumnasRepository['obtenerParaUsuario']>;
+  abstract maxOrdenUsuario(idUsuario: number): Promise<number>;
+  abstract crear(idUsuario: number, nombre: string, orden: number): ReturnType<PrismaColumnasRepository['crear']>;
+  abstract obtenerGlobalPorNombre(nombre: string): ReturnType<PrismaColumnasRepository['obtenerGlobalPorNombre']>;
+  abstract obtenerUsuarioPorNombre(idUsuario: number, nombre: string): ReturnType<PrismaColumnasRepository['obtenerUsuarioPorNombre']>;
+  abstract eliminar(idColumna: number, idUsuario: number): Promise<{ count: number }>;
+}
+
 @Injectable()
-export class ColumnasRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaColumnasRepository extends ColumnasRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   async obtenerParaUsuario(idUsuario: number) {
     return this.prisma.columnaTablero.findMany({

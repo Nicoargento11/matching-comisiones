@@ -20,9 +20,23 @@ const NOTIFICACION_SELECT = {
   datos: true,
 } as const;
 
+export abstract class NotificacionesRepository {
+  abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaNotificacionesRepository['obtenerPorUsuario']>;
+  abstract verificarExistencia(idNotificacion: number): ReturnType<PrismaNotificacionesRepository['verificarExistencia']>;
+  abstract marcarLeida(idNotificacion: number): ReturnType<PrismaNotificacionesRepository['marcarLeida']>;
+  abstract marcarTodasLeidas(idUsuario: number): Promise<void>;
+  abstract crear(data: CrearNotificacionData): ReturnType<PrismaNotificacionesRepository['crear']>;
+  abstract crearEnTransaccion(
+    tx: Omit<PrismaService, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+    data: CrearNotificacionData,
+  ): ReturnType<PrismaNotificacionesRepository['crearEnTransaccion']>;
+}
+
 @Injectable()
-export class NotificacionesRepository {
-  constructor(private readonly prisma: PrismaService) {}
+export class PrismaNotificacionesRepository extends NotificacionesRepository {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Obtiene todas las notificaciones de un usuario, ordenadas por fecha desc
