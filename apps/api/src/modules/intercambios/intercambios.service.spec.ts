@@ -222,88 +222,93 @@ describe('IntercambiosService', () => {
 
   // ─── completar ────────────────────────────────────────────────────────────
 
-  // ── completar — sad paths ──────────────────────────────────────────────────
-  it('completar — lanza NotFoundException cuando el intercambio no existe', async () => {
-    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(null);
+  describe('completar', () => {
+    it('lanza NotFoundException cuando el intercambio no existe', async () => {
+      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(null);
 
-    await expect(service.completar(10)).rejects.toThrow(NotFoundException);
-  });
+      await expect(service.completar(10)).rejects.toThrow(NotFoundException);
+    });
 
-  it('completar — lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
-    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue({
-      ...buildDatosCompletos(),
-      id_estado: 99,
-    } as any);
+    it('lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
+      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue({
+        ...buildDatosCompletos(),
+        id_estado: 99,
+      } as any);
 
-    await expect(service.completar(10)).rejects.toThrow(ConflictException);
-  });
+      await expect(service.completar(10)).rejects.toThrow(ConflictException);
+    });
 
-  it('completar — lanza NotFoundException cuando el estado COMPLETADO no está configurado en BD', async () => {
-    intercambiosRepo.buscarEstadoPorNombre.mockImplementation(async (nombre) =>
-      nombre === 'PENDIENTE' ? estadoPendiente as any : null,
-    );
+    it('lanza NotFoundException cuando el estado COMPLETADO no está configurado en BD', async () => {
+      intercambiosRepo.buscarEstadoPorNombre.mockImplementation(async (nombre) =>
+        nombre === 'PENDIENTE' ? estadoPendiente as any : null,
+      );
 
-    await expect(service.completar(10)).rejects.toThrow(NotFoundException);
-  });
+      await expect(service.completar(10)).rejects.toThrow(NotFoundException);
+    });
 
-  // ── completar — soft-fail en email de profesor ────────────────────────────
-  it('completar — logger.error cuando enviarNotificacionProfesor falla (soft-fail)', async () => {
-    emailService.enviarNotificacionProfesor.mockRejectedValue(new Error('SMTP timeout'));
+    it('resuelve sin error y llama a logger.error cuando enviarNotificacionProfesor falla', async () => {
+      emailService.enviarNotificacionProfesor.mockRejectedValue(new Error('SMTP timeout'));
 
-    await expect(service.completar(10)).resolves.toBeUndefined();
-    expect(Logger.prototype.error).toHaveBeenCalled();
-  });
+      await expect(service.completar(10)).resolves.toBeUndefined();
+      expect(Logger.prototype.error).toHaveBeenCalled();
+    });
 
-  // ── completar — fallback de nombre de comisión ────────────────────────────
-  it('completar — usa fallback cuando nombre_comision es null en ambas comisiones', async () => {
-    const datos = buildDatosCompletos();
-    (datos.ofrece.comision as any).nombre_comision = null;
-    (datos.destino.comision as any).nombre_comision = null;
-    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(datos as any);
+    it('resuelve sin error y llama a logger.error cuando enviarComprobanteAlumno falla', async () => {
+      emailService.enviarComprobanteAlumno.mockRejectedValue(new Error('SMTP down'));
 
-    await expect(service.completar(10)).resolves.toBeUndefined();
-  });
+      await expect(service.completar(10)).resolves.toBeUndefined();
+      expect(Logger.prototype.error).toHaveBeenCalled();
+    });
 
-  // ── Task 5.4: soft-fail when enviarComprobanteAlumno throws ────────────────
-  it('5.4 — resolves and calls logger.error when email throws (soft-fail)', async () => {
-    emailService.enviarComprobanteAlumno.mockRejectedValue(new Error('SMTP down'));
+    it('usa fallback de nombre cuando nombre_comision es null en ambas comisiones', async () => {
+      const datos = buildDatosCompletos();
+      (datos.ofrece.comision as any).nombre_comision = null;
+      (datos.destino.comision as any).nombre_comision = null;
+      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(datos as any);
 
-    await expect(service.completar(10)).resolves.toBeUndefined();
-    expect(Logger.prototype.error).toHaveBeenCalled();
-  });
+      await expect(service.completar(10)).resolves.toBeUndefined();
+    });
 
-  // ── Task 5.5: professor dedup — same id_usuario → only one email ───────────
-  it('5.5 — sends exactly one professor email when both comisions share the same professor', async () => {
-    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(true) as any);
+    it('envía un único email al profesor cuando ambas comisiones comparten el mismo profesor', async () => {
+      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(true) as any);
 
-    await service.completar(10);
+      await service.completar(10);
 
-    expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(1);
-  });
+      expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(1);
+    });
 
-  it('5.5 — sends two professor emails when professors are different', async () => {
-    intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(false) as any);
+    it('envía dos emails a profesores cuando son distintos', async () => {
+      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(false) as any);
 
-    await service.completar(10);
+      await service.completar(10);
 
-    expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(2);
-  });
+      expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(2);
+    });
 
-  // ── Task 5.6: storage failure → error propagates, repo.crear never called ──
-  it('5.6 — propagates error when storage throws, and does not call comprobantesRepo.crear', async () => {
-    storageService.subir.mockRejectedValue(new Error('Storage unavailable'));
+    it('lanza el error de storage y no guarda el comprobante en BD', async () => {
+      storageService.subir.mockRejectedValue(new Error('Storage unavailable'));
 
-    await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
-    expect(comprobantesRepo.crear).not.toHaveBeenCalled();
-  });
+      await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
+      expect(comprobantesRepo.crear).not.toHaveBeenCalled();
+    });
 
-  // ── Happy path sanity ──────────────────────────────────────────────────────
-  it('calls all hard-fail steps in order on success', async () => {
-    await service.completar(10);
+    it('genera el PDF y lo sube al storage con el id del intercambio', async () => {
+      await service.completar(10);
 
-    expect(pdfService.generar).toHaveBeenCalledTimes(1);
-    expect(storageService.subir).toHaveBeenCalledWith(10, expect.any(Buffer));
-    expect(comprobantesRepo.crear).toHaveBeenCalledWith(10, 'https://cdn.example.com/1.pdf');
-    expect(emailService.enviarComprobanteAlumno).toHaveBeenCalledTimes(2);
+      expect(pdfService.generar).toHaveBeenCalledTimes(1);
+      expect(storageService.subir).toHaveBeenCalledWith(10, expect.any(Buffer));
+    });
+
+    it('guarda el comprobante en base de datos con la URL del storage', async () => {
+      await service.completar(10);
+
+      expect(comprobantesRepo.crear).toHaveBeenCalledWith(10, 'https://cdn.example.com/1.pdf');
+    });
+
+    it('envía el comprobante por email a ambos alumnos del intercambio', async () => {
+      await service.completar(10);
+
+      expect(emailService.enviarComprobanteAlumno).toHaveBeenCalledTimes(2);
+    });
   });
 });

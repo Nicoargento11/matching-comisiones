@@ -463,6 +463,14 @@ describe('ComisionesService', () => {
   });
 
   describe('trasladarEstudiante', () => {
+    const crearMockTx = (existeEnDestino: object | null = null) => ({
+      usuarioComision: {
+        update: jest.fn().mockResolvedValue({}),
+        findUnique: jest.fn().mockResolvedValue(existeEnDestino),
+        create: jest.fn().mockResolvedValue({}),
+      },
+    });
+
     const mockComisionDestino = {
       id_comision: 2,
       id_materia: 1,
@@ -497,41 +505,29 @@ describe('ComisionesService', () => {
     });
 
     it('crea inscripción en destino cuando no existe previa (rama create)', async () => {
-      const mockTx = {
-        usuarioComision: {
-          update: jest.fn().mockResolvedValue({}),
-          findUnique: jest.fn().mockResolvedValue(null),
-          create: jest.fn().mockResolvedValue({}),
-        },
-      };
+      const tx = crearMockTx(null);
       repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
       repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
-      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(mockTx));
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(tx));
       repository.buscarDatosAlumno.mockResolvedValue(null);
 
       await service.trasladarEstudiante(2, 5);
 
-      expect(mockTx.usuarioComision.create).toHaveBeenCalled();
-      expect(mockTx.usuarioComision.update).toHaveBeenCalledTimes(1);
+      expect(tx.usuarioComision.create).toHaveBeenCalled();
+      expect(tx.usuarioComision.update).toHaveBeenCalledTimes(1);
     });
 
     it('reactiva inscripción en destino cuando ya existía (rama update)', async () => {
-      const mockTx = {
-        usuarioComision: {
-          update: jest.fn().mockResolvedValue({}),
-          findUnique: jest.fn().mockResolvedValue({ id_usuario: 5, id_comision: 2 }),
-          create: jest.fn().mockResolvedValue({}),
-        },
-      };
+      const tx = crearMockTx({ id_usuario: 5, id_comision: 2 });
       repository.verificarExistencia.mockResolvedValue(mockComisionDestino as any);
       repository.buscarInscripcionActivaEnMateria.mockResolvedValue(mockInscripcionOrigen as any);
-      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(mockTx));
+      repository.ejecutarTransaccion.mockImplementation(async (fn: any) => fn(tx));
       repository.buscarDatosAlumno.mockResolvedValue(null);
 
       await service.trasladarEstudiante(2, 5);
 
-      expect(mockTx.usuarioComision.create).not.toHaveBeenCalled();
-      expect(mockTx.usuarioComision.update).toHaveBeenCalledTimes(2);
+      expect(tx.usuarioComision.create).not.toHaveBeenCalled();
+      expect(tx.usuarioComision.update).toHaveBeenCalledTimes(2);
     });
 
     it('usa fallback de nombre en la notificación cuando las comisiones no tienen nombre', async () => {
