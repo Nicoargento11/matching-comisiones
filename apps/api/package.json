@@ -78,7 +78,13 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
-      "^puppeteer-core$": "<rootDir>/__mocks__/puppeteer-core.ts"
+      "^puppeteer-core$": "<rootDir>/__mocks__/puppeteer-core.ts",
+      "^nodemailer$": "<rootDir>/__mocks__/nodemailer.ts"
+    },
+    "globals": {
+      "ts-jest": {
+        "diagnostics": false
+      }
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
