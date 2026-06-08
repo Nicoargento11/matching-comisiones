@@ -73,6 +73,7 @@ export default function SimularMatchingPage() {
 
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<{ exito: boolean; mensaje: string } | null>(null);
+  const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
 
   const refSolicitante = useRef<HTMLDivElement>(null);
   const timerSolicitante = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +88,19 @@ export default function SimularMatchingPage() {
     document.addEventListener('mousedown', handleClickFuera);
     return () => document.removeEventListener('mousedown', handleClickFuera);
   }, []);
+
+  // Temporizador durante la simulación
+  useEffect(() => {
+    if (!cargando) {
+      setTiempoTranscurrido(0);
+      return;
+    }
+    const inicio = Date.now();
+    const intervalo = setInterval(() => {
+      setTiempoTranscurrido(Math.floor((Date.now() - inicio) / 1000));
+    }, 1000);
+    return () => clearInterval(intervalo);
+  }, [cargando]);
 
   const cargarComisiones = useCallback(
     async (idUsuario: number) => {
@@ -398,15 +412,113 @@ export default function SimularMatchingPage() {
           disabled={!puedeSimular || cargando}
           className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {cargando && (
-            <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          )}
-          {cargando ? 'Simulando...' : 'Simular matching'}
+          Simular matching
         </button>
       </form>
+
+      {cargando && (
+        <div className="mt-6 rounded-xl border border-indigo-200 bg-indigo-50/50 dark:border-indigo-800 dark:bg-indigo-950/30 overflow-hidden">
+          <div className="px-6 py-5">
+            <div className="flex items-center gap-3 mb-4">
+              <svg className="h-6 w-6 animate-spin text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <div>
+                <h3 className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
+                  Procesando intercambio
+                </h3>
+                <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70">
+                  {tiempoTranscurrido < 60
+                    ? `${tiempoTranscurrido}s transcurridos`
+                    : `${Math.floor(tiempoTranscurrido / 60)}m ${tiempoTranscurrido % 60}s transcurridos`}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+              El sistema está creando el intercambio, generando el comprobante PDF y enviando las
+              notificaciones por email a los alumnos y profesores involucrados. Este proceso puede
+              tardar hasta 90 segundos debido a los reintentos automáticos de envío.
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                  1
+                </span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  Creando intercambio en base de datos
+                </span>
+                {tiempoTranscurrido > 0 && (
+                  <svg className="h-4 w-4 text-green-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                  2
+                </span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  Generando comprobante PDF
+                </span>
+                {tiempoTranscurrido > 15 && (
+                  <svg className="h-4 w-4 text-green-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                  tiempoTranscurrido > 15
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                }`}>
+                  3
+                </span>
+                <span className={tiempoTranscurrido > 15 ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'}>
+                  Enviando emails a alumnos
+                </span>
+                {tiempoTranscurrido > 15 && (
+                  <span className="ml-auto flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-indigo-400 opacity-20" />
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500" />
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                  tiempoTranscurrido > 25
+                    ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                }`}>
+                  4
+                </span>
+                <span className={tiempoTranscurrido > 25 ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500'}>
+                  Notificando a profesores
+                </span>
+                {tiempoTranscurrido > 25 && (
+                  <span className="ml-auto flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-indigo-400 opacity-20" />
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500" />
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-1 bg-indigo-100 dark:bg-indigo-900/30">
+            <div
+              className="h-full bg-indigo-500 transition-all duration-1000 ease-linear"
+              style={{ width: `${Math.min((tiempoTranscurrido / 80) * 100, 95)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {resultado && (
         <div

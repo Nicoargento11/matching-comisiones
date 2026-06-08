@@ -47,6 +47,12 @@ export function construirHtmlComprobante(datos: DatosComprobante): string {
       ? `Comisión ${datos.comisionDestino.numero_comision}`
       : 'Comisión');
 
+  const nombreCompletoOfrece = `${datos.alumnoOfrece.nombre_usuario} ${datos.alumnoOfrece.apellido_usuario}`;
+  const nombreCompletoDestino = `${datos.alumnoDestino.nombre_usuario} ${datos.alumnoDestino.apellido_usuario}`;
+
+  const profesorOfrece = `${datos.comisionOfrece.profesor.nombre_usuario} ${datos.comisionOfrece.profesor.apellido_usuario}`;
+  const profesorDestino = `${datos.comisionDestino.profesor.nombre_usuario} ${datos.comisionDestino.profesor.apellido_usuario}`;
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -155,7 +161,7 @@ export function construirHtmlComprobante(datos: DatosComprobante): string {
       padding: 32px 48px 0;
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 24px;
     }
 
     .section {
@@ -165,41 +171,95 @@ export function construirHtmlComprobante(datos: DatosComprobante): string {
     }
 
     .section-header {
-      padding: 14px 20px;
-      font-size: 12px;
+      padding: 14px 24px;
+      font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.03em;
       text-transform: uppercase;
       color: #ffffff;
     }
-    .section-header.solicitante { background: #4F46E5; }
-    .section-header.receptor    { background: #6366f1; }
+    .section-header.persona {
+      background: #4F46E5;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .section-header .persona-dni {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.8;
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
 
-    .section table {
-      width: 100%;
-      border-collapse: collapse;
+    /* ── JOURNEY ── */
+    .section-body {
+      padding: 20px 24px;
     }
-    .section table tr:last-child td {
-      border-bottom: none;
+
+    .journey {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
     }
-    .section table td {
-      padding: 12px 20px;
-      font-size: 13px;
-      border-bottom: 1px solid #f0f0f5;
-      vertical-align: top;
+
+    .journey-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
-    .section table td.field-label {
+
+    .journey-label {
+      font-size: 10px;
       font-weight: 600;
-      color: #6b6b80;
-      width: 160px;
-      font-size: 12px;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding-top: 14px;
+      color: #6b6b80;
+      margin-bottom: 10px;
     }
-    .section table td.field-value {
+
+    .journey-card {
+      background: #f8f8fc;
+      border: 1px solid #e8e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      flex: 1;
+    }
+
+    .journey-commission {
+      font-size: 15px;
+      font-weight: 700;
       color: #1a1a2e;
-      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .journey-profesor {
+      font-size: 12px;
+      color: #6b6b80;
+    }
+
+    /* ── ARROW ── */
+    .journey-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      flex-shrink: 0;
+      margin-top: 22px; /* align with cards below labels */
+    }
+    .journey-arrow-icon {
+      width: 36px;
+      height: 36px;
+      background: #EEF2FF;
+      border: 1px solid #C7D2FE;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4F46E5;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
     }
 
     /* ── FOOTER ── */
@@ -245,48 +305,62 @@ export function construirHtmlComprobante(datos: DatosComprobante): string {
 
   <div class="sections">
 
+    <!-- ${nombreCompletoOfrece}: sale de su comisión y entra en la del otro -->
     <div class="section">
-      <div class="section-header solicitante">Alumno Solicitante</div>
-      <table>
-        <tr>
-          <td class="field-label">Nombre completo</td>
-          <td class="field-value">${datos.alumnoOfrece.nombre_usuario} ${datos.alumnoOfrece.apellido_usuario}</td>
-        </tr>
-        <tr>
-          <td class="field-label">DNI</td>
-          <td class="field-value">${datos.alumnoOfrece.dni}</td>
-        </tr>
-        <tr>
-          <td class="field-label">Comisión</td>
-          <td class="field-value">${nombreComisionOfrece}</td>
-        </tr>
-        <tr>
-          <td class="field-label">Profesor</td>
-          <td class="field-value">${datos.comisionOfrece.profesor.nombre_usuario} ${datos.comisionOfrece.profesor.apellido_usuario}</td>
-        </tr>
-      </table>
+      <div class="section-header persona">
+        <span>${nombreCompletoOfrece}</span>
+        <span class="persona-dni">DNI ${datos.alumnoOfrece.dni}</span>
+      </div>
+      <div class="section-body">
+        <div class="journey">
+          <div class="journey-side">
+            <div class="journey-label">Comisión anterior</div>
+            <div class="journey-card">
+              <div class="journey-commission">${nombreComisionOfrece}</div>
+              <div class="journey-profesor">Prof. ${profesorOfrece}</div>
+            </div>
+          </div>
+          <div class="journey-arrow">
+            <div class="journey-arrow-icon">→</div>
+          </div>
+          <div class="journey-side">
+            <div class="journey-label">Comisión nueva</div>
+            <div class="journey-card">
+              <div class="journey-commission">${nombreComisionDestino}</div>
+              <div class="journey-profesor">Prof. ${profesorDestino}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- ${nombreCompletoDestino}: sale de su comisión y entra en la del otro -->
     <div class="section">
-      <div class="section-header receptor">Alumno Receptor</div>
-      <table>
-        <tr>
-          <td class="field-label">Nombre completo</td>
-          <td class="field-value">${datos.alumnoDestino.nombre_usuario} ${datos.alumnoDestino.apellido_usuario}</td>
-        </tr>
-        <tr>
-          <td class="field-label">DNI</td>
-          <td class="field-value">${datos.alumnoDestino.dni}</td>
-        </tr>
-        <tr>
-          <td class="field-label">Comisión</td>
-          <td class="field-value">${nombreComisionDestino}</td>
-        </tr>
-        <tr>
-          <td class="field-label">Profesor</td>
-          <td class="field-value">${datos.comisionDestino.profesor.nombre_usuario} ${datos.comisionDestino.profesor.apellido_usuario}</td>
-        </tr>
-      </table>
+      <div class="section-header persona">
+        <span>${nombreCompletoDestino}</span>
+        <span class="persona-dni">DNI ${datos.alumnoDestino.dni}</span>
+      </div>
+      <div class="section-body">
+        <div class="journey">
+          <div class="journey-side">
+            <div class="journey-label">Comisión anterior</div>
+            <div class="journey-card">
+              <div class="journey-commission">${nombreComisionDestino}</div>
+              <div class="journey-profesor">Prof. ${profesorDestino}</div>
+            </div>
+          </div>
+          <div class="journey-arrow">
+            <div class="journey-arrow-icon">→</div>
+          </div>
+          <div class="journey-side">
+            <div class="journey-label">Comisión nueva</div>
+            <div class="journey-card">
+              <div class="journey-commission">${nombreComisionOfrece}</div>
+              <div class="journey-profesor">Prof. ${profesorOfrece}</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>

@@ -17,11 +17,19 @@ import { IIntercambioObserver, ObserverFailureMode } from './intercambio-observe
  * pasar el buffer a través de `ObserverResultado` — esto re-acoplaría observers
  * que deben permanecer independientes (rompe SRP/OCP del patrón). El costo
  * aceptado es una segunda generación de PDF (CPU local, sin I/O de red).
+ *
+ * RATE LIMIT HANDLING: cada envío individual reintenta hasta 2 veces con
+ * backoff (5s, 10s) cuando el proveedor responde 550 "Too many emails".
+ * Esto evita que el plan gratuito de Mailtrap descarte correos en ráfaga
+ * sin necesidad de delays fijos entre envíos.
  */
 @Injectable()
 export class EmailObserver implements IIntercambioObserver {
   private readonly logger = new Logger(EmailObserver.name);
   readonly failureMode: ObserverFailureMode = 'best-effort';
+
+  /** Máximo de reintentos por destinatario ante rate limiting. */
+  private readonly MAX_RETRIES = 2;
 
   constructor(
     private readonly email: EmailService,
@@ -37,16 +45,55 @@ export class EmailObserver implements IIntercambioObserver {
     await this.enviarNotificacionAProfesoresUnicos(evento, datosComprobante);
   }
 
+  // ── helpers privados ──────────────────────────────────────────────────────
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Ejecuta `fn` y reintenta con backoff si el proveedor responde 550 por
+   * rate limiting. Otros errores (auth, red, timeout) se loguean sin reintento.
+   */
+  private async conReintento(
+    fn: () => Promise<void>,
+    correo: string,
+  ): Promise<void> {
+    for (let intento = 0; intento <= this.MAX_RETRIES; intento++) {
+      try {
+        await fn();
+        return; // éxito
+      } catch (err: any) {
+        const esRateLimit =
+          err?.responseCode === 550 &&
+          typeof err?.response === 'string' &&
+          err.response.includes('Too many emails');
+
+        if (!esRateLimit || intento === this.MAX_RETRIES) {
+          this.logger.error(`Email fallido a ${correo}`, err);
+          return;
+        }
+
+        const espera = 5000 * (intento + 1); // 5s → 10s
+        this.logger.warn(
+          `Rate limit para ${correo}, reintento ${intento + 1}/${this.MAX_RETRIES} en ${espera / 1000}s...`,
+        );
+        await this.delay(espera);
+      }
+    }
+  }
+
+  // ── envíos ────────────────────────────────────────────────────────────────
+
   private async enviarComprobanteAAlumno(
     correo: string,
     datosComprobante: DatosComprobante,
     pdfBuffer: Buffer,
   ): Promise<void> {
-    try {
-      await this.email.enviarComprobanteAlumno(correo, datosComprobante, pdfBuffer);
-    } catch (err) {
-      this.logger.error(`Email fallido a ${correo}`, err);
-    }
+    await this.conReintento(
+      () => this.email.enviarComprobanteAlumno(correo, datosComprobante, pdfBuffer),
+      correo,
+    );
   }
 
   private async enviarNotificacionAProfesoresUnicos(
@@ -62,13 +109,14 @@ export class EmailObserver implements IIntercambioObserver {
     });
 
     for (const [, profesor] of profesoresUnicos) {
-      try {
-        await this.email.enviarNotificacionProfesor(profesor.correo, datosComprobante);
-      } catch (err) {
-        this.logger.error(`Email fallido a ${profesor.correo}`, err);
-      }
+      await this.conReintento(
+        () => this.email.enviarNotificacionProfesor(profesor.correo, datosComprobante),
+        profesor.correo,
+      );
     }
   }
+
+  // ── datos para el template ────────────────────────────────────────────────
 
   private construirDatosComprobante(evento: IntercambioCompletadoEvent): DatosComprobante {
     return {
