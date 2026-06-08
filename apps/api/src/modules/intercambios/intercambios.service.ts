@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   NotFoundError,
   ConflictError,
@@ -8,21 +8,24 @@ import { IntercambiosRepository } from './repositories/intercambios.repository';
 import { mapearIntercambioResponse } from './intercambios.mapper';
 import { IntercambioResponseDto } from './dto/intercambio-response.dto';
 import { CreateIntercambioDto } from './dto/create-intercambio.dto';
-import { ComprobantePdfService } from '../comprobantes/services/comprobante-pdf.service';
-import { ComprobantesStorageService } from '../comprobantes/services/comprobantes-storage.service';
-import { ComprobantesRepository } from '../comprobantes/repositories/comprobantes.repository';
-import { EmailService } from '../email/email.service';
+import { CandidatosIntercambioDto } from './dto/candidatos-intercambio.dto';
+import { IntercambioCompletadoSubject } from './observers/intercambio-completado.subject';
+import { IntercambioCompletadoEvent } from './events/intercambio-completado.event';
+
+/**
+ * Resultado de `completar`: lo mínimo que el caller necesita de forma síncrona
+ * para construir su propia respuesta (ej. `SimularMatchingResponseDto`).
+ */
+export interface CompletarResultado {
+  readonly id_intercambio: number;
+  readonly comprobante_url: string;
+}
 
 @Injectable()
 export class IntercambiosService {
-  private readonly logger = new Logger(IntercambiosService.name);
-
   constructor(
     private readonly intercambiosRepository: IntercambiosRepository,
-    private readonly comprobantePdf: ComprobantePdfService,
-    private readonly comprobantesStorage: ComprobantesStorageService,
-    private readonly comprobantesRepository: ComprobantesRepository,
-    private readonly email: EmailService,
+    private readonly subject: IntercambioCompletadoSubject,
   ) {}
 
   /**
@@ -50,6 +53,24 @@ export class IntercambiosService {
   }
 
   /**
+   * Busca candidatos válidos para intercambiar con el solicitante: alumnos con
+   * inscripción activa en otras comisiones de la misma materia que la comisión origen
+   * @param dto - Comisión origen y usuario solicitante (se excluye de los resultados)
+   * @returns Lista de candidatos (usuario + su comisión)
+   * @throws NotFoundException si la comisión origen no existe
+   */
+  async obtenerCandidatos(dto: CandidatosIntercambioDto) {
+    const candidatos = await this.intercambiosRepository.obtenerCandidatos(
+      dto.id_comision_origen,
+      dto.id_usuario_solicitante,
+    );
+    if (candidatos === null) {
+      throw new NotFoundError('COMISION_NO_ENCONTRADA', 'La comisión origen no existe');
+    }
+    return candidatos;
+  }
+
+  /**
    * Crea un intercambio en estado PENDIENTE entre dos usuarios
    * @param dto - Datos del intercambio (quién ofrece y quién es el destino)
    * @returns El intercambio creado
@@ -63,6 +84,17 @@ export class IntercambiosService {
       throw new BadRequestError(
         'INTERCAMBIO_INSCRIPCIONES_INACTIVAS',
         'Ambos usuarios deben tener inscripciones activas en sus respectivas comisiones',
+      );
+    }
+
+    const mismaMateria = await this.intercambiosRepository.verificarMismaMateria(
+      dto.id_comision_ofrece,
+      dto.id_comision_destino,
+    );
+    if (!mismaMateria) {
+      throw new BadRequestError(
+        'INTERCAMBIO_MATERIAS_DISTINTAS',
+        'Las comisiones del intercambio deben pertenecer a la misma materia',
       );
     }
 
@@ -88,13 +120,35 @@ export class IntercambiosService {
   }
 
   /**
-   * Completa un intercambio de forma atómica: intercambia las comisiones de
-   * ambos usuarios y envía notificaciones a los alumnos y profesores involucrados.
+   * Completa un intercambio: valida su estado, ejecuta la transición atómica
+   * (cambio de estado + intercambio de comisiones) y emite `IntercambioCompletado`
+   * para que los observers (`ComprobanteObserver`, `NotificacionObserver`,
+   * `EmailObserver`) reaccionen con sus side-effects.
+   *
+   * `completar` YA NO construye notificaciones, genera PDFs, sube a storage,
+   * persiste comprobantes ni envía emails — esa responsabilidad se distribuyó
+   * en observers suscritos al evento de dominio (Observer Pattern, ver
+   * `IntercambioCompletadoSubject`).
+   *
+   * Orden de fallas y aislamiento (preservado de la implementación anterior):
+   * - Validaciones (existencia, estado PENDIENTE, estado COMPLETADO configurado)
+   *   lanzan ANTES de cualquier side-effect — sin transacción, sin evento.
+   * - `completarAtomico` es la única operación transaccional: si falla, nada
+   *   más corre.
+   * - Tras el commit, `subject.notificar` ejecuta primero el observer crítico
+   *   (`ComprobanteObserver`): si falla, el error PROPAGA — el `Intercambio`
+   *   queda COMPLETADO en BD (sin rollback, igual que el comportamiento previo
+   *   donde el storage corría post-`$transaction`), pero el comprobante no
+   *   queda persistido ("orphaned COMPLETADO sin Comprobante", documentado y
+   *   aceptado). Luego corren los observers best-effort (`NotificacionObserver`,
+   *   `EmailObserver`) vía `Promise.allSettled`, aislados entre sí.
+   *
    * @param idIntercambio - ID del intercambio a completar
-   * @throws NotFoundException si no existe el intercambio
+   * @returns `{ id_intercambio, comprobante_url }` para que el caller construya su respuesta
+   * @throws NotFoundException si no existe el intercambio o no está configurado el estado COMPLETADO
    * @throws ConflictError si el intercambio no está en estado PENDIENTE
    */
-  async completar(idIntercambio: number): Promise<void> {
+  async completar(idIntercambio: number): Promise<CompletarResultado> {
     const datos = await this.intercambiosRepository.obtenerDatosCompletos(idIntercambio);
     if (!datos) {
       throw new NotFoundError('INTERCAMBIO_NO_ENCONTRADO', 'Intercambio no encontrado');
@@ -116,61 +170,6 @@ export class IntercambiosService {
       );
     }
 
-    const nombreComisionOfrece =
-      datos.ofrece.comision.nombre_comision ?? `Comisión ${datos.ofrece.comision.numero_comision}`;
-    const nombreComisionDestino =
-      datos.destino.comision.nombre_comision ?? `Comisión ${datos.destino.comision.numero_comision}`;
-
-    const todasLasNotificaciones = [
-      {
-        id_usuario: datos.ofrece.usuario.id_usuario,
-        tipo: 'MATCHING_COMISION' as const,
-        titulo: 'Cambio de comisión completado',
-        mensaje: 'Tu intercambio de comisión fue completado exitosamente.',
-        datos: { id_intercambio: idIntercambio, id_comision: datos.id_comision_destino },
-      },
-      {
-        id_usuario: datos.destino.usuario.id_usuario,
-        tipo: 'MATCHING_COMISION' as const,
-        titulo: 'Cambio de comisión completado',
-        mensaje: 'Tu intercambio de comisión fue completado exitosamente.',
-        datos: { id_intercambio: idIntercambio, id_comision: datos.id_comision_ofrece },
-      },
-      {
-        id_usuario: datos.ofrece.comision.profesor.id_usuario,
-        tipo: 'INTERCAMBIO_EN_COMISION' as const,
-        titulo: 'Intercambio de alumnos en tu comisión',
-        mensaje: `${datos.ofrece.usuario.nombre_usuario} ${datos.ofrece.usuario.apellido_usuario} (DNI ${datos.ofrece.usuario.dni}) salió de tu comisión y fue reemplazado por ${datos.destino.usuario.nombre_usuario} ${datos.destino.usuario.apellido_usuario} (DNI ${datos.destino.usuario.dni}), proveniente de ${nombreComisionDestino} (Prof. ${datos.destino.comision.profesor.nombre_usuario} ${datos.destino.comision.profesor.apellido_usuario}).`,
-        datos: {
-          alumno_sale: { nombre_usuario: datos.ofrece.usuario.nombre_usuario, apellido_usuario: datos.ofrece.usuario.apellido_usuario, dni: datos.ofrece.usuario.dni },
-          alumno_entra: { nombre_usuario: datos.destino.usuario.nombre_usuario, apellido_usuario: datos.destino.usuario.apellido_usuario, dni: datos.destino.usuario.dni },
-          comision_origen: { id_comision: datos.id_comision_ofrece, nombre: nombreComisionOfrece },
-          comision_destino: { id_comision: datos.id_comision_destino, nombre: nombreComisionDestino },
-          profesor_otra_comision: { nombre_usuario: datos.destino.comision.profesor.nombre_usuario, apellido_usuario: datos.destino.comision.profesor.apellido_usuario },
-        },
-      },
-      {
-        id_usuario: datos.destino.comision.profesor.id_usuario,
-        tipo: 'INTERCAMBIO_EN_COMISION' as const,
-        titulo: 'Intercambio de alumnos en tu comisión',
-        mensaje: `${datos.destino.usuario.nombre_usuario} ${datos.destino.usuario.apellido_usuario} (DNI ${datos.destino.usuario.dni}) salió de tu comisión y fue reemplazado por ${datos.ofrece.usuario.nombre_usuario} ${datos.ofrece.usuario.apellido_usuario} (DNI ${datos.ofrece.usuario.dni}), proveniente de ${nombreComisionOfrece} (Prof. ${datos.ofrece.comision.profesor.nombre_usuario} ${datos.ofrece.comision.profesor.apellido_usuario}).`,
-        datos: {
-          alumno_sale: { nombre_usuario: datos.destino.usuario.nombre_usuario, apellido_usuario: datos.destino.usuario.apellido_usuario, dni: datos.destino.usuario.dni },
-          alumno_entra: { nombre_usuario: datos.ofrece.usuario.nombre_usuario, apellido_usuario: datos.ofrece.usuario.apellido_usuario, dni: datos.ofrece.usuario.dni },
-          comision_origen: { id_comision: datos.id_comision_destino, nombre: nombreComisionDestino },
-          comision_destino: { id_comision: datos.id_comision_ofrece, nombre: nombreComisionOfrece },
-          profesor_otra_comision: { nombre_usuario: datos.ofrece.comision.profesor.nombre_usuario, apellido_usuario: datos.ofrece.comision.profesor.apellido_usuario },
-        },
-      },
-    ];
-
-    const seen = new Set<number>();
-    const notificaciones = todasLasNotificaciones.filter((n) => {
-      if (seen.has(n.id_usuario)) return false;
-      seen.add(n.id_usuario);
-      return true;
-    });
-
     await this.intercambiosRepository.completarAtomico(
       idIntercambio,
       {
@@ -180,78 +179,19 @@ export class IntercambiosService {
         id_comision_destino: datos.id_comision_destino,
       },
       estadoCompletado.id_estado,
-      notificaciones,
     );
 
-    // Post-transaction: PDF → Storage → DB (hard-fail); emails (soft-fail)
-    const datosComprobante = {
-      idIntercambio,
-      fechaGeneracion: new Date(),
-      alumnoOfrece: {
-        nombre_usuario: datos.ofrece.usuario.nombre_usuario,
-        apellido_usuario: datos.ofrece.usuario.apellido_usuario,
-        dni: datos.ofrece.usuario.dni,
-      },
-      comisionOfrece: {
-        nombre_comision: datos.ofrece.comision.nombre_comision,
-        numero_comision: datos.ofrece.comision.numero_comision,
-        profesor: {
-          nombre_usuario: datos.ofrece.comision.profesor.nombre_usuario,
-          apellido_usuario: datos.ofrece.comision.profesor.apellido_usuario,
-        },
-      },
-      alumnoDestino: {
-        nombre_usuario: datos.destino.usuario.nombre_usuario,
-        apellido_usuario: datos.destino.usuario.apellido_usuario,
-        dni: datos.destino.usuario.dni,
-      },
-      comisionDestino: {
-        nombre_comision: datos.destino.comision.nombre_comision,
-        numero_comision: datos.destino.comision.numero_comision,
-        profesor: {
-          nombre_usuario: datos.destino.comision.profesor.nombre_usuario,
-          apellido_usuario: datos.destino.comision.profesor.apellido_usuario,
-        },
-      },
+    const evento: IntercambioCompletadoEvent = {
+      id_intercambio: idIntercambio,
+      id_comision_ofrece: datos.id_comision_ofrece,
+      id_comision_destino: datos.id_comision_destino,
+      completadoEn: new Date(),
+      ofrece: datos.ofrece,
+      destino: datos.destino,
     };
 
-    // Steps 1–3: hard-fail
-    const pdfBuffer = await this.comprobantePdf.generar(datosComprobante);
-    const publicUrl = await this.comprobantesStorage.subir(idIntercambio, pdfBuffer);
-    await this.comprobantesRepository.crearComprobante(idIntercambio, publicUrl);
+    const { comprobanteUrl } = await this.subject.notificar(evento);
 
-    // Step 4: email alumno ofrece (soft-fail)
-    try {
-      await this.email.enviarComprobanteAlumno(datos.ofrece.usuario.correo, datosComprobante, pdfBuffer);
-    } catch (err) {
-      this.logger.error(`Email fallido a ${datos.ofrece.usuario.correo}`, err);
-    }
-
-    // Step 5: email alumno destino (soft-fail)
-    try {
-      await this.email.enviarComprobanteAlumno(datos.destino.usuario.correo, datosComprobante, pdfBuffer);
-    } catch (err) {
-      this.logger.error(`Email fallido a ${datos.destino.usuario.correo}`, err);
-    }
-
-    // Step 6: email profesores deduplicados por id_usuario (soft-fail)
-    const profesoresUnicos = new Map<
-      number,
-      { correo: string }
-    >();
-    profesoresUnicos.set(datos.ofrece.comision.profesor.id_usuario, {
-      correo: datos.ofrece.comision.profesor.correo,
-    });
-    profesoresUnicos.set(datos.destino.comision.profesor.id_usuario, {
-      correo: datos.destino.comision.profesor.correo,
-    });
-
-    for (const [, prof] of profesoresUnicos) {
-      try {
-        await this.email.enviarNotificacionProfesor(prof.correo, datosComprobante);
-      } catch (err) {
-        this.logger.error(`Email fallido a ${prof.correo}`, err);
-      }
-    }
+    return { id_intercambio: idIntercambio, comprobante_url: comprobanteUrl };
   }
 }

@@ -2,10 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Logger, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { IntercambiosService } from './intercambios.service';
 import { IntercambiosRepository } from './repositories/intercambios.repository';
-import { ComprobantePdfService } from '../comprobantes/services/comprobante-pdf.service';
-import { ComprobantesStorageService } from '../comprobantes/services/comprobantes-storage.service';
-import { ComprobantesRepository } from '../comprobantes/repositories/comprobantes.repository';
-import { EmailService } from '../email/email.service';
+import { IntercambioCompletadoSubject } from './observers/intercambio-completado.subject';
 
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
@@ -64,10 +61,7 @@ const buildDatosCompletos = (mismoProfesor = false) => ({
 describe('IntercambiosService', () => {
   let service: IntercambiosService;
   let intercambiosRepo: jest.Mocked<IntercambiosRepository>;
-  let pdfService: jest.Mocked<ComprobantePdfService>;
-  let storageService: jest.Mocked<ComprobantesStorageService>;
-  let comprobantesRepo: jest.Mocked<ComprobantesRepository>;
-  let emailService: jest.Mocked<EmailService>;
+  let subject: jest.Mocked<IntercambioCompletadoSubject>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -82,27 +76,16 @@ describe('IntercambiosService', () => {
             obtenerPorUsuario: jest.fn(),
             obtenerPorId: jest.fn(),
             verificarInscripcionesActivas: jest.fn(),
+            verificarMismaMateria: jest.fn(),
+            obtenerCandidatos: jest.fn(),
             buscarIntercambioPendiente: jest.fn(),
             crearIntercambio: jest.fn(),
           },
         },
         {
-          provide: ComprobantePdfService,
-          useValue: { generar: jest.fn().mockResolvedValue(Buffer.from('pdf')) },
-        },
-        {
-          provide: ComprobantesStorageService,
-          useValue: { subir: jest.fn().mockResolvedValue('https://cdn.example.com/1.pdf') },
-        },
-        {
-          provide: ComprobantesRepository,
-          useValue: { crearComprobante: jest.fn().mockResolvedValue({ id_comprobante: 1 }) },
-        },
-        {
-          provide: EmailService,
+          provide: IntercambioCompletadoSubject,
           useValue: {
-            enviarComprobanteAlumno: jest.fn().mockResolvedValue(undefined),
-            enviarNotificacionProfesor: jest.fn().mockResolvedValue(undefined),
+            notificar: jest.fn().mockResolvedValue({ comprobanteUrl: 'https://cdn.example.com/10.pdf' }),
           },
         },
       ],
@@ -110,10 +93,7 @@ describe('IntercambiosService', () => {
 
     service = module.get<IntercambiosService>(IntercambiosService);
     intercambiosRepo = module.get(IntercambiosRepository);
-    pdfService = module.get(ComprobantePdfService);
-    storageService = module.get(ComprobantesStorageService);
-    comprobantesRepo = module.get(ComprobantesRepository);
-    emailService = module.get(EmailService);
+    subject = module.get(IntercambioCompletadoSubject);
 
     // Default happy path
     intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos() as any);
@@ -175,6 +155,41 @@ describe('IntercambiosService', () => {
     });
   });
 
+  // ─── obtenerCandidatos ────────────────────────────────────────────────────
+
+  describe('obtenerCandidatos', () => {
+    const mockDto = { id_comision_origen: 1, id_usuario_solicitante: 1 };
+
+    it('debe retornar la lista de candidatos cuando la comisión origen existe', async () => {
+      const candidatos = [
+        {
+          usuario: { id_usuario: 2, nombre_usuario: 'Ana', apellido_usuario: 'García', dni: 123 },
+          comision: { id_comision: 5, numero_comision: 2, nombre_comision: null },
+        },
+      ];
+      intercambiosRepo.obtenerCandidatos.mockResolvedValue(candidatos as any);
+
+      const result = await service.obtenerCandidatos(mockDto as any);
+
+      expect(intercambiosRepo.obtenerCandidatos).toHaveBeenCalledWith(1, 1);
+      expect(result).toEqual(candidatos);
+    });
+
+    it('debe retornar array vacío cuando no hay candidatos disponibles', async () => {
+      intercambiosRepo.obtenerCandidatos.mockResolvedValue([]);
+
+      const result = await service.obtenerCandidatos(mockDto as any);
+
+      expect(result).toEqual([]);
+    });
+
+    it('debe lanzar NotFoundException cuando la comisión origen no existe', async () => {
+      intercambiosRepo.obtenerCandidatos.mockResolvedValue(null);
+
+      await expect(service.obtenerCandidatos(mockDto as any)).rejects.toThrow(NotFoundException);
+    });
+  });
+
   // ─── crear ────────────────────────────────────────────────────────────────
 
   describe('crear', () => {
@@ -191,8 +206,17 @@ describe('IntercambiosService', () => {
       await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(BadRequestException);
     });
 
+    it('debe lanzar BadRequestException cuando las comisiones pertenecen a materias distintas', async () => {
+      intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.verificarMismaMateria.mockResolvedValue(false as any);
+
+      await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(BadRequestException);
+      expect(intercambiosRepo.buscarIntercambioPendiente).not.toHaveBeenCalled();
+    });
+
     it('debe lanzar ConflictException cuando ya existe un intercambio pendiente entre esas comisiones', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.verificarMismaMateria.mockResolvedValue(true as any);
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue({ id_intercambio: 3 } as any);
 
       await expect(service.crearIntercambio(mockDto as any)).rejects.toThrow(ConflictException);
@@ -200,6 +224,7 @@ describe('IntercambiosService', () => {
 
     it('debe crear el intercambio en estado PENDIENTE cuando todas las validaciones pasan', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.verificarMismaMateria.mockResolvedValue(true as any);
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
       intercambiosRepo.crearIntercambio.mockResolvedValue(
         { fecha_solicitud: new Date(), id_intercambio: 5 } as any,
@@ -213,6 +238,7 @@ describe('IntercambiosService', () => {
 
     it('debe lanzar NotFoundException cuando el estado PENDIENTE no está configurado en BD', async () => {
       intercambiosRepo.verificarInscripcionesActivas.mockResolvedValue(true as any);
+      intercambiosRepo.verificarMismaMateria.mockResolvedValue(true as any);
       intercambiosRepo.buscarIntercambioPendiente.mockResolvedValue(null);
       intercambiosRepo.buscarEstadoPorNombre.mockResolvedValue(null);
 
@@ -221,12 +247,19 @@ describe('IntercambiosService', () => {
   });
 
   // ─── completar ────────────────────────────────────────────────────────────
+  //
+  // `completar` quedó reducido a: validar → completarAtomico (sin notificaciones)
+  // → construir IntercambioCompletadoEvent → subject.notificar → CompletarResultado.
+  // Los ~8 tests de side-effects (PDF/storage/comprobante/emails/notificaciones)
+  // MIGRARON a comprobante.observer.spec.ts / email.observer.spec.ts /
+  // notificacion.observer.spec.ts — ahí cubren su propia unidad aislada.
 
   describe('completar', () => {
     it('lanza NotFoundException cuando el intercambio no existe', async () => {
       intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(null);
 
       await expect(service.completar(10)).rejects.toThrow(NotFoundException);
+      expect(subject.notificar).not.toHaveBeenCalled();
     });
 
     it('lanza ConflictException cuando el intercambio no está en estado PENDIENTE', async () => {
@@ -236,6 +269,7 @@ describe('IntercambiosService', () => {
       } as any);
 
       await expect(service.completar(10)).rejects.toThrow(ConflictException);
+      expect(subject.notificar).not.toHaveBeenCalled();
     });
 
     it('lanza NotFoundException cuando el estado COMPLETADO no está configurado en BD', async () => {
@@ -244,71 +278,69 @@ describe('IntercambiosService', () => {
       );
 
       await expect(service.completar(10)).rejects.toThrow(NotFoundException);
+      expect(subject.notificar).not.toHaveBeenCalled();
+      expect(intercambiosRepo.completarAtomico).not.toHaveBeenCalled();
     });
 
-    it('resuelve sin error y llama a logger.error cuando enviarNotificacionProfesor falla', async () => {
-      emailService.enviarNotificacionProfesor.mockRejectedValue(new Error('SMTP timeout'));
+    it('llama a completarAtomico sin notificaciones (3 argumentos)', async () => {
+      await service.completar(10);
 
-      await expect(service.completar(10)).resolves.toBeUndefined();
-      expect(Logger.prototype.error).toHaveBeenCalled();
+      expect(intercambiosRepo.completarAtomico).toHaveBeenCalledWith(
+        10,
+        {
+          id_usuario_ofrece: 1,
+          id_comision_ofrece: 100,
+          id_usuario_destino: 2,
+          id_comision_destino: 200,
+        },
+        estadoCompletado.id_estado,
+      );
+      expect(intercambiosRepo.completarAtomico.mock.calls[0]).toHaveLength(3);
     });
 
-    it('resuelve sin error y llama a logger.error cuando enviarComprobanteAlumno falla', async () => {
-      emailService.enviarComprobanteAlumno.mockRejectedValue(new Error('SMTP down'));
-
-      await expect(service.completar(10)).resolves.toBeUndefined();
-      expect(Logger.prototype.error).toHaveBeenCalled();
-    });
-
-    it('usa fallback de nombre cuando nombre_comision es null en ambas comisiones', async () => {
-      const datos = buildDatosCompletos();
-      (datos.ofrece.comision as any).nombre_comision = null;
-      (datos.destino.comision as any).nombre_comision = null;
-      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(datos as any);
-
-      await expect(service.completar(10)).resolves.toBeUndefined();
-    });
-
-    it('envía un único email al profesor cuando ambas comisiones comparten el mismo profesor', async () => {
-      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(true) as any);
+    it('emite IntercambioCompletadoEvent vía subject.notificar solo después de que completarAtomico resuelve', async () => {
+      const orden: string[] = [];
+      intercambiosRepo.completarAtomico.mockImplementation(async () => {
+        orden.push('completarAtomico');
+      });
+      subject.notificar.mockImplementation(async () => {
+        orden.push('notificar');
+        return { comprobanteUrl: 'https://cdn.example.com/10.pdf' };
+      });
 
       await service.completar(10);
 
-      expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(1);
+      expect(orden).toEqual(['completarAtomico', 'notificar']);
+      expect(subject.notificar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id_intercambio: 10,
+          id_comision_ofrece: 100,
+          id_comision_destino: 200,
+          completadoEn: expect.any(Date),
+          ofrece: expect.objectContaining({
+            usuario: expect.objectContaining({ id_usuario: 1 }),
+          }),
+          destino: expect.objectContaining({
+            usuario: expect.objectContaining({ id_usuario: 2 }),
+          }),
+        }),
+      );
     });
 
-    it('envía dos emails a profesores cuando son distintos', async () => {
-      intercambiosRepo.obtenerDatosCompletos.mockResolvedValue(buildDatosCompletos(false) as any);
+    it('retorna CompletarResultado { id_intercambio, comprobante_url } construido desde el resultado del subject', async () => {
+      subject.notificar.mockResolvedValue({ comprobanteUrl: 'https://cdn.example.com/url-final.pdf' });
 
-      await service.completar(10);
+      const resultado = await service.completar(10);
 
-      expect(emailService.enviarNotificacionProfesor).toHaveBeenCalledTimes(2);
+      expect(resultado).toEqual({ id_intercambio: 10, comprobante_url: 'https://cdn.example.com/url-final.pdf' });
     });
 
-    it('lanza el error de storage y no guarda el comprobante en BD', async () => {
-      storageService.subir.mockRejectedValue(new Error('Storage unavailable'));
+    it('propaga el error si el subject (observer crítico) lanza, dejando el Intercambio ya COMPLETADO', async () => {
+      subject.notificar.mockRejectedValue(new Error('Storage unavailable'));
 
       await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
-      expect(comprobantesRepo.crearComprobante).not.toHaveBeenCalled();
-    });
-
-    it('genera el PDF y lo sube al storage con el id del intercambio', async () => {
-      await service.completar(10);
-
-      expect(pdfService.generar).toHaveBeenCalledTimes(1);
-      expect(storageService.subir).toHaveBeenCalledWith(10, expect.any(Buffer));
-    });
-
-    it('guarda el comprobante en base de datos con la URL del storage', async () => {
-      await service.completar(10);
-
-      expect(comprobantesRepo.crearComprobante).toHaveBeenCalledWith(10, 'https://cdn.example.com/1.pdf');
-    });
-
-    it('envía el comprobante por email a ambos alumnos del intercambio', async () => {
-      await service.completar(10);
-
-      expect(emailService.enviarComprobanteAlumno).toHaveBeenCalledTimes(2);
+      // completarAtomico ya corrió y resolvió — no hay rollback de la transacción
+      expect(intercambiosRepo.completarAtomico).toHaveBeenCalled();
     });
   });
 });

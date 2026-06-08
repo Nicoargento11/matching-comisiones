@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { NotificacionesController } from './notificaciones.controller';
 import { NotificacionesService } from './notificaciones.service';
-import { NotificacionesMatchingObserver } from './observers/notificaciones-matching.observer';
+import { NotificacionObserver } from './observers/notificacion.observer';
 import {
   NotificacionesRepository,
   PrismaNotificacionesRepository,
@@ -11,7 +11,7 @@ import {
   controllers: [NotificacionesController],
   providers: [
     NotificacionesService,
-    NotificacionesMatchingObserver,
+    NotificacionObserver,
     {
       provide: NotificacionesRepository,
       useClass: PrismaNotificacionesRepository,
@@ -20,7 +20,7 @@ import {
   exports: [
     NotificacionesRepository,
     NotificacionesService,
-    NotificacionesMatchingObserver,
+    NotificacionObserver,
   ],
 })
 export class NotificacionesModule {}

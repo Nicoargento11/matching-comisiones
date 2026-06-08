@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { SimularMatchingDto } from './dto/simular-matching.dto';
+import { SimularMatchingResponseDto } from './dto/simular-matching-response.dto';
 import { MatchingService } from './matching.service';
 
 @Controller('matching')
@@ -9,8 +10,7 @@ export class MatchingController {
 
   @Post('simular')
   @Roles('profesor', 'admin')
-  async simularMatching(@Body() dto: SimularMatchingDto) {
-    await this.matchingService.simularMatching(dto);
-    return { message: 'Matching simulado correctamente' };
+  async simularMatching(@Body() dto: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
+    return this.matchingService.simularMatching(dto);
   }
 }

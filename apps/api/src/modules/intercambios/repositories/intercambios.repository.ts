@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { TipoNotificacion } from '@prisma/client';
 import { CreateIntercambioDto } from '../dto/create-intercambio.dto';
 
 const INTERCAMBIO_SELECT = {
@@ -27,6 +26,11 @@ export abstract class IntercambiosRepository {
   abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaIntercambiosRepository['obtenerPorUsuario']>;
   abstract buscarEstadoPorNombre(nombreEstado: string): ReturnType<PrismaIntercambiosRepository['buscarEstadoPorNombre']>;
   abstract verificarInscripcionesActivas(dto: CreateIntercambioDto): Promise<boolean>;
+  abstract verificarMismaMateria(idComisionOfrece: number, idComisionDestino: number): Promise<boolean>;
+  abstract obtenerCandidatos(
+    idComisionOrigen: number,
+    idUsuarioSolicitante: number,
+  ): ReturnType<PrismaIntercambiosRepository['obtenerCandidatos']>;
   abstract buscarIntercambioPendiente(dto: CreateIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
   abstract crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crearIntercambio']>;
   abstract obtenerDatosCompletos(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerDatosCompletos']>;
@@ -39,13 +43,6 @@ export abstract class IntercambiosRepository {
       id_comision_destino: number;
     },
     idEstadoCompletado: number,
-    notificaciones: Array<{
-      id_usuario: number;
-      tipo: TipoNotificacion;
-      titulo: string;
-      mensaje: string;
-      datos: object;
-    }>,
   ): ReturnType<PrismaIntercambiosRepository['completarAtomico']>;
 }
 
@@ -143,6 +140,61 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
   }
 
   /**
+   * Verifica que ambas comisiones del intercambio pertenezcan a la misma materia
+   * @param idComisionOfrece - ID de la comisión que se ofrece
+   * @param idComisionDestino - ID de la comisión destino
+   * @returns true si ambas comisiones existen y comparten la misma materia
+   */
+  async verificarMismaMateria(idComisionOfrece: number, idComisionDestino: number): Promise<boolean> {
+    const [ofrece, destino] = await Promise.all([
+      this.prisma.comision.findUnique({
+        where: { id_comision: idComisionOfrece },
+        select: { id_materia: true },
+      }),
+      this.prisma.comision.findUnique({
+        where: { id_comision: idComisionDestino },
+        select: { id_materia: true },
+      }),
+    ]);
+    return ofrece !== null && destino !== null && ofrece.id_materia === destino.id_materia;
+  }
+
+  /**
+   * Busca candidatos válidos para intercambiar con el solicitante: alumnos con
+   * inscripción ACTIVA en otras comisiones de la misma materia que la comisión origen
+   * @param idComisionOrigen - ID de la comisión que ofrece el solicitante
+   * @param idUsuarioSolicitante - ID del usuario solicitante (se excluye de los resultados)
+   * @returns Lista de candidatos (usuario + su comisión) o null si la comisión origen no existe
+   */
+  async obtenerCandidatos(idComisionOrigen: number, idUsuarioSolicitante: number) {
+    const comisionOrigen = await this.prisma.comision.findUnique({
+      where: { id_comision: idComisionOrigen },
+      select: { id_materia: true },
+    });
+    if (!comisionOrigen) return null;
+
+    return this.prisma.usuarioComision.findMany({
+      where: {
+        estado: 'ACTIVO',
+        id_usuario: { not: idUsuarioSolicitante },
+        comision: {
+          id_materia: comisionOrigen.id_materia,
+          id_comision: { not: idComisionOrigen },
+        },
+      },
+      select: {
+        usuario: {
+          select: { id_usuario: true, nombre_usuario: true, apellido_usuario: true, dni: true },
+        },
+        comision: {
+          select: { id_comision: true, numero_comision: true, nombre_comision: true },
+        },
+      },
+      orderBy: [{ usuario: { apellido_usuario: 'asc' } }, { usuario: { nombre_usuario: 'asc' } }],
+    });
+  }
+
+  /**
    * Verifica si ya existe un intercambio pendiente entre las mismas comisiones
    * @param dto - Datos del intercambio
    * @returns El intercambio existente o null
@@ -223,12 +275,13 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
   }
 
   /**
-   * Completa un intercambio de forma atómica: cambia el estado, intercambia las
-   * inscripciones de ambos usuarios y crea las notificaciones recibidas.
+   * Completa un intercambio de forma atómica: cambia el estado e intercambia las
+   * inscripciones de ambos usuarios. Solo transición de estado + swap de
+   * comisiones — NO persiste notificaciones (eso es responsabilidad de
+   * `NotificacionObserver`, que corre post-transacción y de forma aislada).
    * @param idIntercambio - ID del intercambio a completar
    * @param intercambio - Datos del intercambio (IDs de usuarios y comisiones)
    * @param idEstadoCompletado - ID del estado COMPLETADO
-   * @param notificaciones - Array de notificaciones a crear (alumnos + profesores, ya deduplicadas)
    */
   async completarAtomico(
     idIntercambio: number,
@@ -239,13 +292,6 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
       id_comision_destino: number;
     },
     idEstadoCompletado: number,
-    notificaciones: Array<{
-      id_usuario: number;
-      tipo: TipoNotificacion;
-      titulo: string;
-      mensaje: string;
-      datos: object;
-    }>,
   ) {
     return this.prisma.$transaction(async (tx) => {
       await tx.intercambio.update({
@@ -327,10 +373,6 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
             estado: 'ACTIVO',
           },
         });
-      }
-
-      for (const n of notificaciones) {
-        await tx.notificacion.create({ data: n });
       }
     });
   }

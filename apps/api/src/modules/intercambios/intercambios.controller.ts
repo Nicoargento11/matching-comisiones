@@ -6,17 +6,20 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { IntercambiosService } from './intercambios.service';
 import { CreateIntercambioDto } from './dto/create-intercambio.dto';
+import { CandidatosIntercambioDto } from './dto/candidatos-intercambio.dto';
 import {
   CurrentUser,
   CurrentUserClaims,
@@ -39,6 +42,21 @@ export class IntercambiosController {
   @ApiResponse({ status: 200, description: 'Lista de intercambios del usuario' })
   obtenerMios(@CurrentUser() user: CurrentUserClaims) {
     return this.intercambiosService.obtenerPorUsuario(user.id_usuario!);
+  }
+
+  /**
+   * Busca candidatos válidos para intercambiar con el solicitante
+   * @param dto - Comisión origen y usuario solicitante (se excluye de los resultados)
+   * @returns Lista de candidatos con su comisión actual
+   */
+  @Get('candidatos')
+  @ApiOperation({ summary: 'Buscar candidatos válidos para un intercambio' })
+  @ApiQuery({ name: 'id_comision_origen', required: true, type: Number })
+  @ApiQuery({ name: 'id_usuario_solicitante', required: true, type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de candidatos con su comisión actual' })
+  @ApiResponse({ status: 404, description: 'La comisión origen no existe' })
+  obtenerCandidatos(@Query() dto: CandidatosIntercambioDto) {
+    return this.intercambiosService.obtenerCandidatos(dto);
   }
 
   /**
@@ -75,12 +93,15 @@ export class IntercambiosController {
   /**
    * Completa un intercambio de forma atómica (solo profesores)
    * @param idIntercambio - ID del intercambio a completar
+   * @returns `{ id_intercambio, comprobante_url }` — la URL del comprobante generado
+   *   por el observer crítico (`ComprobanteObserver`), para que el cliente pueda
+   *   enlazarlo directamente sin hacer un fetch adicional
    */
   @Patch(':id_intercambio/completar')
   @Roles('profesor')
   @ApiOperation({ summary: 'Completar un intercambio (solo profesores)' })
   @ApiParam({ name: 'id_intercambio', type: Number })
-  @ApiResponse({ status: 200, description: 'Intercambio completado' })
+  @ApiResponse({ status: 200, description: 'Intercambio completado: { id_intercambio, comprobante_url }' })
   @ApiResponse({ status: 404, description: 'Intercambio no encontrado' })
   @ApiResponse({ status: 409, description: 'Intercambio no está en estado PENDIENTE' })
   completar(@Param('id_intercambio', ParseIntPipe) idIntercambio: number) {

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuth } from '@/src/context/AuthContext';
 import { usuarioServicio } from '@/servicios/usuarioServicio';
 import { matchingServicio } from '@/servicios/matchingServicio';
+import type { CandidatoIntercambio } from '@/servicios/matchingServicio';
 import type { UsuarioBusquedaPorDni, Comision } from '@/tipos';
 
 interface UsuarioSeleccionado {
@@ -23,6 +24,13 @@ interface SelectorState {
   comisionSeleccionadaId: number | null;
 }
 
+interface CandidatosState {
+  lista: CandidatoIntercambio[];
+  cargando: boolean;
+  error: string | null;
+  seleccionado: CandidatoIntercambio | null;
+}
+
 const estadoInicial: SelectorState = {
   query: '',
   resultados: [],
@@ -34,34 +42,46 @@ const estadoInicial: SelectorState = {
   comisionSeleccionadaId: null,
 };
 
+const candidatosInicial: CandidatosState = {
+  lista: [],
+  cargando: false,
+  error: null,
+  seleccionado: null,
+};
+
 function nombreComision(c: Comision): string {
   if (c.nombre_comision) return c.nombre_comision;
   if (c.numero_comision != null) return `Com. ${c.numero_comision}`;
   return c.materia.nombre_materia;
 }
 
+function nombreComisionCandidato(c: CandidatoIntercambio['comision']): string {
+  if (c.nombre_comision) return c.nombre_comision;
+  if (c.numero_comision != null) return `Com. ${c.numero_comision}`;
+  return `Comisión #${c.id_comision}`;
+}
+
+function claveCandidato(c: CandidatoIntercambio): string {
+  return `${c.usuario.id_usuario}-${c.comision.id_comision}`;
+}
+
 export default function SimularMatchingPage() {
   const { token } = useAuth();
 
   const [solicitante, setSolicitante] = useState<SelectorState>(estadoInicial);
-  const [receptor, setReceptor] = useState<SelectorState>(estadoInicial);
+  const [candidatos, setCandidatos] = useState<CandidatosState>(candidatosInicial);
 
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<{ exito: boolean; mensaje: string } | null>(null);
 
   const refSolicitante = useRef<HTMLDivElement>(null);
-  const refReceptor = useRef<HTMLDivElement>(null);
   const timerSolicitante = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timerReceptor = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cerrar dropdowns al clickear fuera
+  // Cerrar dropdown al clickear fuera
   useEffect(() => {
     function handleClickFuera(e: MouseEvent) {
       if (refSolicitante.current && !refSolicitante.current.contains(e.target as Node)) {
         setSolicitante((prev) => ({ ...prev, dropdownAbierto: false }));
-      }
-      if (refReceptor.current && !refReceptor.current.contains(e.target as Node)) {
-        setReceptor((prev) => ({ ...prev, dropdownAbierto: false }));
       }
     }
     document.addEventListener('mousedown', handleClickFuera);
@@ -69,28 +89,21 @@ export default function SimularMatchingPage() {
   }, []);
 
   const cargarComisiones = useCallback(
-    async (
-      idUsuario: number,
-      setter: React.Dispatch<React.SetStateAction<SelectorState>>,
-    ) => {
-      setter((prev) => ({ ...prev, cargandoComisiones: true, comisiones: [] }));
+    async (idUsuario: number) => {
+      setSolicitante((prev) => ({ ...prev, cargandoComisiones: true, comisiones: [] }));
       try {
         const comisiones = await usuarioServicio.obtenerComisiones(idUsuario, token ?? undefined);
-        setter((prev) => ({ ...prev, comisiones, cargandoComisiones: false }));
+        setSolicitante((prev) => ({ ...prev, comisiones, cargandoComisiones: false }));
       } catch {
-        setter((prev) => ({ ...prev, comisiones: [], cargandoComisiones: false }));
+        setSolicitante((prev) => ({ ...prev, comisiones: [], cargandoComisiones: false }));
       }
     },
     [token],
   );
 
   const handleQueryChange = useCallback(
-    (
-      valor: string,
-      setter: React.Dispatch<React.SetStateAction<SelectorState>>,
-      timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
-    ) => {
-      setter((prev) => ({
+    (valor: string) => {
+      setSolicitante((prev) => ({
         ...prev,
         query: valor,
         dropdownAbierto: valor.length >= 3,
@@ -99,65 +112,92 @@ export default function SimularMatchingPage() {
         comisionSeleccionadaId: null,
       }));
 
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerSolicitante.current) clearTimeout(timerSolicitante.current);
 
       if (valor.length < 3) {
-        setter((prev) => ({ ...prev, resultados: [], buscando: false }));
+        setSolicitante((prev) => ({ ...prev, resultados: [], buscando: false }));
         return;
       }
 
-      setter((prev) => ({ ...prev, buscando: true }));
+      setSolicitante((prev) => ({ ...prev, buscando: true }));
 
-      timerRef.current = setTimeout(async () => {
+      timerSolicitante.current = setTimeout(async () => {
         try {
           const resultados = await usuarioServicio.buscarParaMensajeria(
             valor,
             undefined,
             token ?? undefined,
           );
-          setter((prev) => ({ ...prev, resultados, buscando: false, dropdownAbierto: true }));
+          setSolicitante((prev) => ({ ...prev, resultados, buscando: false, dropdownAbierto: true }));
         } catch {
-          setter((prev) => ({ ...prev, resultados: [], buscando: false }));
+          setSolicitante((prev) => ({ ...prev, resultados: [], buscando: false }));
         }
       }, 350);
     },
     [token],
   );
 
-  const handleSeleccionar = useCallback(
-    (
-      usuario: UsuarioBusquedaPorDni,
-      setter: React.Dispatch<React.SetStateAction<SelectorState>>,
-    ) => {
+  const handleSeleccionarSolicitante = useCallback(
+    (usuario: UsuarioBusquedaPorDni) => {
       const seleccionado: UsuarioSeleccionado = {
         id_usuario: usuario.id_usuario,
         nombre_usuario: usuario.nombre_usuario,
         apellido_usuario: usuario.apellido_usuario,
       };
-      setter((prev) => ({
+      setSolicitante((prev) => ({
         ...prev,
         usuarioSeleccionado: seleccionado,
         dropdownAbierto: false,
         resultados: [],
         comisionSeleccionadaId: null,
       }));
-      cargarComisiones(usuario.id_usuario, setter);
+      cargarComisiones(usuario.id_usuario);
     },
     [cargarComisiones],
   );
 
-  const handleDeseleccionar = useCallback(
-    (setter: React.Dispatch<React.SetStateAction<SelectorState>>) => {
-      setter(estadoInicial);
-    },
-    [],
-  );
+  const handleDeseleccionarSolicitante = useCallback(() => {
+    setSolicitante(estadoInicial);
+  }, []);
+
+  // Busca candidatos de intercambio cuando ya están elegidos solicitante y comisión origen
+  useEffect(() => {
+    const idUsuario = solicitante.usuarioSeleccionado?.id_usuario;
+    const idComision = solicitante.comisionSeleccionadaId;
+
+    if (!idUsuario || !idComision) {
+      setCandidatos(candidatosInicial);
+      return;
+    }
+
+    let cancelado = false;
+    setCandidatos({ lista: [], cargando: true, error: null, seleccionado: null });
+
+    matchingServicio
+      .obtenerCandidatos(idComision, idUsuario, token ?? undefined)
+      .then((lista) => {
+        if (cancelado) return;
+        setCandidatos({ lista, cargando: false, error: null, seleccionado: null });
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setCandidatos({
+          lista: [],
+          cargando: false,
+          error: 'No se pudieron cargar los candidatos.',
+          seleccionado: null,
+        });
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [solicitante.usuarioSeleccionado?.id_usuario, solicitante.comisionSeleccionadaId, token]);
 
   const puedeSimular =
     solicitante.usuarioSeleccionado !== null &&
     solicitante.comisionSeleccionadaId !== null &&
-    receptor.usuarioSeleccionado !== null &&
-    receptor.comisionSeleccionadaId !== null;
+    candidatos.seleccionado !== null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -170,139 +210,19 @@ export default function SimularMatchingPage() {
       const respuesta = await matchingServicio.simular(
         {
           usuarioSolicitanteId: solicitante.usuarioSeleccionado!.id_usuario,
-          usuarioReceptorId: receptor.usuarioSeleccionado!.id_usuario,
+          usuarioReceptorId: candidatos.seleccionado!.usuario.id_usuario,
           comisionOrigenId: solicitante.comisionSeleccionadaId!,
-          comisionDestinoId: receptor.comisionSeleccionadaId!,
+          comisionDestinoId: candidatos.seleccionado!.comision.id_comision,
         },
         token ?? undefined,
       );
-      setResultado({ exito: true, mensaje: respuesta.message });
+      setResultado({ exito: true, mensaje: respuesta.mensaje });
     } catch (error: unknown) {
-      const mensaje =
-        error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
+      const mensaje = error instanceof Error ? error.message : 'Ocurrió un error inesperado.';
       setResultado({ exito: false, mensaje });
     } finally {
       setCargando(false);
     }
-  }
-
-  function renderSelector(
-    label: string,
-    labelComision: string,
-    state: SelectorState,
-    setter: React.Dispatch<React.SetStateAction<SelectorState>>,
-    containerRef: React.RefObject<HTMLDivElement | null>,
-    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
-  ) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {label}
-          </label>
-
-          {state.usuarioSeleccionado ? (
-            <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 bg-gray-50">
-              <span className="flex-1 text-gray-900 dark:text-gray-100">
-                {state.usuarioSeleccionado.apellido_usuario},{' '}
-                {state.usuarioSeleccionado.nombre_usuario}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleDeseleccionar(setter)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 leading-none"
-                aria-label="Deseleccionar usuario"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <div ref={containerRef} className="relative">
-              <input
-                type="text"
-                value={state.query}
-                onChange={(e) => handleQueryChange(e.target.value, setter, timerRef)}
-                onFocus={() => {
-                  if (state.resultados.length > 0) {
-                    setter((prev) => ({ ...prev, dropdownAbierto: true }));
-                  }
-                }}
-                placeholder="Buscar por nombre..."
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-
-              {state.dropdownAbierto && (
-                <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {state.buscando ? (
-                    <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                      Buscando...
-                    </li>
-                  ) : state.resultados.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                      Sin resultados
-                    </li>
-                  ) : (
-                    state.resultados.map((u) => (
-                      <li
-                        key={u.id_usuario}
-                        onClick={() => handleSeleccionar(u, setter)}
-                        className="px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-900 dark:text-gray-100"
-                      >
-                        {u.apellido_usuario}, {u.nombre_usuario} — DNI: {u.dni}
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {labelComision}
-          </label>
-
-          {!state.usuarioSeleccionado ? (
-            <select
-              disabled
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 opacity-50 cursor-not-allowed"
-            >
-              <option>Seleccioná un usuario primero</option>
-            </select>
-          ) : state.cargandoComisiones ? (
-            <select
-              disabled
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 opacity-50 cursor-not-allowed"
-            >
-              <option>Cargando comisiones...</option>
-            </select>
-          ) : state.comisiones.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-              Este usuario no tiene comisiones activas
-            </p>
-          ) : (
-            <select
-              value={state.comisionSeleccionadaId ?? ''}
-              onChange={(e) =>
-                setter((prev) => ({
-                  ...prev,
-                  comisionSeleccionadaId: e.target.value ? Number(e.target.value) : null,
-                }))
-              }
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            >
-              <option value="">Seleccioná una comisión</option>
-              {state.comisiones.map((c) => (
-                <option key={c.id_comision} value={c.id_comision}>
-                  {nombreComision(c)}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -317,29 +237,173 @@ export default function SimularMatchingPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {renderSelector(
-            'Usuario Solicitante',
-            'Comisión Origen',
-            solicitante,
-            setSolicitante,
-            refSolicitante,
-            timerSolicitante,
-          )}
-          {renderSelector(
-            'Usuario Receptor',
-            'Comisión Destino',
-            receptor,
-            setReceptor,
-            refReceptor,
-            timerReceptor,
-          )}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Usuario Solicitante
+              </label>
+
+              {solicitante.usuarioSeleccionado ? (
+                <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 bg-gray-50">
+                  <span className="flex-1 text-gray-900 dark:text-gray-100">
+                    {solicitante.usuarioSeleccionado.apellido_usuario},{' '}
+                    {solicitante.usuarioSeleccionado.nombre_usuario}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDeseleccionarSolicitante}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 leading-none"
+                    aria-label="Deseleccionar usuario"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div ref={refSolicitante} className="relative">
+                  <input
+                    type="text"
+                    value={solicitante.query}
+                    onChange={(e) => handleQueryChange(e.target.value)}
+                    onFocus={() => {
+                      if (solicitante.resultados.length > 0) {
+                        setSolicitante((prev) => ({ ...prev, dropdownAbierto: true }));
+                      }
+                    }}
+                    placeholder="Buscar por nombre..."
+                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  />
+
+                  {solicitante.dropdownAbierto && (
+                    <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {solicitante.buscando ? (
+                        <li className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-500 inline-block shrink-0" />
+                          Buscando...
+                        </li>
+                      ) : solicitante.resultados.length === 0 ? (
+                        <li className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                          Sin resultados
+                        </li>
+                      ) : (
+                        solicitante.resultados.map((u) => (
+                          <li
+                            key={u.id_usuario}
+                            onClick={() => handleSeleccionarSolicitante(u)}
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-900 dark:text-gray-100"
+                          >
+                            {u.apellido_usuario}, {u.nombre_usuario} — DNI: {u.dni}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Comisión Origen
+              </label>
+
+              {!solicitante.usuarioSeleccionado ? (
+                <select
+                  disabled
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 opacity-50 cursor-not-allowed"
+                >
+                  <option>Seleccioná un usuario primero</option>
+                </select>
+              ) : solicitante.cargandoComisiones ? (
+                <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm w-full text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-500 inline-block shrink-0" />
+                  Cargando comisiones...
+                </div>
+              ) : solicitante.comisiones.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                  Este usuario no tiene comisiones activas
+                </p>
+              ) : (
+                <select
+                  value={solicitante.comisionSeleccionadaId ?? ''}
+                  onChange={(e) =>
+                    setSolicitante((prev) => ({
+                      ...prev,
+                      comisionSeleccionadaId: e.target.value ? Number(e.target.value) : null,
+                    }))
+                  }
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="">Seleccioná una comisión</option>
+                  {solicitante.comisiones.map((c) => (
+                    <option key={c.id_comision} value={c.id_comision}>
+                      {nombreComision(c)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Intercambio disponible
+              </label>
+
+              {!solicitante.usuarioSeleccionado || !solicitante.comisionSeleccionadaId ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                  Elegí primero el solicitante y su comisión origen
+                </p>
+              ) : candidatos.cargando ? (
+                <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm w-full text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-indigo-500 inline-block shrink-0" />
+                  Buscando candidatos...
+                </div>
+              ) : candidatos.error ? (
+                <p className="text-sm text-red-600 dark:text-red-400 py-2">{candidatos.error}</p>
+              ) : candidatos.lista.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                  No hay alumnos con inscripción activa en otras comisiones de esta materia
+                </p>
+              ) : (
+                <select
+                  value={candidatos.seleccionado ? claveCandidato(candidatos.seleccionado) : ''}
+                  onChange={(e) => {
+                    const elegido =
+                      candidatos.lista.find((c) => claveCandidato(c) === e.target.value) ?? null;
+                    setCandidatos((prev) => ({ ...prev, seleccionado: elegido }));
+                  }}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  <option value="">Seleccioná con quién intercambiar</option>
+                  {candidatos.lista.map((c) => (
+                    <option key={claveCandidato(c)} value={claveCandidato(c)}>
+                      {c.usuario.apellido_usuario}, {c.usuario.nombre_usuario} — proviene de{' '}
+                      {nombreComisionCandidato(c.comision)}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                Solo se muestran alumnos con inscripción activa en otras comisiones de la misma
+                materia que la comisión origen.
+              </p>
+            </div>
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={!puedeSimular || cargando}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
+          {cargando && (
+            <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
           {cargando ? 'Simulando...' : 'Simular matching'}
         </button>
       </form>
