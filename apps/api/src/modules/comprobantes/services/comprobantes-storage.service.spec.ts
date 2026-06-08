@@ -50,7 +50,7 @@ describe('ComprobantesStorageService', () => {
   it('throws when upload returns an error', async () => {
     mockUpload.mockResolvedValue({ error: { message: 'Storage unavailable' } });
 
-    await expect(service.subir(1, Buffer.from('pdf'))).rejects.toThrow(
+    await expect(service.subirPdf(1, Buffer.from('pdf'))).rejects.toThrow(
       'Storage upload failed: Storage unavailable',
     );
   });
@@ -59,7 +59,7 @@ describe('ComprobantesStorageService', () => {
     mockUpload.mockResolvedValue({ error: null });
     mockGetPublicUrl.mockReturnValue({ data: { publicUrl: 'https://cdn.example.com/comprobantes/1.pdf' } });
 
-    const url = await service.subir(1, Buffer.from('pdf'));
+    const url = await service.subirPdf(1, Buffer.from('pdf'));
 
     expect(url).toBe('https://cdn.example.com/comprobantes/1.pdf');
   });

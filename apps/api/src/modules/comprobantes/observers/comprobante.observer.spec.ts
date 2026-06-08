@@ -46,8 +46,8 @@ describe('ComprobanteObserver', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ComprobanteObserver,
-        { provide: ComprobantePdfService, useValue: { generar: jest.fn().mockResolvedValue(Buffer.from('pdf')) } },
-        { provide: ComprobantesStorageService, useValue: { subir: jest.fn().mockResolvedValue('https://cdn.example.com/10.pdf') } },
+        { provide: ComprobantePdfService, useValue: { generarPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')) } },
+        { provide: ComprobantesStorageService, useValue: { subirPdf: jest.fn().mockResolvedValue('https://cdn.example.com/10.pdf') } },
         { provide: ComprobantesRepository, useValue: { crearComprobante: jest.fn().mockResolvedValue({ id_comprobante: 1 }) } },
       ],
     }).compile();
@@ -71,7 +71,7 @@ describe('ComprobanteObserver', () => {
 
     await observer.onIntercambioCompletado(evento);
 
-    expect(pdfService.generar).toHaveBeenCalledWith(
+    expect(pdfService.generarPdf).toHaveBeenCalledWith(
       expect.objectContaining({
         idIntercambio: 10,
         fechaGeneracion: evento.completadoEn,
@@ -81,7 +81,7 @@ describe('ComprobanteObserver', () => {
         comisionDestino: expect.objectContaining({ nombre_comision: 'Comisión B' }),
       }),
     );
-    expect(storageService.subir).toHaveBeenCalledWith(10, expect.any(Buffer));
+    expect(storageService.subirPdf).toHaveBeenCalledWith(10, expect.any(Buffer));
     expect(comprobantesRepo.crearComprobante).toHaveBeenCalledWith(10, 'https://cdn.example.com/10.pdf');
   });
 
@@ -92,14 +92,14 @@ describe('ComprobanteObserver', () => {
   });
 
   it('propaga si la generación del PDF falla', async () => {
-    pdfService.generar.mockRejectedValue(new Error('PDF generation failed'));
+    pdfService.generarPdf.mockRejectedValue(new Error('PDF generation failed'));
 
     await expect(observer.onIntercambioCompletado(buildEvento())).rejects.toThrow('PDF generation failed');
-    expect(storageService.subir).not.toHaveBeenCalled();
+    expect(storageService.subirPdf).not.toHaveBeenCalled();
   });
 
   it('propaga si la subida a storage falla y no persiste el comprobante', async () => {
-    storageService.subir.mockRejectedValue(new Error('Storage unavailable'));
+    storageService.subirPdf.mockRejectedValue(new Error('Storage unavailable'));
 
     await expect(observer.onIntercambioCompletado(buildEvento())).rejects.toThrow('Storage unavailable');
     expect(comprobantesRepo.crearComprobante).not.toHaveBeenCalled();

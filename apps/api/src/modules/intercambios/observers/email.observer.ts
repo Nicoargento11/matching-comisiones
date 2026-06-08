@@ -12,7 +12,7 @@ import { IIntercambioObserver, ObserverFailureMode } from './intercambio-observe
  * `logger.error`) que `completar` ya tenía inline.
  *
  * DECISIÓN DE DESIGN (documentada en design §4.8 / tasks 2.1): este observer
- * REGENERA el PDF llamando a `ComprobantePdfService.generar` por su cuenta en
+ * REGENERA el PDF llamando a `ComprobantePdfService.generarPdf` por su cuenta en
  * lugar de recibir el buffer del `ComprobanteObserver`. Alternativa rechazada:
  * pasar el buffer a través de `ObserverResultado` — esto re-acoplaría observers
  * que deben permanecer independientes (rompe SRP/OCP del patrón). El costo
@@ -38,7 +38,7 @@ export class EmailObserver implements IIntercambioObserver {
 
   async onIntercambioCompletado(evento: IntercambioCompletadoEvent): Promise<void> {
     const datosComprobante = this.construirDatosComprobante(evento);
-    const pdfBuffer = await this.comprobantePdf.generar(datosComprobante);
+    const pdfBuffer = await this.comprobantePdf.generarPdf(datosComprobante);
 
     await this.enviarComprobanteAAlumno(evento.ofrece.usuario.correo, datosComprobante, pdfBuffer);
     await this.enviarComprobanteAAlumno(evento.destino.usuario.correo, datosComprobante, pdfBuffer);

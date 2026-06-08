@@ -84,7 +84,7 @@ describe('EmailObserver', () => {
         },
         {
           provide: ComprobantePdfService,
-          useValue: { generar: jest.fn().mockResolvedValue(Buffer.from('pdf')) },
+          useValue: { generarPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')) },
         },
       ],
     }).compile();
@@ -117,8 +117,8 @@ describe('EmailObserver', () => {
   it('regenera el PDF a partir del payload del evento', async () => {
     await observer.onIntercambioCompletado(buildEvento());
 
-    expect(pdfService.generar).toHaveBeenCalledTimes(1);
-    expect(pdfService.generar).toHaveBeenCalledWith(
+    expect(pdfService.generarPdf).toHaveBeenCalledTimes(1);
+    expect(pdfService.generarPdf).toHaveBeenCalledWith(
       expect.objectContaining({ idIntercambio: 10 }),
     );
   });

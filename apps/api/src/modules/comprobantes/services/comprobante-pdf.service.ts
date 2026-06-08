@@ -11,7 +11,7 @@ export class ComprobantePdfService {
    * Genera un buffer PDF a partir de los datos del intercambio.
    * Hard-fail: cualquier error se propaga al caller.
    */
-  async generar(datos: DatosComprobante): Promise<Buffer> {
+  async generarPdf(datos: DatosComprobante): Promise<Buffer> {
     const executablePath = this.config.getOrThrow<string>('CHROME_EXECUTABLE_PATH');
 
     const browser = await puppeteer.launch({

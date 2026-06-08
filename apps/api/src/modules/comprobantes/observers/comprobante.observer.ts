@@ -34,8 +34,8 @@ export class ComprobanteObserver implements IIntercambioObserver {
   async onIntercambioCompletado(evento: IntercambioCompletadoEvent): Promise<ObserverResultado> {
     const datosComprobante = this.construirDatosComprobante(evento);
 
-    const pdfBuffer = await this.comprobantePdf.generar(datosComprobante);
-    const publicUrl = await this.comprobantesStorage.subir(evento.id_intercambio, pdfBuffer);
+    const pdfBuffer = await this.comprobantePdf.generarPdf(datosComprobante);
+    const publicUrl = await this.comprobantesStorage.subirPdf(evento.id_intercambio, pdfBuffer);
     await this.comprobantesRepository.crearComprobante(evento.id_intercambio, publicUrl);
 
     return { comprobanteUrl: publicUrl };

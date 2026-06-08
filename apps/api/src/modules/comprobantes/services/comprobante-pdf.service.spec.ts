@@ -65,7 +65,7 @@ describe('ComprobantePdfService', () => {
     };
     mockLaunch.mockResolvedValue(mockBrowser);
 
-    const result = await service.generar(datosMock);
+    const result = await service.generarPdf(datosMock);
 
     expect(result).toBeInstanceOf(Buffer);
     expect(mockBrowser.close).toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('ComprobantePdfService', () => {
   it('propagates error when puppeteer launch throws', async () => {
     mockLaunch.mockRejectedValue(new Error('Chrome not found'));
 
-    await expect(service.generar(datosMock)).rejects.toThrow('Chrome not found');
+    await expect(service.generarPdf(datosMock)).rejects.toThrow('Chrome not found');
   });
 
   it('propagates error when page.pdf throws', async () => {
@@ -88,7 +88,7 @@ describe('ComprobantePdfService', () => {
     };
     mockLaunch.mockResolvedValue(mockBrowser);
 
-    await expect(service.generar(datosMock)).rejects.toThrow('PDF generation failed');
+    await expect(service.generarPdf(datosMock)).rejects.toThrow('PDF generation failed');
     // browser.close must still be called (finally block)
     expect(mockBrowser.close).toHaveBeenCalled();
   });

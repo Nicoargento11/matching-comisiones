@@ -20,7 +20,7 @@ export class ComprobantesStorageService {
    * Sube el PDF al bucket de Supabase Storage y devuelve su URL pública.
    * Hard-fail: lanza un error si la subida falla.
    */
-  async subir(idIntercambio: number, pdf: Buffer): Promise<string> {
+  async subirPdf(idIntercambio: number, pdf: Buffer): Promise<string> {
     const path = `comprobantes/${idIntercambio}.pdf`;
 
     const { error } = await this.client.storage
