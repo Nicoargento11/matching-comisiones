@@ -1,9 +1,11 @@
 import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { ProfesoresService } from './profesores.service';
 
 @ApiTags('Profesores')
 @Controller('profesores')
+@Roles('profesor')
 export class ProfesoresController {
   constructor(private readonly profesoresService: ProfesoresService) {}
 

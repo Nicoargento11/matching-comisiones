@@ -45,11 +45,8 @@ describe('UsuariosService', () => {
             obtenerPorDni: jest.fn(),
             obtenerTodos: jest.fn(),
             contar: jest.fn(),
-            verificarExistencia: jest.fn(),
             obtenerPrimerEstudianteUsuarioId: jest.fn(),
             obtenerPrimerProfesorUsuarioId: jest.fn(),
-            obtenerComisionesDeEstudiante: jest.fn(),
-            obtenerConversaciones: jest.fn(),
             buscarPorNombre: jest.fn(),
           },
         },
@@ -125,29 +122,6 @@ describe('UsuariosService', () => {
     });
   });
 
-  describe('obtenerComisionesDeEstudiante', () => {
-    it('debe retornar comisiones cuando el estudiante existe', async () => {
-      repository.verificarExistencia.mockResolvedValue({
-        id_usuario: 1,
-      } as any);
-      repository.obtenerComisionesDeEstudiante.mockResolvedValue([]);
-
-      const result = await service.obtenerComisionesDeEstudiante(1);
-
-      expect(repository.verificarExistencia).toHaveBeenCalledWith(1);
-      expect(repository.obtenerComisionesDeEstudiante).toHaveBeenCalledWith(1);
-      expect(result).toEqual([]);
-    });
-
-    it('debe lanzar NotFoundException cuando el estudiante no existe', async () => {
-      repository.verificarExistencia.mockResolvedValue(null);
-
-      await expect(service.obtenerComisionesDeEstudiante(999)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
   describe('obtenerPrimerEstudianteUsuarioId', () => {
     it('debe retornar el id cuando hay estudiantes', async () => {
       repository.obtenerPrimerEstudianteUsuarioId.mockResolvedValue(42);
@@ -209,22 +183,4 @@ describe('UsuariosService', () => {
     });
   });
 
-  describe('obtenerConversaciones', () => {
-    it('debe retornar las conversaciones cuando el usuario existe', async () => {
-      repository.verificarExistencia.mockResolvedValue({ id_usuario: 1 } as any);
-      repository.obtenerConversaciones.mockResolvedValue([{ id_conversacion: 1 }] as any);
-
-      const result = await service.obtenerConversaciones(1);
-
-      expect(repository.verificarExistencia).toHaveBeenCalledWith(1);
-      expect(repository.obtenerConversaciones).toHaveBeenCalledWith(1);
-      expect(result).toEqual([{ id_conversacion: 1 }]);
-    });
-
-    it('debe lanzar NotFoundException cuando el usuario no existe', async () => {
-      repository.verificarExistencia.mockResolvedValue(null);
-
-      await expect(service.obtenerConversaciones(999)).rejects.toThrow(NotFoundException);
-    });
-  });
 });

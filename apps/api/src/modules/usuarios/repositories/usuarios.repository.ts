@@ -25,22 +25,15 @@ const USUARIO_SELECT_SIN_ROLES = {
   fecha_registro: true,
 } as const;
 
-/** Select mínimo para verificación de existencia */
-const USUARIO_SELECT_MINIMO = {
-  id_usuario: true,
-} as const;
 
 export abstract class UsuariosRepository {
   abstract obtenerPorId(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerPorId']>;
   abstract obtenerPorDni(dni: number): ReturnType<PrismaUsuariosRepository['obtenerPorDni']>;
   abstract obtenerTodos(paginacion: PaginacionParams): ReturnType<PrismaUsuariosRepository['obtenerTodos']>;
   abstract contar(): Promise<number>;
-  abstract verificarExistencia(idUsuario: number): ReturnType<PrismaUsuariosRepository['verificarExistencia']>;
   abstract obtenerPrimerEstudianteUsuarioId(): ReturnType<PrismaUsuariosRepository['obtenerPrimerEstudianteUsuarioId']>;
   abstract obtenerPrimerProfesorUsuarioId(): ReturnType<PrismaUsuariosRepository['obtenerPrimerProfesorUsuarioId']>;
-  abstract obtenerComisionesDeEstudiante(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerComisionesDeEstudiante']>;
   abstract buscarPorNombre(q: string, idUsuarioActual: number, idComision?: number): ReturnType<PrismaUsuariosRepository['buscarPorNombre']>;
-  abstract obtenerConversaciones(idUsuario: number): ReturnType<PrismaUsuariosRepository['obtenerConversaciones']>;
 }
 
 @Injectable()
@@ -94,18 +87,6 @@ export class PrismaUsuariosRepository extends UsuariosRepository {
   }
 
   /**
-   * Verifica si existe un usuario por su id_usuario
-   * @param idUsuario - ID del usuario a verificar
-   * @returns Datos mínimos del usuario (solo id_usuario) o null
-   */
-  async verificarExistencia(idUsuario: number) {
-    return this.prisma.usuario.findUnique({
-      where: { id_usuario: idUsuario },
-      select: USUARIO_SELECT_MINIMO,
-    });
-  }
-
-  /**
    * Obtiene el id_usuario del primer estudiante registrado en usuarioComision
    * @returns ID del primer estudiante, o null si no hay
    */
@@ -125,67 +106,6 @@ export class PrismaUsuariosRepository extends UsuariosRepository {
       select: { id_usuario_profesor: true },
     });
     return profesor?.id_usuario_profesor ?? null;
-  }
-
-  /**
-   * Obtiene las comisiones en las que está inscrito un estudiante
-   * @param idUsuario - ID del estudiante
-   * @returns Lista de inscripciones con datos de comisión, horarios y eventos
-   */
-  async obtenerComisionesDeEstudiante(idUsuario: number) {
-    return this.prisma.usuarioComision.findMany({
-      where: { id_usuario: idUsuario },
-      select: {
-        estado: true,
-        comision: {
-          select: {
-            id_comision: true,
-            numero_comision: true,
-            nombre_comision: true,
-            cupo_maximo: true,
-            materia: {
-              select: { id_materia: true, nombre_materia: true },
-            },
-            profesor: {
-              select: {
-                id_usuario: true,
-                nombre_usuario: true,
-                apellido_usuario: true,
-                correo: true,
-              },
-            },
-            horarios: {
-              where: { activo: true },
-              select: {
-                id_horario_comision: true,
-                hora_inicio: true,
-                hora_fin: true,
-                formato: true,
-                dia: { select: { numero_dia: true, nombre_dia: true } },
-                modalidad: {
-                  select: { id_modalidad: true, nombre_modalidad: true },
-                },
-                aula: { select: { id_aula: true, nombre: true } },
-              },
-            },
-            eventos: {
-              where: { activo: true },
-              select: {
-                id_evento: true,
-                titulo: true,
-                tipo_evento: true,
-                fecha_inicio: true,
-                fecha_fin: true,
-                origen: true,
-                id_materia: true,
-                id_comision: true,
-              },
-              orderBy: { fecha_inicio: 'asc' as const },
-            },
-          },
-        },
-      },
-    });
   }
 
   /**
@@ -214,39 +134,4 @@ export class PrismaUsuariosRepository extends UsuariosRepository {
     });
   }
 
-  /**
-   * Obtiene las conversaciones en las que participa un usuario
-   * @param idUsuario - ID del usuario
-   * @returns Lista de participaciones con datos de conversación y último mensaje
-   */
-  async obtenerConversaciones(idUsuario: number) {
-    return this.prisma.conversacionParticipante.findMany({
-      where: { id_usuario: idUsuario },
-      select: {
-        ultimo_leido: true,
-        conversacion: {
-          select: {
-            id_conversacion: true,
-            creada_en: true,
-            participantes: {
-              select: {
-                usuario: {
-                  select: {
-                    id_usuario: true,
-                    nombre_usuario: true,
-                    apellido_usuario: true,
-                  },
-                },
-              },
-            },
-            mensajes: {
-              orderBy: { creado_en: 'desc' },
-              take: 1,
-              select: { contenido: true, creado_en: true },
-            },
-          },
-        },
-      },
-    });
-  }
 }

@@ -54,6 +54,7 @@ export class UsuariosController {
    * @throws NotFoundException si no existe un usuario con ese DNI
    */
   @Get('dni/:dni')
+  @Roles('profesor')
   @ApiOperation({ summary: 'Buscar un usuario por DNI' })
   @ApiParam({ name: 'dni', type: Number })
   @ApiResponse({ status: 200, description: 'Datos del usuario' })
@@ -89,6 +90,7 @@ export class UsuariosController {
    * @throws NotFoundException si no existe un estudiante con ese ID
    */
   @Get(':id_usuario')
+  @Roles('profesor')
   @ApiOperation({ summary: 'Obtener un estudiante por ID' })
   @ApiParam({ name: 'id_usuario', type: Number })
   @ApiResponse({ status: 200, description: 'Datos del estudiante' })
@@ -97,39 +99,4 @@ export class UsuariosController {
     return this.usuariosService.obtenerEstudiante(idUsuario);
   }
 
-  /**
-   * Obtiene las comisiones de un estudiante por su ID
-   * @param idUsuario - ID del estudiante
-   * @returns Lista de comisiones en las que está inscrito el estudiante
-   * @throws NotFoundException si no existe el estudiante
-   */
-  @Get(':id_usuario/comisiones')
-  @ApiOperation({ summary: 'Obtener comisiones de un estudiante' })
-  @ApiParam({ name: 'id_usuario', type: Number })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de comisiones del estudiante',
-  })
-  @ApiResponse({ status: 404, description: 'Estudiante no encontrado' })
-  obtenerComisiones(@Param('id_usuario', ParseIntPipe) idUsuario: number) {
-    return this.usuariosService.obtenerComisionesDeEstudiante(idUsuario);
-  }
-
-  /**
-   * Obtiene las conversaciones de un usuario por su ID
-   * @param idUsuario - ID del usuario
-   * @returns Lista de conversaciones del usuario con último mensaje
-   * @throws NotFoundException si no existe el usuario
-   */
-  @Get(':id_usuario/conversaciones')
-  @ApiOperation({ summary: 'Obtener conversaciones de un usuario' })
-  @ApiParam({ name: 'id_usuario', type: Number })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de conversaciones con último mensaje',
-  })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  obtenerConversaciones(@Param('id_usuario', ParseIntPipe) idUsuario: number) {
-    return this.usuariosService.obtenerConversaciones(idUsuario);
-  }
 }

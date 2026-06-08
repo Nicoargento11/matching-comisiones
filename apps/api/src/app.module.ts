@@ -17,6 +17,7 @@ import { IntercambiosModule } from './modules/intercambios/intercambios.module';
 import { TareasModule } from './modules/tareas/tareas.module';
 import { ColumnasModule } from './modules/columnas/columnas.module';
 import { MatchingModule } from './modules/matching/matching.module';
+import { EstudiantesModule } from './modules/estudiantes/estudiantes.module';
 import { validationSchema } from './config/validation.schema';
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { validationSchema } from './config/validation.schema';
     TareasModule,
     ColumnasModule,
     MatchingModule,
+    EstudiantesModule,
   ],
   controllers: [AppController],
   providers: [

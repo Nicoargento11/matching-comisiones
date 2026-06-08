@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { MensajesService } from './mensajes.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
 import { CreateConversacionDto } from './dto/create-conversacion.dto';
@@ -28,6 +29,7 @@ import { PaginacionDto } from '../../common/dto/paginacion.dto';
 
 @ApiTags('Mensajes')
 @Controller()
+@Roles('estudiante', 'profesor')
 export class MensajesController {
   constructor(private readonly mensajesService: MensajesService) {}
 

@@ -39,6 +39,7 @@ export class ComisionesController {
    * @returns Lista paginada de comisiones con metadatos
    */
   @Get()
+  @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Obtener todas las comisiones' })
   @ApiQuery({ name: 'pagina', required: false, type: Number })
   @ApiQuery({ name: 'limite', required: false, type: Number })
@@ -56,6 +57,7 @@ export class ComisionesController {
    * @throws NotFoundException si no existe la comisión
    */
   @Get(':id_comision')
+  @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Obtener detalle de una comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
   @ApiResponse({ status: 200, description: 'Detalle completo de la comisión' })
@@ -73,6 +75,7 @@ export class ComisionesController {
    * @throws NotFoundException si no existe el usuario
    */
   @Get('usuarios/:id_usuario')
+  @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Obtener comisiones de un usuario' })
   @ApiParam({ name: 'id_usuario', type: Number })
   @ApiResponse({ status: 200, description: 'Lista de comisiones del usuario' })

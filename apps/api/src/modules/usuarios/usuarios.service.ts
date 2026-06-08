@@ -6,7 +6,6 @@ import {
   construirPaginacion,
   construirMetaPaginacion,
 } from '../../common/helpers/paginacion';
-import { verificarOExcepcion } from '../../common/helpers/verificar-existencia';
 
 @Injectable()
 export class UsuariosService {
@@ -98,21 +97,6 @@ export class UsuariosService {
   }
 
   /**
-   * Obtiene las comisiones en las que está inscrito un estudiante
-   * @param idUsuario - ID del estudiante
-   * @returns Lista de inscripciones con datos de comisión, horarios y eventos
-   * @throws NotFoundException si no existe el estudiante
-   */
-  async obtenerComisionesDeEstudiante(idUsuario: number) {
-    await verificarOExcepcion(
-      () => this.usuariosRepository.verificarExistencia(idUsuario),
-      'estudiante',
-      idUsuario,
-    );
-    return this.usuariosRepository.obtenerComisionesDeEstudiante(idUsuario);
-  }
-
-  /**
    * Busca usuarios por nombre o apellido, excluyendo al usuario actual
    * @param q - Texto a buscar
    * @param idUsuarioActual - ID del usuario autenticado
@@ -124,18 +108,4 @@ export class UsuariosService {
     return usuarios.map((u) => ({ ...u, roles: u.roles.map((r) => r.rol) }));
   }
 
-  /**
-   * Obtiene las conversaciones de un usuario
-   * @param idUsuario - ID del usuario
-   * @returns Lista de conversaciones con último mensaje
-   * @throws NotFoundException si no existe el usuario
-   */
-  async obtenerConversaciones(idUsuario: number) {
-    await verificarOExcepcion(
-      () => this.usuariosRepository.verificarExistencia(idUsuario),
-      'usuario',
-      idUsuario,
-    );
-    return this.usuariosRepository.obtenerConversaciones(idUsuario);
-  }
 }

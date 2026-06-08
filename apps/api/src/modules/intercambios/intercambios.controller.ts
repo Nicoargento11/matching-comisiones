@@ -47,6 +47,7 @@ export class IntercambiosController {
    * @returns El intercambio con sus relaciones
    */
   @Get(':id_intercambio')
+  @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Obtener un intercambio por ID' })
   @ApiParam({ name: 'id_intercambio', type: Number })
   @ApiResponse({ status: 200, description: 'Detalle del intercambio' })
@@ -61,6 +62,7 @@ export class IntercambiosController {
    * @returns El intercambio creado
    */
   @Post()
+  @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Crear un intercambio de comisión' })
   @ApiBody({ type: CreateIntercambioDto })
   @ApiResponse({ status: 201, description: 'Intercambio creado en estado PENDIENTE' })
