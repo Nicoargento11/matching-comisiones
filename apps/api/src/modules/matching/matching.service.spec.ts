@@ -62,9 +62,9 @@ describe('MatchingService', () => {
     jest.clearAllMocks();
   });
 
-  describe('simularMatching', () => {
+  describe('ejecutarMatching', () => {
     it('crea un Intercambio real remapeando los campos del DTO de simulación a CreateIntercambioDto', async () => {
-      await service.simularMatching(buildDto());
+      await service.ejecutarMatching(buildDto());
 
       expect(intercambiosService.crearIntercambio).toHaveBeenCalledWith({
         id_usuario_ofrece: 1,
@@ -75,7 +75,7 @@ describe('MatchingService', () => {
     });
 
     it('completa el intercambio recién creado usando su id_intercambio real', async () => {
-      await service.simularMatching(buildDto());
+      await service.ejecutarMatching(buildDto());
 
       expect(intercambiosService.completar).toHaveBeenCalledWith(10);
     });
@@ -91,13 +91,13 @@ describe('MatchingService', () => {
         return buildCompletarResultado() as any;
       });
 
-      await service.simularMatching(buildDto());
+      await service.ejecutarMatching(buildDto());
 
       expect(orden).toEqual(['crearIntercambio', 'completar']);
     });
 
     it('retorna un SimularMatchingResponseDto con id_intercambio, estado, comprobante_url y mensaje', async () => {
-      const resultado = await service.simularMatching(buildDto());
+      const resultado = await service.ejecutarMatching(buildDto());
 
       expect(resultado).toEqual({
         id_intercambio: 10,
@@ -117,7 +117,7 @@ describe('MatchingService', () => {
         comprobante_url: 'https://cdn.example.com/comprobantes/999.pdf',
       } as any);
 
-      const resultado = await service.simularMatching(buildDto());
+      const resultado = await service.ejecutarMatching(buildDto());
 
       expect(resultado.id_intercambio).toBe(999);
       expect(intercambiosService.completar).toHaveBeenCalledWith(999);
@@ -126,14 +126,14 @@ describe('MatchingService', () => {
     it('propaga el error si crearIntercambio falla, sin llamar a completar', async () => {
       intercambiosService.crearIntercambio.mockRejectedValue(new Error('Inscripciones inactivas'));
 
-      await expect(service.simularMatching(buildDto())).rejects.toThrow('Inscripciones inactivas');
+      await expect(service.ejecutarMatching(buildDto())).rejects.toThrow('Inscripciones inactivas');
       expect(intercambiosService.completar).not.toHaveBeenCalled();
     });
 
     it('propaga el error si completar falla', async () => {
       intercambiosService.completar.mockRejectedValue(new Error('Storage unavailable'));
 
-      await expect(service.simularMatching(buildDto())).rejects.toThrow('Storage unavailable');
+      await expect(service.ejecutarMatching(buildDto())).rejects.toThrow('Storage unavailable');
     });
   });
 });

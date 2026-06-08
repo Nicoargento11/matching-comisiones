@@ -48,13 +48,13 @@ export class TareasController {
   @ApiResponse({ status: 200, description: 'Estado actualizado' })
   @ApiResponse({ status: 400, description: 'Columna no encontrada' })
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
-  actualizarEstado(
+  moverAColumna(
     @Param('idTarea', ParseIntPipe) idTarea: number,
     @Body() dto: UpdateEstadoDto,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.actualizarEstado(idTarea, dto.estado, user.id_usuario);
+    return this.tareasService.moverAColumna(idTarea, dto.estado, user.id_usuario);
   }
 
   @Delete(':idTarea')

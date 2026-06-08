@@ -7,7 +7,7 @@ import { IIntercambioObserver, ObserverFailureMode } from '../../intercambios/ob
 /**
  * Observer BEST-EFFORT de `IntercambioCompletado`: construye y persiste las 4
  * notificaciones (deduplicadas por `id_usuario`) que antes `completar` armaba
- * inline y `completarAtomico` persistía dentro de la transacción.
+ * inline y `completarIntercambio` persistía dentro de la transacción.
  *
  * Cambio semántico aceptado (proposal Fork/Risk 2): ahora corre POST-transacción
  * y de forma aislada — si falla, el subject lo captura vía `Promise.allSettled`

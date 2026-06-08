@@ -41,7 +41,7 @@ export class TareasService {
     return mapearTareaTableroResponse(tarea);
   }
 
-  async actualizarEstado(
+  async moverAColumna(
     idTarea: number,
     estado: string,
     idUsuario: number,
@@ -56,7 +56,7 @@ export class TareasService {
       );
     }
 
-    const result = await this.tareasRepository.actualizarEstado(
+    const result = await this.tareasRepository.moverAColumna(
       idTarea,
       idUsuario,
       columna.id_columna,

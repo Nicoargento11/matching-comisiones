@@ -133,7 +133,7 @@ export class IntercambiosService {
    * Orden de fallas y aislamiento (preservado de la implementación anterior):
    * - Validaciones (existencia, estado PENDIENTE, estado COMPLETADO configurado)
    *   lanzan ANTES de cualquier side-effect — sin transacción, sin evento.
-   * - `completarAtomico` es la única operación transaccional: si falla, nada
+   * - `completarIntercambio` es la única operación transaccional: si falla, nada
    *   más corre.
    * - Tras el commit, `subject.notificar` ejecuta primero el observer crítico
    *   (`ComprobanteObserver`): si falla, el error PROPAGA — el `Intercambio`
@@ -170,7 +170,7 @@ export class IntercambiosService {
       );
     }
 
-    await this.intercambiosRepository.completarAtomico(
+    await this.intercambiosRepository.completarIntercambio(
       idIntercambio,
       {
         id_usuario_ofrece: datos.ofrece.usuario.id_usuario,

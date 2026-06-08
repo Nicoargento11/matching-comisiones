@@ -10,7 +10,7 @@ export class MatchingController {
 
   @Post('simular')
   @Roles('profesor', 'admin')
-  async simularMatching(@Body() dto: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
-    return this.matchingService.simularMatching(dto);
+  async ejecutarMatching(@Body() dto: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
+    return this.matchingService.ejecutarMatching(dto);
   }
 }

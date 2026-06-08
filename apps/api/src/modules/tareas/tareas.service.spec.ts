@@ -29,7 +29,7 @@ describe('TareasService', () => {
             obtenerPorUsuario: jest.fn(),
             obtenerColumnaPorNombre: jest.fn(),
             crearTarea: jest.fn(),
-            actualizarEstado: jest.fn(),
+            moverAColumna: jest.fn(),
             obtenerPorId: jest.fn(),
             eliminarTarea: jest.fn(),
           },
@@ -122,20 +122,20 @@ describe('TareasService', () => {
     });
   });
 
-  describe('actualizarEstado', () => {
+  describe('moverAColumna', () => {
     it('debe lanzar BadRequestException cuando la columna de destino no existe', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(null);
 
-      await expect(service.actualizarEstado(1, 'POR_HACER', 1)).rejects.toThrow(
+      await expect(service.moverAColumna(1, 'POR_HACER', 1)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('debe lanzar ForbiddenException cuando el usuario no es dueño de la tarea', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue({ id_columna: 2 } as any);
-      repository.actualizarEstado.mockResolvedValue({ count: 0 } as any);
+      repository.moverAColumna.mockResolvedValue({ count: 0 } as any);
 
-      await expect(service.actualizarEstado(1, 'EN_PROGRESO', 99)).rejects.toThrow(
+      await expect(service.moverAColumna(1, 'EN_PROGRESO', 99)).rejects.toThrow(
         ForbiddenException,
       );
     });
@@ -143,7 +143,7 @@ describe('TareasService', () => {
     it('usa el estado directamente cuando no está en el mapa', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue(null);
 
-      await expect(service.actualizarEstado(1, 'COLUMNA_CUSTOM', 1)).rejects.toThrow(
+      await expect(service.moverAColumna(1, 'COLUMNA_CUSTOM', 1)).rejects.toThrow(
         BadRequestException,
       );
       expect(repository.obtenerColumnaPorNombre).toHaveBeenCalledWith('COLUMNA_CUSTOM', 1);
@@ -151,15 +151,15 @@ describe('TareasService', () => {
 
     it('debe actualizar el estado y retornar la tarea actualizada', async () => {
       repository.obtenerColumnaPorNombre.mockResolvedValue({ id_columna: 2 } as any);
-      repository.actualizarEstado.mockResolvedValue({ count: 1 } as any);
+      repository.moverAColumna.mockResolvedValue({ count: 1 } as any);
       repository.obtenerPorId.mockResolvedValue({
         ...mockTareaRaw,
         columna: { nombre: 'En progreso' },
       } as any);
 
-      await service.actualizarEstado(1, 'EN_PROGRESO', 1);
+      await service.moverAColumna(1, 'EN_PROGRESO', 1);
 
-      expect(repository.actualizarEstado).toHaveBeenCalledWith(1, 1, 2);
+      expect(repository.moverAColumna).toHaveBeenCalledWith(1, 1, 2);
       expect(repository.obtenerPorId).toHaveBeenCalledWith(1);
     });
   });

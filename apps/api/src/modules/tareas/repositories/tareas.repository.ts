@@ -35,7 +35,7 @@ export abstract class TareasRepository {
     id_evento?: number;
     fecha_vencimiento?: Date;
   }): ReturnType<PrismaTareasRepository['crearTarea']>;
-  abstract actualizarEstado(idTarea: number, idUsuario: number, idColumna: number): ReturnType<PrismaTareasRepository['actualizarEstado']>;
+  abstract moverAColumna(idTarea: number, idUsuario: number, idColumna: number): ReturnType<PrismaTareasRepository['moverAColumna']>;
   abstract obtenerPorId(idTarea: number): ReturnType<PrismaTareasRepository['obtenerPorId']>;
   abstract eliminarTarea(idTarea: number, idUsuario: number): ReturnType<PrismaTareasRepository['eliminarTarea']>;
 }
@@ -97,7 +97,7 @@ export class PrismaTareasRepository extends TareasRepository {
     });
   }
 
-  async actualizarEstado(idTarea: number, idUsuario: number, idColumna: number) {
+  async moverAColumna(idTarea: number, idUsuario: number, idColumna: number) {
     return this.prisma.tarea.updateMany({
       where: { id_tarea: idTarea, id_usuario: idUsuario },
       data: { id_columna: idColumna },

@@ -335,47 +335,19 @@ export class PrismaComisionesRepository extends ComisionesRepository {
   }
 
   /**
-   * Da de baja (cambia estado a BAJA) la inscripción de un estudiante
+   * Da de baja la inscripción y rechaza intercambios pendientes asociados
+   * mediante el stored procedure `dar_baja_inscripcion`.
+   *
+   * Delega toda la lógica transaccional a PostgreSQL — 1 sola llamada vs. las
+   * 4 operaciones Prisma que tenía antes.
+   *
    * @param idUsuario - ID del usuario
    * @param idComision - ID de la comisión
    */
   async darBajaInscripcion(idUsuario: number, idComision: number) {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.usuarioComision.update({
-        where: {
-          id_usuario_id_comision: {
-            id_usuario: idUsuario,
-            id_comision: idComision,
-          },
-        },
-        data: { estado: 'BAJA' },
-      });
-
-      const estadoRechazado = await tx.estado.findFirst({
-        where: { nombre_estado: 'RECHAZADO' },
-        select: { id_estado: true },
-      });
-      const estadoPendiente = await tx.estado.findFirst({
-        where: { nombre_estado: 'PENDIENTE' },
-        select: { id_estado: true },
-      });
-
-      if (estadoPendiente && estadoRechazado) {
-        await tx.intercambio.updateMany({
-          where: {
-            id_estado: estadoPendiente.id_estado,
-            OR: [
-              { id_usuario_ofrece: idUsuario, id_comision_ofrece: idComision },
-              {
-                id_usuario_destino: idUsuario,
-                id_comision_destino: idComision,
-              },
-            ],
-          },
-          data: { id_estado: estadoRechazado.id_estado },
-        });
-      }
-    });
+    await this.prisma.$executeRaw`
+      SELECT dar_baja_inscripcion(${idUsuario}::int, ${idComision}::int)
+    `;
   }
 
   /**

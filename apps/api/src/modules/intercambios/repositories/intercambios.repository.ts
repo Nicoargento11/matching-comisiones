@@ -34,7 +34,7 @@ export abstract class IntercambiosRepository {
   abstract buscarIntercambioPendiente(dto: CreateIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
   abstract crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crearIntercambio']>;
   abstract obtenerDatosCompletos(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerDatosCompletos']>;
-  abstract completarAtomico(
+  abstract completarIntercambio(
     idIntercambio: number,
     intercambio: {
       id_usuario_ofrece: number;
@@ -43,7 +43,7 @@ export abstract class IntercambiosRepository {
       id_comision_destino: number;
     },
     idEstadoCompletado: number,
-  ): ReturnType<PrismaIntercambiosRepository['completarAtomico']>;
+  ): ReturnType<PrismaIntercambiosRepository['completarIntercambio']>;
 }
 
 @Injectable()
@@ -275,15 +275,21 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
   }
 
   /**
-   * Completa un intercambio de forma atómica: cambia el estado e intercambia las
-   * inscripciones de ambos usuarios. Solo transición de estado + swap de
-   * comisiones — NO persiste notificaciones (eso es responsabilidad de
-   * `NotificacionObserver`, que corre post-transacción y de forma aislada).
+   * Ejecuta el swap atómico de comisiones entre dos alumnos mediante el stored
+   * procedure `completar_intercambio`: cambia el estado a COMPLETADO, da de baja
+   * ambas inscripciones originales y activa/crea las nuevas inscripciones cruzadas.
+   *
+   * Delega toda la lógica transaccional a PostgreSQL — 1 sola llamada vs. 7+
+   * operaciones Prisma que tenía antes.
+   *
+   * NO persiste notificaciones (eso es responsabilidad de `NotificacionObserver`,
+   * que corre post-transacción y de forma aislada).
+   *
    * @param idIntercambio - ID del intercambio a completar
    * @param intercambio - Datos del intercambio (IDs de usuarios y comisiones)
    * @param idEstadoCompletado - ID del estado COMPLETADO
    */
-  async completarAtomico(
+  async completarIntercambio(
     idIntercambio: number,
     intercambio: {
       id_usuario_ofrece: number;
@@ -293,87 +299,15 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
     },
     idEstadoCompletado: number,
   ) {
-    return this.prisma.$transaction(async (tx) => {
-      await tx.intercambio.update({
-        where: { id_intercambio: idIntercambio },
-        data: { id_estado: idEstadoCompletado },
-      });
-
-      await tx.usuarioComision.update({
-        where: {
-          id_usuario_id_comision: {
-            id_usuario: intercambio.id_usuario_ofrece,
-            id_comision: intercambio.id_comision_ofrece,
-          },
-        },
-        data: { estado: 'BAJA' },
-      });
-
-      const existeOfreceEnDestino = await tx.usuarioComision.findUnique({
-        where: {
-          id_usuario_id_comision: {
-            id_usuario: intercambio.id_usuario_ofrece,
-            id_comision: intercambio.id_comision_destino,
-          },
-        },
-      });
-      if (existeOfreceEnDestino) {
-        await tx.usuarioComision.update({
-          where: {
-            id_usuario_id_comision: {
-              id_usuario: intercambio.id_usuario_ofrece,
-              id_comision: intercambio.id_comision_destino,
-            },
-          },
-          data: { estado: 'ACTIVO' },
-        });
-      } else {
-        await tx.usuarioComision.create({
-          data: {
-            id_usuario: intercambio.id_usuario_ofrece,
-            id_comision: intercambio.id_comision_destino,
-            estado: 'ACTIVO',
-          },
-        });
-      }
-
-      await tx.usuarioComision.update({
-        where: {
-          id_usuario_id_comision: {
-            id_usuario: intercambio.id_usuario_destino,
-            id_comision: intercambio.id_comision_destino,
-          },
-        },
-        data: { estado: 'BAJA' },
-      });
-
-      const existeDestinoEnOfrece = await tx.usuarioComision.findUnique({
-        where: {
-          id_usuario_id_comision: {
-            id_usuario: intercambio.id_usuario_destino,
-            id_comision: intercambio.id_comision_ofrece,
-          },
-        },
-      });
-      if (existeDestinoEnOfrece) {
-        await tx.usuarioComision.update({
-          where: {
-            id_usuario_id_comision: {
-              id_usuario: intercambio.id_usuario_destino,
-              id_comision: intercambio.id_comision_ofrece,
-            },
-          },
-          data: { estado: 'ACTIVO' },
-        });
-      } else {
-        await tx.usuarioComision.create({
-          data: {
-            id_usuario: intercambio.id_usuario_destino,
-            id_comision: intercambio.id_comision_ofrece,
-            estado: 'ACTIVO',
-          },
-        });
-      }
-    });
+    await this.prisma.$executeRaw`
+      SELECT completar_intercambio(
+        ${idIntercambio}::int,
+        ${idEstadoCompletado}::int,
+        ${intercambio.id_usuario_ofrece}::int,
+        ${intercambio.id_comision_ofrece}::int,
+        ${intercambio.id_usuario_destino}::int,
+        ${intercambio.id_comision_destino}::int
+      )
+    `;
   }
 }

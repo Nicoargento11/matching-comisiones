@@ -72,7 +72,7 @@ describe('IntercambiosService', () => {
           useValue: {
             obtenerDatosCompletos: jest.fn(),
             buscarEstadoPorNombre: jest.fn(),
-            completarAtomico: jest.fn().mockResolvedValue(undefined),
+            completarIntercambio: jest.fn().mockResolvedValue(undefined),
             obtenerPorUsuario: jest.fn(),
             obtenerPorId: jest.fn(),
             verificarInscripcionesActivas: jest.fn(),
@@ -248,7 +248,7 @@ describe('IntercambiosService', () => {
 
   // ─── completar ────────────────────────────────────────────────────────────
   //
-  // `completar` quedó reducido a: validar → completarAtomico (sin notificaciones)
+  // `completar` quedó reducido a: validar → completarIntercambio (sin notificaciones)
   // → construir IntercambioCompletadoEvent → subject.notificar → CompletarResultado.
   // Los ~8 tests de side-effects (PDF/storage/comprobante/emails/notificaciones)
   // MIGRARON a comprobante.observer.spec.ts / email.observer.spec.ts /
@@ -279,13 +279,13 @@ describe('IntercambiosService', () => {
 
       await expect(service.completar(10)).rejects.toThrow(NotFoundException);
       expect(subject.notificar).not.toHaveBeenCalled();
-      expect(intercambiosRepo.completarAtomico).not.toHaveBeenCalled();
+      expect(intercambiosRepo.completarIntercambio).not.toHaveBeenCalled();
     });
 
-    it('llama a completarAtomico sin notificaciones (3 argumentos)', async () => {
+    it('llama a completarIntercambio sin notificaciones (3 argumentos)', async () => {
       await service.completar(10);
 
-      expect(intercambiosRepo.completarAtomico).toHaveBeenCalledWith(
+      expect(intercambiosRepo.completarIntercambio).toHaveBeenCalledWith(
         10,
         {
           id_usuario_ofrece: 1,
@@ -295,13 +295,13 @@ describe('IntercambiosService', () => {
         },
         estadoCompletado.id_estado,
       );
-      expect(intercambiosRepo.completarAtomico.mock.calls[0]).toHaveLength(3);
+      expect(intercambiosRepo.completarIntercambio.mock.calls[0]).toHaveLength(3);
     });
 
-    it('emite IntercambioCompletadoEvent vía subject.notificar solo después de que completarAtomico resuelve', async () => {
+    it('emite IntercambioCompletadoEvent vía subject.notificar solo después de que completarIntercambio resuelve', async () => {
       const orden: string[] = [];
-      intercambiosRepo.completarAtomico.mockImplementation(async () => {
-        orden.push('completarAtomico');
+      intercambiosRepo.completarIntercambio.mockImplementation(async () => {
+        orden.push('completarIntercambio');
       });
       subject.notificar.mockImplementation(async () => {
         orden.push('notificar');
@@ -310,7 +310,7 @@ describe('IntercambiosService', () => {
 
       await service.completar(10);
 
-      expect(orden).toEqual(['completarAtomico', 'notificar']);
+      expect(orden).toEqual(['completarIntercambio', 'notificar']);
       expect(subject.notificar).toHaveBeenCalledWith(
         expect.objectContaining({
           id_intercambio: 10,
@@ -339,8 +339,8 @@ describe('IntercambiosService', () => {
       subject.notificar.mockRejectedValue(new Error('Storage unavailable'));
 
       await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
-      // completarAtomico ya corrió y resolvió — no hay rollback de la transacción
-      expect(intercambiosRepo.completarAtomico).toHaveBeenCalled();
+      // completarIntercambio ya corrió y resolvió — no hay rollback de la transacción
+      expect(intercambiosRepo.completarIntercambio).toHaveBeenCalled();
     });
   });
 });

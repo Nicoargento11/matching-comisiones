@@ -1,6 +1,6 @@
 /**
  * Evento de dominio rico emitido por `IntercambiosService.completar` una vez que
- * la transacción atómica (`completarAtomico`) confirma el cambio de estado y el
+ * la transacción atómica (`completarIntercambio`) confirma el cambio de estado y el
  * intercambio de comisiones.
  *
  * Espeja EXACTAMENTE el shape que `IntercambiosRepository.obtenerDatosCompletos`
