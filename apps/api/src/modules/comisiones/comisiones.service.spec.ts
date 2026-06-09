@@ -369,6 +369,18 @@ describe('ComisionesService', () => {
       expect(repository.crearEvento).toHaveBeenCalledWith(1, expect.objectContaining({ titulo: 'Parcial' }));
       expect(result).toEqual({ id_evento: 1, titulo: 'Parcial' });
     });
+
+    it('debe lanzar NotFoundException cuando la comisión no existe', async () => {
+      repository.verificarExistencia.mockResolvedValue(null);
+
+      await expect(
+        service.agregarEvento(999, {
+          titulo: 'Parcial',
+          fecha_inicio: '2026-06-20T08:00:00.000Z',
+          fecha_fin: '2026-06-20T10:00:00.000Z',
+        } as any),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('agregarEstudiante — nuevas validaciones', () => {
