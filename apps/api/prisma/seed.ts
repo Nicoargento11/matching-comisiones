@@ -51,7 +51,7 @@ async function main() {
   // CASCADE maneja automáticamente el orden de dependencias entre tablas.
   await prisma.$executeRaw`
     TRUNCATE TABLE
-      recordatorio_evento, tarea, notificacion, comprobante, intercambio,
+      tarea, notificacion, comprobante, intercambio,
       mensaje, conversacion_participante, conversacion, evento,
       horario_comision, usuario_comision, rol_usuario, comision,
       usuario, rol, materia, carrera, facultad, estado,

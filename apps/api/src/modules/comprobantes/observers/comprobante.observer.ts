@@ -10,13 +10,10 @@ import { IIntercambioObserver, ObserverFailureMode, ObserverResultado } from '..
  * Observer CRÍTICO de `IntercambioCompletado`: genera el PDF del comprobante,
  * lo sube a storage y persiste el registro `Comprobante`.
  *
- * Preserva la semántica hard-fail que `completar` tenía inline (PDF → storage →
- * persistencia deben propagar): si cualquiera de los tres pasos falla, el error
- * sube al subject, que lo re-lanza — rompiendo `notificar`/`completar` y
- * llegando al `HttpExceptionFilter`. El intercambio YA está COMPLETADO en BD
- * para ese momento (la transacción atómica corrió antes de emitir el evento),
- * por lo que un fallo aquí deja un Intercambio COMPLETADO sin Comprobante —
- * comportamiento idéntico al actual, documentado como aceptado.
+ * Si cualquiera de los tres pasos falla, el error sube al subject, que lo
+ * re-lanza — rompiendo `notificar`/`completar`. `IntercambiosService.completar`
+ * captura el error y ejecuta `revertirIntercambio` como compensación,
+ * deshaciendo el swap atómicamente para volver el intercambio a PENDIENTE.
  *
  * Construye `DatosComprobante` directamente del payload del evento: cero
  * re-fetch de usuarios/comisiones/profesores (ya vienen en el evento rico).

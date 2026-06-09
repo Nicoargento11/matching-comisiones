@@ -44,6 +44,16 @@ export abstract class IntercambiosRepository {
     },
     idEstadoCompletado: number,
   ): ReturnType<PrismaIntercambiosRepository['completarIntercambio']>;
+  abstract revertirIntercambio(
+    idIntercambio: number,
+    idEstadoPendiente: number,
+    intercambio: {
+      id_usuario_ofrece: number;
+      id_comision_ofrece: number;
+      id_usuario_destino: number;
+      id_comision_destino: number;
+    },
+  ): ReturnType<PrismaIntercambiosRepository['revertirIntercambio']>;
 }
 
 @Injectable()
@@ -303,6 +313,40 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
       SELECT completar_intercambio(
         ${idIntercambio}::int,
         ${idEstadoCompletado}::int,
+        ${intercambio.id_usuario_ofrece}::int,
+        ${intercambio.id_comision_ofrece}::int,
+        ${intercambio.id_usuario_destino}::int,
+        ${intercambio.id_comision_destino}::int
+      )
+    `;
+  }
+
+  /**
+   * Revierte el swap atómico de comisiones mediante el stored procedure
+   * `revertir_intercambio`: vuelve el estado a PENDIENTE, da de baja las
+   * inscripciones cruzadas y reactiva las inscripciones originales.
+   *
+   * Usado como compensación cuando falla la generación del comprobante
+   * post-`completarIntercambio`.
+   *
+   * @param idIntercambio - ID del intercambio a revertir
+   * @param idEstadoPendiente - ID del estado PENDIENTE
+   * @param intercambio - Datos del intercambio (IDs de usuarios y comisiones)
+   */
+  async revertirIntercambio(
+    idIntercambio: number,
+    idEstadoPendiente: number,
+    intercambio: {
+      id_usuario_ofrece: number;
+      id_comision_ofrece: number;
+      id_usuario_destino: number;
+      id_comision_destino: number;
+    },
+  ) {
+    await this.prisma.$executeRaw`
+      SELECT revertir_intercambio(
+        ${idIntercambio}::int,
+        ${idEstadoPendiente}::int,
         ${intercambio.id_usuario_ofrece}::int,
         ${intercambio.id_comision_ofrece}::int,
         ${intercambio.id_usuario_destino}::int,

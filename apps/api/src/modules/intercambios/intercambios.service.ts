@@ -130,17 +130,15 @@ export class IntercambiosService {
    * en observers suscritos al evento de dominio (Observer Pattern, ver
    * `IntercambioCompletadoSubject`).
    *
-   * Orden de fallas y aislamiento (preservado de la implementación anterior):
+   * Orden de fallas y aislamiento:
    * - Validaciones (existencia, estado PENDIENTE, estado COMPLETADO configurado)
    *   lanzan ANTES de cualquier side-effect — sin transacción, sin evento.
    * - `completarIntercambio` es la única operación transaccional: si falla, nada
    *   más corre.
    * - Tras el commit, `subject.notificar` ejecuta primero el observer crítico
-   *   (`ComprobanteObserver`): si falla, el error PROPAGA — el `Intercambio`
-   *   queda COMPLETADO en BD (sin rollback, igual que el comportamiento previo
-   *   donde el storage corría post-`$transaction`), pero el comprobante no
-   *   queda persistido ("orphaned COMPLETADO sin Comprobante", documentado y
-   *   aceptado). Luego corren los observers best-effort (`NotificacionObserver`,
+   *   (`ComprobanteObserver`). Si falla, se ejecuta `revertirIntercambio` para
+   *   deshacer el swap de forma atómica y se propaga el error.
+   * - Luego corren los observers best-effort (`NotificacionObserver`,
    *   `EmailObserver`) vía `Promise.allSettled`, aislados entre sí.
    *
    * @param idIntercambio - ID del intercambio a completar
@@ -190,8 +188,21 @@ export class IntercambiosService {
       destino: datos.destino,
     };
 
-    const { comprobanteUrl } = await this.subject.notificar(evento);
-
-    return { id_intercambio: idIntercambio, comprobante_url: comprobanteUrl };
+    try {
+      const { comprobanteUrl } = await this.subject.notificar(evento);
+      return { id_intercambio: idIntercambio, comprobante_url: comprobanteUrl };
+    } catch (error) {
+      await this.intercambiosRepository.revertirIntercambio(
+        idIntercambio,
+        estadoPendiente.id_estado,
+        {
+          id_usuario_ofrece: datos.ofrece.usuario.id_usuario,
+          id_comision_ofrece: datos.id_comision_ofrece,
+          id_usuario_destino: datos.destino.usuario.id_usuario,
+          id_comision_destino: datos.id_comision_destino,
+        },
+      );
+      throw error;
+    }
   }
 }

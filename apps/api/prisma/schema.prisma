@@ -43,10 +43,6 @@ enum PrioridadTarea {
   ALTA
 }
 
-enum CanalRecordatorio {
-  APP
-  EMAIL
-}
 
 enum FormatoClase {
   TEORICO
@@ -269,7 +265,7 @@ model Evento {
   materia       Materia              @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
   comision      Comision             @relation(fields: [id_comision], references: [id_comision], onDelete: Restrict)
   tareas        Tarea[]
-  recordatorios RecordatorioEvento[]
+
 
   @@index([id_usuario, fecha_inicio])
   @@index([id_comision, fecha_inicio])
@@ -341,13 +337,4 @@ model Mensaje {
   @@map("mensaje")
 }
 
-model RecordatorioEvento {
-  id_recordatorio Int               @id @default(autoincrement())
-  minutos_antes   Int
-  canal           CanalRecordatorio
-  id_evento       Int
-  evento          Evento            @relation(fields: [id_evento], references: [id_evento], onDelete: Cascade)
 
-  @@index([id_evento])
-  @@map("recordatorio_evento")
-}

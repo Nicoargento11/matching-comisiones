@@ -118,21 +118,7 @@ export class ComisionesService {
       );
     }
 
-    const conflicto =
-      await this.comisionesRepository.buscarInscripcionActivaEnMateria(
-        dto.id_usuario,
-        comision.id_materia,
-      );
-    if (conflicto) {
-      const nombre =
-        conflicto.comision.nombre_comision ??
-        `Comisión ${conflicto.comision.numero_comision}`;
-      throw new ConflictError(
-        'COMISION_CONFLICTO_MATERIA',
-        `El alumno ya está inscripto en "${nombre}" de esta materia`,
-      );
-    }
-
+    // Verificar primero si ya está en ESTA comisión (error más específico)
     const existing = await this.comisionesRepository.buscarInscripcion(
       dto.id_usuario,
       idComision,
@@ -141,6 +127,22 @@ export class ComisionesService {
       throw new ConflictError(
         'COMISION_YA_INSCRITO',
         'El estudiante ya está activo en la comisión',
+      );
+    }
+
+    // Luego verificar si está en OTRA comisión de la misma materia
+    const conflicto =
+      await this.comisionesRepository.buscarInscripcionActivaEnMateria(
+        dto.id_usuario,
+        comision.id_materia,
+      );
+    if (conflicto && conflicto.id_comision !== idComision) {
+      const nombre =
+        conflicto.comision.nombre_comision ??
+        `Comisión ${conflicto.comision.numero_comision}`;
+      throw new ConflictError(
+        'COMISION_CONFLICTO_MATERIA',
+        `El alumno ya está inscripto en "${nombre}" de esta materia`,
       );
     }
     if (existing) {
@@ -195,6 +197,12 @@ export class ComisionesService {
       throw new NotFoundError(
         'COMISION_INSCRIPCION_NO_ENCONTRADA',
         'El estudiante no está en esta comisión',
+      );
+    }
+    if (inscripcion.estado !== 'ACTIVO') {
+      throw new ConflictError(
+        'COMISION_YA_DE_BAJA',
+        'El estudiante ya fue dado de baja de esta comisión',
       );
     }
     await this.comisionesRepository.darBajaInscripcion(idUsuario, idComision);
