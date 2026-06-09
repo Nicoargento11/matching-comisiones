@@ -73,6 +73,7 @@ describe('IntercambiosService', () => {
             obtenerDatosCompletos: jest.fn(),
             buscarEstadoPorNombre: jest.fn(),
             completarIntercambio: jest.fn().mockResolvedValue(undefined),
+            revertirIntercambio: jest.fn().mockResolvedValue(undefined),
             obtenerPorUsuario: jest.fn(),
             obtenerPorId: jest.fn(),
             verificarInscripcionesActivas: jest.fn(),
@@ -335,12 +336,22 @@ describe('IntercambiosService', () => {
       expect(resultado).toEqual({ id_intercambio: 10, comprobante_url: 'https://cdn.example.com/url-final.pdf' });
     });
 
-    it('propaga el error si el subject (observer crítico) lanza, dejando el Intercambio ya COMPLETADO', async () => {
+    it('propaga el error y revierte el intercambio si el observer crítico falla', async () => {
       subject.notificar.mockRejectedValue(new Error('Storage unavailable'));
 
       await expect(service.completar(10)).rejects.toThrow('Storage unavailable');
-      // completarIntercambio ya corrió y resolvió — no hay rollback de la transacción
+      // completarIntercambio corrió pero se revirtió con revertirIntercambio
       expect(intercambiosRepo.completarIntercambio).toHaveBeenCalled();
+      expect(intercambiosRepo.revertirIntercambio).toHaveBeenCalledWith(
+        10,
+        estadoPendiente.id_estado,
+        {
+          id_usuario_ofrece: 1,
+          id_comision_ofrece: 100,
+          id_usuario_destino: 2,
+          id_comision_destino: 200,
+        },
+      );
     });
   });
 });
