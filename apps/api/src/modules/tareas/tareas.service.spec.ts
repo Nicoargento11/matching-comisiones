@@ -60,7 +60,7 @@ describe('TareasService', () => {
     });
   });
 
-  describe('crear', () => {
+  describe('crearTarea', () => {
     const mockColumna = { id_columna: 1, nombre: 'Por hacer' };
 
     it('debe crear una tarea cuando la columna existe', async () => {

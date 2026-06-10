@@ -59,7 +59,7 @@ describe('ColumnasService', () => {
     });
   });
 
-  describe('crear', () => {
+  describe('crearColumna', () => {
     it('debe crear la columna con orden correcto cuando no hay conflictos', async () => {
       repository.obtenerGlobalPorNombre.mockResolvedValue(null);
       repository.obtenerUsuarioPorNombre.mockResolvedValue(null);
