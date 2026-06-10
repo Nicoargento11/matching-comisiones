@@ -150,8 +150,8 @@ describe('ComisionesService', () => {
   // INSCRIPCIÓN DE ESTUDIANTE A COMISIÓN
   // ─────────────────────────────────────────────
   describe('agregarEstudiante', () => {
-    // Estado base compartido por los tres tests de este bloque:
-    // comisión existe, el usuario tiene rol estudiante, y no está en ninguna otra comisión de la misma materia
+    // Estado base compartido: comisión existe, el usuario tiene rol estudiante,
+    // y no está en ninguna otra comisión de la misma materia
     beforeEach(() => {
       repository.verificarExistencia.mockResolvedValue({
         id_comision: 1,
@@ -168,7 +168,6 @@ describe('ComisionesService', () => {
     });
 
     it('debe crear inscripción cuando no existe inscripción previa', async () => {
-      // null = el alumno nunca estuvo inscripto en esta comisión
       repository.buscarInscripcion.mockResolvedValue(null);
       repository.crearInscripcion.mockResolvedValue({
         id_usuario: 5,
@@ -178,12 +177,10 @@ describe('ComisionesService', () => {
 
       await service.agregarEstudiante(1, { id_usuario: 5 } as any);
 
-      // Se debe crear una inscripción nueva (no reactivar)
       expect(repository.crearInscripcion).toHaveBeenCalledWith(5, 1);
     });
 
     it('debe lanzar ConflictException si el estudiante ya está activo', async () => {
-      // El alumno ya tiene una inscripción activa en esta comisión
       repository.buscarInscripcion.mockResolvedValue({
         estado: 'ACTIVO',
       } as any);
@@ -194,7 +191,6 @@ describe('ComisionesService', () => {
     });
 
     it('debe reactivar inscripción si existe pero está inactiva', async () => {
-      // El alumno estuvo inscripto antes pero se dio de baja (estado BAJA)
       repository.buscarInscripcion.mockResolvedValue({ estado: 'BAJA' } as any);
       repository.reactivarInscripcion.mockResolvedValue({
         id_usuario: 5,
@@ -204,8 +200,79 @@ describe('ComisionesService', () => {
 
       await service.agregarEstudiante(1, { id_usuario: 5 } as any);
 
-      // Se debe reactivar la inscripción existente, no crear una nueva
       expect(repository.reactivarInscripcion).toHaveBeenCalledWith(5, 1);
+    });
+
+    it('debe lanzar ForbiddenException si el usuario no tiene rol estudiante', async () => {
+      repository.verificarEsEstudiante.mockResolvedValue(null);
+
+      await expect(
+        service.agregarEstudiante(1, { id_usuario: 99 } as any),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('debe lanzar ConflictException si el alumno ya está en otra comisión de la misma materia', async () => {
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
+        id_comision: 2,
+        comision: {
+          id_comision: 2,
+          numero_comision: 2,
+          nombre_comision: 'Comisión B',
+        },
+      } as any);
+
+      await expect(
+        service.agregarEstudiante(1, { id_usuario: 5 } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('debe usar el número de comisión como fallback cuando el nombre es null', async () => {
+      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
+        id_comision: 2,
+        comision: { id_comision: 2, numero_comision: 2, nombre_comision: null },
+      } as any);
+
+      await expect(
+        service.agregarEstudiante(1, { id_usuario: 5 } as any),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('debe usar fallback de nombre en notificación al reactivar', async () => {
+      repository.verificarExistencia.mockResolvedValue({
+        id_comision: 1,
+        id_materia: 1,
+        numero_comision: 1,
+        nombre_comision: null,
+        materia: { nombre_materia: 'Matemática' },
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+      } as any);
+      repository.buscarInscripcion.mockResolvedValue({ estado: 'BAJA' } as any);
+      repository.reactivarInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
+
+      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
+
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
+        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
+      );
+    });
+
+    it('debe usar fallback de nombre en notificación al crear inscripción', async () => {
+      repository.verificarExistencia.mockResolvedValue({
+        id_comision: 1,
+        id_materia: 1,
+        numero_comision: 1,
+        nombre_comision: null,
+        materia: { nombre_materia: 'Matemática' },
+        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
+      } as any);
+      repository.buscarInscripcion.mockResolvedValue(null);
+      repository.crearInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
+
+      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
+
+      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
+        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
+      );
     });
   });
 
@@ -431,109 +498,6 @@ describe('ComisionesService', () => {
           fecha_fin: '2026-06-20T10:00:00.000Z',
         } as any),
       ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // ─────────────────────────────────────────────
-  // VALIDACIONES ADICIONALES DE INSCRIPCIÓN
-  // (rol estudiante, conflicto de materia, fallbacks de nombre)
-  // ─────────────────────────────────────────────
-  describe('agregarEstudiante — nuevas validaciones', () => {
-    it('debe lanzar ForbiddenException si el usuario no tiene rol estudiante', async () => {
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 1,
-        id_materia: 1,
-      } as any);
-      // null = el usuario existe pero no tiene rol de estudiante
-      repository.verificarEsEstudiante.mockResolvedValue(null);
-
-      await expect(
-        service.agregarEstudiante(1, { id_usuario: 99 } as any),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('debe lanzar ConflictException con COMISION_CONFLICTO_MATERIA si el alumno ya está en otra comisión de la misma materia', async () => {
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 1,
-        id_materia: 1,
-      } as any);
-      repository.verificarEsEstudiante.mockResolvedValue({
-        id_usuario: 5,
-      } as any);
-      // El alumno ya tiene inscripción activa en Comisión B (id 2) para la misma materia
-      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
-        id_comision: 2,
-        comision: {
-          id_comision: 2,
-          numero_comision: 2,
-          nombre_comision: 'Comisión B',
-        },
-      } as any);
-
-      await expect(
-        service.agregarEstudiante(1, { id_usuario: 5 } as any),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('usa el número de comisión como fallback en el mensaje de conflicto cuando nombre_comision es null', async () => {
-      repository.verificarExistencia.mockResolvedValue({ id_comision: 1, id_materia: 1 } as any);
-      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
-      // La comisión conflictiva no tiene nombre, solo número — se usa "Comisión 2" como fallback
-      repository.buscarInscripcionActivaEnMateria.mockResolvedValue({
-        id_comision: 2,
-        comision: { id_comision: 2, numero_comision: 2, nombre_comision: null },
-      } as any);
-
-      await expect(
-        service.agregarEstudiante(1, { id_usuario: 5 } as any),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('usa fallback de nombre en notificación al reactivar cuando nombre_comision es null', async () => {
-      // La comisión destino no tiene nombre — el mensaje de notificación debe usar "Comisión 1"
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 1,
-        id_materia: 1,
-        numero_comision: 1,
-        nombre_comision: null, // sin nombre
-        materia: { nombre_materia: 'Matemática' },
-        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
-      } as any);
-      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
-      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
-      // La inscripción previa existe pero está dada de baja — se reactiva
-      repository.buscarInscripcion.mockResolvedValue({ estado: 'BAJA' } as any);
-      repository.reactivarInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
-
-      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
-
-      // La notificación debe mencionar "Comisión 1" como fallback al nombre null
-      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
-        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
-      );
-    });
-
-    it('usa fallback de nombre en notificación al crear inscripción cuando nombre_comision es null', async () => {
-      // Similar al anterior pero para el flujo de creación (no reactivación)
-      repository.verificarExistencia.mockResolvedValue({
-        id_comision: 1,
-        id_materia: 1,
-        numero_comision: 1,
-        nombre_comision: null, // sin nombre
-        materia: { nombre_materia: 'Matemática' },
-        profesor: { id_usuario: 10, nombre_usuario: 'Prof', apellido_usuario: 'Test' },
-      } as any);
-      repository.verificarEsEstudiante.mockResolvedValue({ id_usuario: 5 } as any);
-      repository.buscarInscripcionActivaEnMateria.mockResolvedValue(null);
-      repository.buscarInscripcion.mockResolvedValue(null); // sin inscripción previa
-      repository.crearInscripcion.mockResolvedValue({ id_usuario: 5, id_comision: 1, estado: 'ACTIVO' } as any);
-
-      await service.agregarEstudiante(1, { id_usuario: 5 } as any);
-
-      // La notificación debe mencionar "Comisión 1" como fallback al nombre null
-      expect(notificacionesService.crearNotificacion).toHaveBeenCalledWith(
-        expect.objectContaining({ mensaje: expect.stringContaining('Comisión 1') }),
-      );
     });
   });
 
@@ -774,6 +738,14 @@ describe('ComisionesService', () => {
       repository.buscarInscripcion.mockResolvedValue(null);
 
       await expect(service.darBajaEstudiante(1, 99)).rejects.toThrow(NotFoundException);
+    });
+
+    it('debe lanzar ConflictException cuando el estudiante ya está dado de baja', async () => {
+      repository.verificarExistencia.mockResolvedValue({ id_comision: 1 } as any);
+      // La inscripción existe pero ya está en estado BAJA
+      repository.buscarInscripcion.mockResolvedValue({ estado: 'BAJA' } as any);
+
+      await expect(service.darBajaEstudiante(1, 5)).rejects.toThrow(ConflictException);
     });
   });
 
