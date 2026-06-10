@@ -14,6 +14,7 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, CurrentUserClaims } from '../../common/decorators/current-user.decorator';
 import { TareasService } from './tareas.service';
 import { CreateTareaDto } from './dto/create-tarea.dto';
+import { UpdateTareaDto } from './dto/update-tarea.dto';
 import { UpdateEstadoDto } from './dto/update-estado.dto';
 
 @ApiTags('Tareas')
@@ -40,6 +41,20 @@ export class TareasController {
   crearTarea(@Body() dto: CreateTareaDto, @CurrentUser() user: CurrentUserClaims) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
     return this.tareasService.crearTarea(user.id_usuario, dto);
+  }
+
+  @Patch(':idTarea')
+  @ApiOperation({ summary: 'Actualizar campos de una tarea' })
+  @ApiParam({ name: 'idTarea', type: Number })
+  @ApiResponse({ status: 200, description: 'Tarea actualizada' })
+  @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
+  actualizarTarea(
+    @Param('idTarea', ParseIntPipe) idTarea: number,
+    @Body() dto: UpdateTareaDto,
+    @CurrentUser() user: CurrentUserClaims,
+  ) {
+    if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
+    return this.tareasService.actualizarTarea(idTarea, user.id_usuario, dto);
   }
 
   @Patch(':idTarea/estado')

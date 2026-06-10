@@ -5,6 +5,7 @@ import { TareasRepository } from './repositories/tareas.repository';
 import { mapearTareaTableroResponse, ESTADO_A_COLUMNA } from './tareas.mapper';
 import { TareaTableroResponseDto } from './dto/tarea-response.dto';
 import { CreateTareaDto } from './dto/create-tarea.dto';
+import { UpdateTareaDto } from './dto/update-tarea.dto';
 import { ForbiddenError } from '../../common/errors/business-error';
 
 @Injectable()
@@ -61,6 +62,27 @@ export class TareasService {
       idUsuario,
       columna.id_columna,
     );
+
+    if (result.count === 0) {
+      throw new ForbiddenError(
+        'TAREA_NO_AUTORIZADA',
+        'No tenés permiso para modificar esta tarea',
+      );
+    }
+
+    const actualizada = await this.tareasRepository.obtenerPorId(idTarea);
+    return mapearTareaTableroResponse(actualizada!);
+  }
+
+  async actualizarTarea(idTarea: number, idUsuario: number, dto: UpdateTareaDto): Promise<TareaTableroResponseDto> {
+    const result = await this.tareasRepository.actualizarTarea(idTarea, idUsuario, {
+      titulo: dto.titulo,
+      prioridad: dto.prioridad as PrioridadTarea,
+      descripcion: dto.descripcion ?? null,
+      estimacion_min: dto.estimacion_min ?? null,
+      id_materia: dto.id_materia ?? null,
+      id_evento: dto.id_evento ?? null,
+    });
 
     if (result.count === 0) {
       throw new ForbiddenError(
