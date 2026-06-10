@@ -21,8 +21,10 @@ export default function TableroKanban() {
     setErrorColumna,
     eliminarTarea,
     agregarTarea,
+    editarTarea,
     agregarColumna,
     eliminarColumna,
+    editarColumna,
     handleDrop,
   } = useTareaTablero()
 
@@ -92,7 +94,9 @@ export default function TableroKanban() {
             onDragStartTarea={setTareaArrastrada}
             onEliminarTarea={eliminarTarea}
             onAgregarTarea={agregarTarea}
+            onEditarTarea={editarTarea}
             onEliminarColumna={eliminarColumna}
+            onEditarColumna={editarColumna}
           />
         ))}
       </div>

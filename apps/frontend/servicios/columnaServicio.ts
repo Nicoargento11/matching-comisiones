@@ -23,6 +23,9 @@ export const columnaServicio = {
   crear: (nombre: string, token?: string): Promise<ColumnaKanban> =>
     api.post<ColumnaAPI>('/columnas', { nombre }, token).then(normalizar),
 
+  actualizar: (idColumna: number, nombre: string, token?: string): Promise<ColumnaKanban> =>
+    api.patch<ColumnaAPI>(`/columnas/${idColumna}`, { nombre }, token).then(normalizar),
+
   eliminar: (idColumna: number, token?: string): Promise<void> =>
     api.delete(`/columnas/${idColumna}`, token),
 }

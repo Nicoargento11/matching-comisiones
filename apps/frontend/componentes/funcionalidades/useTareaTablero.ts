@@ -107,6 +107,31 @@ export function useTareaTablero() {
     }
   }, [token])
 
+  const editarTarea = useCallback((idTarea: string, datos: DatosTarea) => {
+    tareaServicio.actualizar(idTarea, datos, token ?? undefined)
+      .then((actualizada) => setTareas((prev) => prev.map((t) => t.id_tarea === idTarea ? actualizada : t)))
+      .catch((e) => setErrorColumna(e instanceof Error ? e.message : 'No se pudo actualizar la tarea'))
+  }, [token])
+
+  const editarColumna = useCallback(async (idColumna: number, nombre: string): Promise<boolean> => {
+    const columnaVieja = columnas.find((c) => c.id_columna === idColumna)
+    setProcesandoColumna(true)
+    setErrorColumna('')
+    try {
+      const actualizada = await columnaServicio.actualizar(idColumna, nombre, token ?? undefined)
+      setColumnas((prev) => prev.map((c) => c.id_columna === idColumna ? actualizada : c))
+      if (columnaVieja && columnaVieja.identificador !== actualizada.identificador) {
+        setTareas((prev) => prev.map((t) => t.estado === columnaVieja.identificador ? { ...t, estado: actualizada.identificador } : t))
+      }
+      return true
+    } catch (e) {
+      setErrorColumna(e instanceof Error ? e.message : 'No se pudo actualizar la columna')
+      return false
+    } finally {
+      setProcesandoColumna(false)
+    }
+  }, [token, columnas])
+
   function handleDrop(identificador: string) {
     if (tareaArrastrada) moverTarea(tareaArrastrada, identificador)
     setTareaArrastrada(null)
@@ -128,8 +153,10 @@ export function useTareaTablero() {
     setErrorColumna,
     eliminarTarea,
     agregarTarea,
+    editarTarea,
     agregarColumna,
     eliminarColumna,
+    editarColumna,
     handleDrop,
   }
 }
