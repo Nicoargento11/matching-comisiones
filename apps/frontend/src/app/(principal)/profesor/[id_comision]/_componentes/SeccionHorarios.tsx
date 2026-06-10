@@ -154,8 +154,8 @@ export default function SeccionHorarios({ horariosIniciales, horariosBajaInicial
       }
 
       resetForm()
-    } catch {
-      setErrorHorario('No se pudo guardar el horario. Verificá que el día y la modalidad existan en el sistema.')
+    } catch (e: unknown) {
+      setErrorHorario(e instanceof Error ? e.message : 'No se pudo guardar el horario. Verificá que el día y la modalidad existan en el sistema.')
     } finally {
       setGuardandoHorario(false)
     }
@@ -173,8 +173,8 @@ export default function SeccionHorarios({ horariosIniciales, horariosBajaInicial
         [...horariosDadosDeBaja, h],
       )
       mostrarExito('Horario dado de baja')
-    } catch {
-      mostrarExito('Error al dar de baja el horario. Intentá de nuevo.')
+    } catch (e: unknown) {
+      mostrarExito(e instanceof Error ? e.message : 'Error al dar de baja el horario. Intentá de nuevo.')
     } finally {
       setProcesando(false)
     }
@@ -195,8 +195,8 @@ export default function SeccionHorarios({ horariosIniciales, horariosBajaInicial
         horariosDadosDeBaja.filter((x) => x.id_horario_comision !== h.id_horario_comision),
       )
       mostrarExito('Horario reincorporado')
-    } catch {
-      mostrarExito('Error al reincorporar el horario. Intentá de nuevo.')
+    } catch (e: unknown) {
+      mostrarExito(e instanceof Error ? e.message : 'Error al reincorporar el horario. Intentá de nuevo.')
     } finally {
       setProcesando(false)
     }
