@@ -74,6 +74,7 @@ export function useTareaTablero() {
   const agregarTarea = useCallback((identificador: string, datos: DatosTarea) => {
     tareaServicio.crear({ ...datos, estado: identificador }, token ?? undefined)
       .then((nueva) => setTareas((prev) => [...prev, nueva]))
+      .catch((e) => setErrorColumna(e instanceof Error ? e.message : 'No se pudo crear la tarea'))
   }, [token])
 
   const agregarColumna = useCallback(async (nombre: string): Promise<boolean> => {

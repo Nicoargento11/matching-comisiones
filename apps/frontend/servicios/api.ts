@@ -30,8 +30,18 @@ async function request<T>(
   }
 
   if (!res.ok) {
-    const mensaje = await res.text().catch(() => res.statusText);
-    throw new ApiError(res.status, `[${res.status}] ${path}: ${mensaje}`);
+    let mensaje: string = res.statusText;
+    try {
+      const cuerpo = await res.json();
+      if (Array.isArray(cuerpo?.message)) {
+        mensaje = cuerpo.message.join(', ');
+      } else if (typeof cuerpo?.message === 'string') {
+        mensaje = cuerpo.message;
+      }
+    } catch {
+      // el cuerpo no es JSON valido, usamos res.statusText
+    }
+    throw new ApiError(res.status, mensaje);
   }
   if (res.status === 204 || res.headers.get("content-length") === "0") {
     return undefined as T;
