@@ -5,7 +5,7 @@ import { TareasRepository } from './repositories/tareas.repository';
 import { mapearTareaTableroResponse, ESTADO_A_COLUMNA } from './tareas.mapper';
 import { TareaTableroResponseDto } from './dto/tarea-response.dto';
 import { CrearTareaDto } from './dto/crear-tarea.dto';
-import { UpdateTareaDto } from './dto/update-tarea.dto';
+import { ActualizarTareaDto } from './dto/actualizar-tarea.dto';
 import { ForbiddenError } from '../../common/errors/business-error';
 
 @Injectable()
@@ -74,7 +74,7 @@ export class TareasService {
     return mapearTareaTableroResponse(actualizada!);
   }
 
-  async actualizarTarea(idTarea: number, idUsuario: number, datos: UpdateTareaDto): Promise<TareaTableroResponseDto> {
+  async actualizarTarea(idTarea: number, idUsuario: number, datos: ActualizarTareaDto): Promise<TareaTableroResponseDto> {
     const resultado = await this.tareasRepository.actualizarTarea(idTarea, idUsuario, {
       titulo: datos.titulo,
       prioridad: datos.prioridad as PrioridadTarea,
