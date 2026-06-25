@@ -25,10 +25,10 @@ export class MensajesService {
    * @returns La conversación creada
    * @throws ConflictException si ya existe una conversación entre esos usuarios
    */
-  async crearConversacion(datos: CrearConversacionDto) {
+  async crearConversacion(datosConversacion: CrearConversacionDto) {
     const existente = await this.mensajesRepository.buscarConversacionExistente(
-      datos.id_usuario_1,
-      datos.id_usuario_2,
+      datosConversacion.id_usuario_1,
+      datosConversacion.id_usuario_2,
     );
     if (existente) {
       throw new ConflictError(
@@ -36,7 +36,7 @@ export class MensajesService {
         'Ya existe una conversación entre estos usuarios',
       );
     }
-    return this.mensajesRepository.crearConversacion(datos);
+    return this.mensajesRepository.crearConversacion(datosConversacion);
   }
 
   /**
@@ -64,10 +64,10 @@ export class MensajesService {
    * @returns El participante con la fecha de último leído actualizada
    * @throws NotFoundException si el usuario no pertenece a la conversación
    */
-  async marcarLeido(idConversacion: number, datos: MarcarLeidoDto) {
+  async marcarLeido(idConversacion: number, datosLectura: MarcarLeidoDto) {
     const participante = await this.mensajesRepository.buscarParticipante(
       idConversacion,
-      datos.id_usuario,
+      datosLectura.id_usuario,
     );
     if (!participante) {
       throw new NotFoundError(
@@ -77,7 +77,7 @@ export class MensajesService {
     }
     return this.mensajesRepository.actualizarUltimoLeido(
       idConversacion,
-      datos.id_usuario,
+      datosLectura.id_usuario,
     );
   }
 
@@ -130,17 +130,17 @@ export class MensajesService {
    * @returns El mensaje creado
    * @throws NotFoundException si no existe la conversación
    */
-  async enviarMensaje(datos: CrearMensajeDto) {
+  async enviarMensaje(datosMensaje: CrearMensajeDto) {
     const conversacion =
       await this.mensajesRepository.verificarExistenciaConversacion(
-        datos.id_conversacion,
+        datosMensaje.id_conversacion,
       );
     if (!conversacion) {
       throw new NotFoundError(
         'CONVERSACION_NO_ENCONTRADA',
-        `No existe conversación con id=${datos.id_conversacion}`,
+        `No existe conversación con id=${datosMensaje.id_conversacion}`,
       );
     }
-    return this.mensajesRepository.crearMensaje(datos);
+    return this.mensajesRepository.crearMensaje(datosMensaje);
   }
 }

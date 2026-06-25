@@ -24,8 +24,8 @@ export class ColumnasController {
   }
 
   @Post()
-  crearColumna(@Body() datos: CrearColumnaDto, @CurrentUser() user: CurrentUserClaims) {
-    return this.columnasService.crearColumna(user.id_usuario!, datos);
+  crearColumna(@Body() datosColumna: CrearColumnaDto, @CurrentUser() user: CurrentUserClaims) {
+    return this.columnasService.crearColumna(user.id_usuario!, datosColumna);
   }
 
   @Delete(':id')

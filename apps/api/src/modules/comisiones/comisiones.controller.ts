@@ -106,9 +106,9 @@ export class ComisionesController {
   })
   agregarEstudiante(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() datos: AgregarEstudianteDto,
+    @Body() datosEstudiante: AgregarEstudianteDto,
   ) {
-    return this.comisionesService.agregarEstudiante(idComision, datos);
+    return this.comisionesService.agregarEstudiante(idComision, datosEstudiante);
   }
 
   /**
@@ -130,11 +130,11 @@ export class ComisionesController {
   })
   trasladarEstudiante(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() dto: TrasladarEstudianteDto,
+    @Body() datosTraslado: TrasladarEstudianteDto,
   ) {
     return this.comisionesService.trasladarEstudiante(
       idComision,
-      dto.id_usuario,
+      datosTraslado.id_usuario,
     );
   }
 
@@ -176,9 +176,9 @@ export class ComisionesController {
   @ApiResponse({ status: 404, description: 'Comisión no encontrada' })
   agregarHorario(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() datos: CrearHorarioDto,
+    @Body() datosHorario: CrearHorarioDto,
   ) {
-    return this.comisionesService.agregarHorario(idComision, datos);
+    return this.comisionesService.agregarHorario(idComision, datosHorario);
   }
 
   /**
@@ -242,9 +242,9 @@ export class ComisionesController {
   @ApiResponse({ status: 404, description: 'Comisión no encontrada' })
   agregarEvento(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() datos: CrearEventoDto,
+    @Body() datosEvento: CrearEventoDto,
   ) {
-    return this.comisionesService.agregarEvento(idComision, datos);
+    return this.comisionesService.agregarEvento(idComision, datosEvento);
   }
 
   /**
@@ -266,9 +266,9 @@ export class ComisionesController {
   modificarEvento(
     @Param('id_comision', ParseIntPipe) idComision: number,
     @Param('id_evento', ParseIntPipe) idEvento: number,
-    @Body() datos: ActualizarEventoDto,
+    @Body() datosActualizacion: ActualizarEventoDto,
   ) {
-    return this.comisionesService.modificarEvento(idComision, idEvento, datos);
+    return this.comisionesService.modificarEvento(idComision, idEvento, datosActualizacion);
   }
 
   /**

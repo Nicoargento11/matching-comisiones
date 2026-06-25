@@ -20,27 +20,27 @@ export class ColumnasService {
     );
   }
 
-  async crearColumna(idUsuario: number, datos: CrearColumnaDto): Promise<ColumnaResponseDto> {
-    const global = await this.columnasRepository.obtenerGlobalPorNombre(datos.nombre);
+  async crearColumna(idUsuario: number, datosColumna: CrearColumnaDto): Promise<ColumnaResponseDto> {
+    const global = await this.columnasRepository.obtenerGlobalPorNombre(datosColumna.nombre);
     if (global) {
       throw new BadRequestError(
         'COLUMNA_NOMBRE_RESERVADO',
-        `"${datos.nombre}" es el nombre de una columna global y no puede usarse`,
+        `"${datosColumna.nombre}" es el nombre de una columna global y no puede usarse`,
       );
     }
 
-    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(idUsuario, datos.nombre);
+    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(idUsuario, datosColumna.nombre);
     if (existente) {
       throw new BadRequestError(
         'COLUMNA_DUPLICADA',
-        `Ya existe una columna con el nombre "${datos.nombre}"`,
+        `Ya existe una columna con el nombre "${datosColumna.nombre}"`,
       );
     }
 
     const maxOrden = await this.columnasRepository.maxOrdenUsuario(idUsuario);
     const orden = Math.max(maxOrden, 3) + 1;
 
-    const columna = await this.columnasRepository.crearColumna(idUsuario, datos.nombre, orden);
+    const columna = await this.columnasRepository.crearColumna(idUsuario, datosColumna.nombre, orden);
     return plainToInstance(
       ColumnaResponseDto,
       { ...columna, es_global: false },

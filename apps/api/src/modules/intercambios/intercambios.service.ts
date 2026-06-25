@@ -59,10 +59,10 @@ export class IntercambiosService {
    * @returns Lista de candidatos (usuario + su comisión)
    * @throws NotFoundException si la comisión origen no existe
    */
-  async obtenerCandidatos(consulta: CandidatosIntercambioDto) {
+  async obtenerCandidatos(datosBusqueda: CandidatosIntercambioDto) {
     const candidatos = await this.intercambiosRepository.obtenerCandidatos(
-      consulta.id_comision_origen,
-      consulta.id_usuario_solicitante,
+      datosBusqueda.id_comision_origen,
+      datosBusqueda.id_usuario_solicitante,
     );
     if (candidatos === null) {
       throw new NotFoundError('COMISION_NO_ENCONTRADA', 'La comisión origen no existe');
@@ -77,9 +77,9 @@ export class IntercambiosService {
    * @throws BadRequestError si alguna inscripción no está activa
    * @throws ConflictError si ya existe un intercambio pendiente igual
    */
-  async crearIntercambio(datos: CrearIntercambioDto): Promise<IntercambioResponseDto> {
+  async crearIntercambio(datosIntercambio: CrearIntercambioDto): Promise<IntercambioResponseDto> {
     const inscripcionesActivas =
-      await this.intercambiosRepository.verificarInscripcionesActivas(datos);
+      await this.intercambiosRepository.verificarInscripcionesActivas(datosIntercambio);
     if (!inscripcionesActivas) {
       throw new BadRequestError(
         'INTERCAMBIO_INSCRIPCIONES_INACTIVAS',
@@ -88,8 +88,8 @@ export class IntercambiosService {
     }
 
     const mismaMateria = await this.intercambiosRepository.verificarMismaMateria(
-      datos.id_comision_ofrece,
-      datos.id_comision_destino,
+      datosIntercambio.id_comision_ofrece,
+      datosIntercambio.id_comision_destino,
     );
     if (!mismaMateria) {
       throw new BadRequestError(
@@ -98,7 +98,7 @@ export class IntercambiosService {
       );
     }
 
-    const pendiente = await this.intercambiosRepository.buscarIntercambioPendiente(datos);
+    const pendiente = await this.intercambiosRepository.buscarIntercambioPendiente(datosIntercambio);
     if (pendiente) {
       throw new ConflictError(
         'INTERCAMBIO_YA_EXISTE',
@@ -115,7 +115,7 @@ export class IntercambiosService {
       );
     }
 
-    const intercambio = await this.intercambiosRepository.crearIntercambio(datos, estadoPendiente.id_estado);
+    const intercambio = await this.intercambiosRepository.crearIntercambio(datosIntercambio, estadoPendiente.id_estado);
     return mapearIntercambioResponse(intercambio);
   }
 

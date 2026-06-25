@@ -21,12 +21,12 @@ import { CrearIntercambioDto } from '../intercambios/dto/crear-intercambio.dto';
 export class MatchingService {
   constructor(private readonly intercambiosService: IntercambiosService) {}
 
-  async ejecutarMatching(datos: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
+  async ejecutarMatching(datosSimulacion: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
     const datosCreacion: CrearIntercambioDto = {
-      id_usuario_ofrece: datos.usuarioSolicitanteId,
-      id_comision_ofrece: datos.comisionOrigenId,
-      id_usuario_destino: datos.usuarioReceptorId,
-      id_comision_destino: datos.comisionDestinoId,
+      id_usuario_ofrece: datosSimulacion.usuarioSolicitanteId,
+      id_comision_ofrece: datosSimulacion.comisionOrigenId,
+      id_usuario_destino: datosSimulacion.usuarioReceptorId,
+      id_comision_destino: datosSimulacion.comisionDestinoId,
     };
 
     const intercambioCreado = await this.intercambiosService.crearIntercambio(datosCreacion);

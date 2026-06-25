@@ -17,8 +17,8 @@ export class TareasService {
     return tareas.map(mapearTareaTableroResponse);
   }
 
-  async crearTarea(idUsuario: number, datos: CrearTareaDto): Promise<TareaTableroResponseDto> {
-    const nombreColumna = ESTADO_A_COLUMNA[datos.estado] ?? datos.estado;
+  async crearTarea(idUsuario: number, datosTarea: CrearTareaDto): Promise<TareaTableroResponseDto> {
+    const nombreColumna = ESTADO_A_COLUMNA[datosTarea.estado] ?? datosTarea.estado;
     const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna, idUsuario);
 
     if (!columna) {
@@ -29,14 +29,14 @@ export class TareasService {
     }
 
     const tarea = await this.tareasRepository.crearTarea(idUsuario, {
-      titulo: datos.titulo,
-      prioridad: datos.prioridad as PrioridadTarea,
+      titulo: datosTarea.titulo,
+      prioridad: datosTarea.prioridad as PrioridadTarea,
       id_columna: columna.id_columna,
-      descripcion: datos.descripcion,
-      estimacion_min: datos.estimacion_min,
-      id_materia: datos.id_materia,
-      id_evento: datos.id_evento,
-      fecha_vencimiento: datos.fecha_vencimiento ? new Date(datos.fecha_vencimiento) : undefined,
+      descripcion: datosTarea.descripcion,
+      estimacion_min: datosTarea.estimacion_min,
+      id_materia: datosTarea.id_materia,
+      id_evento: datosTarea.id_evento,
+      fecha_vencimiento: datosTarea.fecha_vencimiento ? new Date(datosTarea.fecha_vencimiento) : undefined,
     });
 
     return mapearTareaTableroResponse(tarea);
@@ -74,14 +74,14 @@ export class TareasService {
     return mapearTareaTableroResponse(actualizada!);
   }
 
-  async actualizarTarea(idTarea: number, idUsuario: number, datos: ActualizarTareaDto): Promise<TareaTableroResponseDto> {
+  async actualizarTarea(idTarea: number, idUsuario: number, datosActualizacion: ActualizarTareaDto): Promise<TareaTableroResponseDto> {
     const resultado = await this.tareasRepository.actualizarTarea(idTarea, idUsuario, {
-      titulo: datos.titulo,
-      prioridad: datos.prioridad as PrioridadTarea,
-      descripcion: datos.descripcion ?? null,
-      estimacion_min: datos.estimacion_min ?? null,
-      id_materia: datos.id_materia ?? null,
-      id_evento: datos.id_evento ?? null,
+      titulo: datosActualizacion.titulo,
+      prioridad: datosActualizacion.prioridad as PrioridadTarea,
+      descripcion: datosActualizacion.descripcion ?? null,
+      estimacion_min: datosActualizacion.estimacion_min ?? null,
+      id_materia: datosActualizacion.id_materia ?? null,
+      id_evento: datosActualizacion.id_evento ?? null,
     });
 
     if (resultado.count === 0) {

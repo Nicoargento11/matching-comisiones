@@ -47,8 +47,8 @@ export class MensajesController {
     status: 409,
     description: 'Ya existe una conversación entre estos usuarios',
   })
-  crearConversacion(@Body() datos: CrearConversacionDto) {
-    return this.mensajesService.crearConversacion(datos);
+  crearConversacion(@Body() datosConversacion: CrearConversacionDto) {
+    return this.mensajesService.crearConversacion(datosConversacion);
   }
 
   /**
@@ -117,9 +117,9 @@ export class MensajesController {
   })
   marcarLeido(
     @Param('id_conversacion', ParseIntPipe) idConversacion: number,
-    @Body() datos: MarcarLeidoDto,
+    @Body() datosLectura: MarcarLeidoDto,
   ) {
-    return this.mensajesService.marcarLeido(idConversacion, datos);
+    return this.mensajesService.marcarLeido(idConversacion, datosLectura);
   }
 
   /**
@@ -153,7 +153,7 @@ export class MensajesController {
   @ApiBody({ type: CrearMensajeDto })
   @ApiResponse({ status: 201, description: 'Mensaje enviado' })
   @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
-  enviarMensaje(@Body() datos: CrearMensajeDto) {
-    return this.mensajesService.enviarMensaje(datos);
+  enviarMensaje(@Body() datosMensaje: CrearMensajeDto) {
+    return this.mensajesService.enviarMensaje(datosMensaje);
   }
 }

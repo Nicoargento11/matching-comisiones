@@ -46,7 +46,7 @@ export class IntercambiosController {
 
   /**
    * Busca candidatos válidos para intercambiar con el solicitante
-   * @param consulta - Comisión origen y usuario solicitante (se excluye de los resultados)
+   * @param datosBusqueda - Comisión origen y usuario solicitante (se excluye de los resultados)
    * @returns Lista de candidatos con su comisión actual
    */
   @Get('candidatos')
@@ -55,8 +55,8 @@ export class IntercambiosController {
   @ApiQuery({ name: 'id_usuario_solicitante', required: true, type: Number })
   @ApiResponse({ status: 200, description: 'Lista de candidatos con su comisión actual' })
   @ApiResponse({ status: 404, description: 'La comisión origen no existe' })
-  obtenerCandidatos(@Query() consulta: CandidatosIntercambioDto) {
-    return this.intercambiosService.obtenerCandidatos(consulta);
+  obtenerCandidatos(@Query() datosBusqueda: CandidatosIntercambioDto) {
+    return this.intercambiosService.obtenerCandidatos(datosBusqueda);
   }
 
   /**
@@ -86,8 +86,8 @@ export class IntercambiosController {
   @ApiResponse({ status: 201, description: 'Intercambio creado en estado PENDIENTE' })
   @ApiResponse({ status: 400, description: 'Inscripciones inactivas' })
   @ApiResponse({ status: 409, description: 'Ya existe un intercambio pendiente' })
-  crearIntercambio(@Body() datos: CrearIntercambioDto) {
-    return this.intercambiosService.crearIntercambio(datos);
+  crearIntercambio(@Body() datosIntercambio: CrearIntercambioDto) {
+    return this.intercambiosService.crearIntercambio(datosIntercambio);
   }
 
   /**

@@ -38,9 +38,9 @@ export class TareasController {
   @ApiOperation({ summary: 'Crear una nueva tarea' })
   @ApiResponse({ status: 201, description: 'Tarea creada' })
   @ApiResponse({ status: 400, description: 'Columna no encontrada o datos inválidos' })
-  crearTarea(@Body() datos: CrearTareaDto, @CurrentUser() user: CurrentUserClaims) {
+  crearTarea(@Body() datosTarea: CrearTareaDto, @CurrentUser() user: CurrentUserClaims) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.crearTarea(user.id_usuario, datos);
+    return this.tareasService.crearTarea(user.id_usuario, datosTarea);
   }
 
   @Patch(':idTarea')
@@ -50,11 +50,11 @@ export class TareasController {
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
   actualizarTarea(
     @Param('idTarea', ParseIntPipe) idTarea: number,
-    @Body() datos: ActualizarTareaDto,
+    @Body() datosActualizacion: ActualizarTareaDto,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.actualizarTarea(idTarea, user.id_usuario, datos);
+    return this.tareasService.actualizarTarea(idTarea, user.id_usuario, datosActualizacion);
   }
 
   @Patch(':idTarea/estado')
@@ -65,11 +65,11 @@ export class TareasController {
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
   moverAColumna(
     @Param('idTarea', ParseIntPipe) idTarea: number,
-    @Body() datos: ActualizarEstadoDto,
+    @Body() datosEstado: ActualizarEstadoDto,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.moverAColumna(idTarea, datos.estado, user.id_usuario);
+    return this.tareasService.moverAColumna(idTarea, datosEstado.estado, user.id_usuario);
   }
 
   @Delete(':idTarea')
