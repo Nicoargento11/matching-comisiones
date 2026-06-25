@@ -37,14 +37,14 @@ class Comision {
     +obtenerTodas(paginacion)
     +obtenerDetalleComision(idComision: Int)
     +obtenerComisionesDeUsuario(idUsuario: Int)
-    +agregarEstudiante(idComision: Int, datosEstudiante: AgregarEstudianteDto)
+    +agregarEstudiante(idComision: Int, idEstudiante: Int)
     +darBajaEstudiante(idComision: Int, idUsuario: Int)
     +trasladarEstudiante(idComisionDestino: Int, idUsuario: Int)
-    +agregarHorario(idComision: Int, datosHorario: CrearHorarioDto)
+    +agregarHorario(idComision: Int, hora_inicio: String, hora_fin: String, nombre_dia: String, nombre_modalidad: String, formato: FormatoClase, nombre_aula: String)
     +eliminarHorario(idComision: Int, idHorario: Int)
     +reactivarHorario(idComision: Int, idHorario: Int)
-    +agregarEvento(idComision: Int, datosEvento: CrearEventoDto)
-    +modificarEvento(idComision: Int, idEvento: Int, datosActualizacion: ActualizarEventoDto)
+    +agregarEvento(idComision: Int, titulo: String, tipo_evento: TipoEvento, fecha_inicio: String, fecha_fin: String, origen: OrigenEvento, id_usuario: Int, id_materia: Int)
+    +modificarEvento(idComision: Int, idEvento: Int, titulo?: String, tipo_evento?: TipoEvento, fecha_inicio?: String, fecha_fin?: String, origen?: OrigenEvento, id_usuario?: Int, id_materia?: Int)
     +eliminarEvento(idComision: Int, idEvento: Int)
     +reactivarEvento(idComision: Int, idEvento: Int)
 }
@@ -55,8 +55,8 @@ class Intercambio {
     -estado: String
     +obtenerPorUsuario(idUsuario: Int)
     +obtenerPorId(idIntercambio: Int)
-    +obtenerCandidatos(datosBusqueda: CandidatosIntercambioDto)
-    +crearIntercambio(datosIntercambio: CrearIntercambioDto)
+    +obtenerCandidatos(id_comision_origen: Int, id_usuario_solicitante: Int)
+    +crearIntercambio(id_usuario_ofrece: Int, id_comision_ofrece: Int, id_usuario_destino: Int, id_comision_destino: Int)
     +completar(idIntercambio: Int)
 }
 
@@ -76,7 +76,7 @@ class Notificacion {
     -mensaje: String
     -leida: Boolean
     -creada_en: Date
-    +crearNotificacion(datosNotificacion)
+    +crearNotificacion(id_usuario: Int, tipo: String, titulo: String, mensaje: String)
     +obtenerPorUsuario(idUsuario: Int)
     +marcarSoloLeida(idNotificacion: Int, idUsuario: Int)
     +marcarTodasLeidas(idUsuario: Int)
@@ -85,12 +85,12 @@ class Notificacion {
 class Mensaje {
     -contenido: String
     -creado_en: Date
-    +crearConversacion(datosConversacion: CrearConversacionDto)
+    +crearConversacion(id_usuario_1: Int, id_usuario_2: Int)
     +obtenerConversacion(idConversacion: Int)
     +obtenerMisConversaciones(supabaseAuthId: String, paginacion)
-    +marcarLeido(idConversacion: Int, datosLectura: MarcarLeidoDto)
+    +marcarLeido(idConversacion: Int, idUsuario: Int)
     +obtenerMensajes(idConversacion: Int)
-    +enviarMensaje(datosMensaje: CrearMensajeDto)
+    +enviarMensaje(id_conversacion: Int, id_usuario_emisor: Int, contenido: String)
 }
 
 class Tarea {
@@ -100,7 +100,7 @@ class Tarea {
     -prioridad: Prioridad
     -fecha_vencimiento: Date
     +obtenerPorUsuario(idUsuario: Int)
-    +crearTarea(idUsuario: Int, datosTarea: CrearTareaDto)
+    +crearTarea(idUsuario: Int, titulo: String, estado: String, prioridad: String, descripcion?: String, estimacion_min?: Int, id_materia?: Int, id_evento?: Int, fecha_vencimiento?: String)
     +moverAColumna(idTarea: Int, estado: String, idUsuario: Int)
     +eliminarTarea(idTarea: Int, idUsuario: Int)
 }
@@ -110,7 +110,7 @@ class ColumnaTablero {
     -nombre: String
     -orden_columna: Int
     +obtenerParaUsuario(idUsuario: Int)
-    +crearColumna(idUsuario: Int, datosColumna: CrearColumnaDto)
+    +crearColumna(idUsuario: Int, nombre: String)
     +eliminarColumna(idColumna: Int, idUsuario: Int)
 }
 
