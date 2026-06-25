@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PaginacionParams } from '../../../common/helpers/paginacion';
-import { CreateMensajeDto } from '../dto/create-mensaje.dto';
-import { CreateConversacionDto } from '../dto/create-conversacion.dto';
+import { CrearMensajeDto } from '../dto/crear-mensaje.dto';
+import { CrearConversacionDto } from '../dto/crear-conversacion.dto';
 
 export abstract class MensajesRepository {
   abstract buscarConversacionExistente(idUsuario1: number, idUsuario2: number): ReturnType<PrismaMensajesRepository['buscarConversacionExistente']>;
-  abstract crearConversacion(dto: CreateConversacionDto): ReturnType<PrismaMensajesRepository['crearConversacion']>;
+  abstract crearConversacion(dto: CrearConversacionDto): ReturnType<PrismaMensajesRepository['crearConversacion']>;
   abstract obtenerConversacion(idConversacion: number): ReturnType<PrismaMensajesRepository['obtenerConversacion']>;
   abstract buscarParticipante(idConversacion: number, idUsuario: number): ReturnType<PrismaMensajesRepository['buscarParticipante']>;
   abstract actualizarUltimoLeido(idConversacion: number, idUsuario: number): ReturnType<PrismaMensajesRepository['actualizarUltimoLeido']>;
@@ -15,7 +15,7 @@ export abstract class MensajesRepository {
   abstract buscarUsuarioPorAuthId(supabaseAuthId: string): ReturnType<PrismaMensajesRepository['buscarUsuarioPorAuthId']>;
   abstract obtenerConversacionesDeUsuario(idUsuario: number, paginacion: PaginacionParams): ReturnType<PrismaMensajesRepository['obtenerConversacionesDeUsuario']>;
   abstract contarConversacionesDeUsuario(idUsuario: number): Promise<number>;
-  abstract crearMensaje(dto: CreateMensajeDto): ReturnType<PrismaMensajesRepository['crearMensaje']>;
+  abstract crearMensaje(dto: CrearMensajeDto): ReturnType<PrismaMensajesRepository['crearMensaje']>;
 }
 
 @Injectable()
@@ -47,7 +47,7 @@ export class PrismaMensajesRepository extends MensajesRepository {
    * @param dto - Datos con los IDs de los dos participantes
    * @returns La conversación creada con datos de participantes
    */
-  async crearConversacion(dto: CreateConversacionDto) {
+  async crearConversacion(dto: CrearConversacionDto) {
     return this.prisma.conversacion.create({
       data: {
         participantes: {
@@ -265,7 +265,7 @@ export class PrismaMensajesRepository extends MensajesRepository {
    * @param dto - Datos del mensaje a crear
    * @returns El mensaje creado
    */
-  async crearMensaje(dto: CreateMensajeDto) {
+  async crearMensaje(dto: CrearMensajeDto) {
     return this.prisma.mensaje.create({
       data: {
         contenido: dto.contenido,

@@ -11,7 +11,7 @@ import {
 import { CurrentUser, CurrentUserClaims } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ColumnasService } from './columnas.service';
-import { CreateColumnaDto } from './dto/create-columna.dto';
+import { CrearColumnaDto } from './dto/crear-columna.dto';
 
 @Controller('columnas')
 @Roles('estudiante')
@@ -24,8 +24,8 @@ export class ColumnasController {
   }
 
   @Post()
-  crearColumna(@Body() dto: CreateColumnaDto, @CurrentUser() user: CurrentUserClaims) {
-    return this.columnasService.crearColumna(user.id_usuario!, dto);
+  crearColumna(@Body() datos: CrearColumnaDto, @CurrentUser() user: CurrentUserClaims) {
+    return this.columnasService.crearColumna(user.id_usuario!, datos);
   }
 
   @Delete(':id')

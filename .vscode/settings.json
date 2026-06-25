@@ -1,0 +1,11 @@
+{
+    "testing.automaticallyOpenTestResults": "neverOpen",
+    "jest.outputConfig": {
+        "revealOn": "run",
+        "revealWithFocus": "none",
+        "clearOnRun": "none"
+    },
+    "jest.rootPath": "apps/api",
+    "jest.jestCommandLine": "npx jest",
+    "jest.runMode": "on-demand"
+}

@@ -9,7 +9,7 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateEventoDto {
+export class CrearEventoDto {
   @ApiProperty({ example: 'Parcial 1' })
   @IsString()
   titulo: string;

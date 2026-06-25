@@ -1,6 +1,6 @@
 import { IsString, Length } from 'class-validator';
 
-export class CreateColumnaDto {
+export class CrearColumnaDto {
   @IsString()
   @Length(1, 50)
   nombre: string;

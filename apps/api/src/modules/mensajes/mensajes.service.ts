@@ -4,8 +4,8 @@ import {
   ConflictError,
 } from '../../common/errors/business-error';
 import { MensajesRepository } from './repositories/mensajes.repository';
-import { CreateMensajeDto } from './dto/create-mensaje.dto';
-import { CreateConversacionDto } from './dto/create-conversacion.dto';
+import { CrearMensajeDto } from './dto/crear-mensaje.dto';
+import { CrearConversacionDto } from './dto/crear-conversacion.dto';
 import { MarcarLeidoDto } from './dto/marcar-leido.dto';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 import {
@@ -21,14 +21,14 @@ export class MensajesService {
 
   /**
    * Crea una nueva conversación entre dos usuarios
-   * @param dto - Datos con los IDs de los dos participantes
+   * @param datos - Datos con los IDs de los dos participantes
    * @returns La conversación creada
    * @throws ConflictException si ya existe una conversación entre esos usuarios
    */
-  async crearConversacion(dto: CreateConversacionDto) {
+  async crearConversacion(datos: CrearConversacionDto) {
     const existente = await this.mensajesRepository.buscarConversacionExistente(
-      dto.id_usuario_1,
-      dto.id_usuario_2,
+      datos.id_usuario_1,
+      datos.id_usuario_2,
     );
     if (existente) {
       throw new ConflictError(
@@ -36,7 +36,7 @@ export class MensajesService {
         'Ya existe una conversación entre estos usuarios',
       );
     }
-    return this.mensajesRepository.crearConversacion(dto);
+    return this.mensajesRepository.crearConversacion(datos);
   }
 
   /**
@@ -60,14 +60,14 @@ export class MensajesService {
   /**
    * Marca los mensajes de una conversación como leídos para un usuario
    * @param idConversacion - ID de la conversación
-   * @param dto - Datos con el ID del usuario
+   * @param datos - Datos con el ID del usuario
    * @returns El participante con la fecha de último leído actualizada
    * @throws NotFoundException si el usuario no pertenece a la conversación
    */
-  async marcarLeido(idConversacion: number, dto: MarcarLeidoDto) {
+  async marcarLeido(idConversacion: number, datos: MarcarLeidoDto) {
     const participante = await this.mensajesRepository.buscarParticipante(
       idConversacion,
-      dto.id_usuario,
+      datos.id_usuario,
     );
     if (!participante) {
       throw new NotFoundError(
@@ -77,7 +77,7 @@ export class MensajesService {
     }
     return this.mensajesRepository.actualizarUltimoLeido(
       idConversacion,
-      dto.id_usuario,
+      datos.id_usuario,
     );
   }
 
@@ -126,21 +126,21 @@ export class MensajesService {
 
   /**
    * Envía un mensaje en una conversación
-   * @param dto - Datos del mensaje a enviar
+   * @param datos - Datos del mensaje a enviar
    * @returns El mensaje creado
    * @throws NotFoundException si no existe la conversación
    */
-  async enviarMensaje(dto: CreateMensajeDto) {
+  async enviarMensaje(datos: CrearMensajeDto) {
     const conversacion =
       await this.mensajesRepository.verificarExistenciaConversacion(
-        dto.id_conversacion,
+        datos.id_conversacion,
       );
     if (!conversacion) {
       throw new NotFoundError(
         'CONVERSACION_NO_ENCONTRADA',
-        `No existe conversación con id=${dto.id_conversacion}`,
+        `No existe conversación con id=${datos.id_conversacion}`,
       );
     }
-    return this.mensajesRepository.crearMensaje(dto);
+    return this.mensajesRepository.crearMensaje(datos);
   }
 }

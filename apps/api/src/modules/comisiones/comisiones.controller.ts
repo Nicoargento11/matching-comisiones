@@ -20,11 +20,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ComisionesService } from './comisiones.service';
-import { AddEstudianteDto } from './dto/add-estudiante.dto';
+import { AgregarEstudianteDto } from './dto/agregar-estudiante.dto';
 import { TrasladarEstudianteDto } from './dto/trasladar-estudiante.dto';
-import { CreateHorarioDto } from './dto/create-horario.dto';
-import { CreateEventoDto } from './dto/create-evento.dto';
-import { UpdateEventoDto } from './dto/update-evento.dto';
+import { CrearHorarioDto } from './dto/crear-horario.dto';
+import { CrearEventoDto } from './dto/crear-evento.dto';
+import { ActualizarEventoDto } from './dto/actualizar-evento.dto';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 
@@ -88,7 +88,7 @@ export class ComisionesController {
   /**
    * Incorpora un estudiante a una comisión (requiere rol profesor o admin)
    * @param idComision - ID de la comisión
-   * @param dto - Datos del estudiante a incorporar
+   * @param datos - Datos del estudiante a incorporar
    * @returns Inscripción creada
    * @throws NotFoundException si no existe la comisión
    * @throws ConflictException si el estudiante ya está en la comisión
@@ -97,7 +97,7 @@ export class ComisionesController {
   @Roles('profesor', 'admin')
   @ApiOperation({ summary: 'Incorporar un estudiante a la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
-  @ApiBody({ type: AddEstudianteDto })
+  @ApiBody({ type: AgregarEstudianteDto })
   @ApiResponse({ status: 201, description: 'Estudiante incorporado' })
   @ApiResponse({ status: 404, description: 'Comisión no encontrada' })
   @ApiResponse({
@@ -106,15 +106,15 @@ export class ComisionesController {
   })
   agregarEstudiante(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() dto: AddEstudianteDto,
+    @Body() datos: AgregarEstudianteDto,
   ) {
-    return this.comisionesService.agregarEstudiante(idComision, dto);
+    return this.comisionesService.agregarEstudiante(idComision, datos);
   }
 
   /**
    * Traslada un estudiante de su comisión actual a esta comisión (misma materia)
    * @param idComision - ID de la comisión destino
-   * @param dto - Datos del estudiante a trasladar
+   * @param datos - Datos del estudiante a trasladar
    * @throws NotFoundException si no existe la comisión o el alumno no tiene inscripción en la materia
    */
   @Post(':id_comision/estudiantes/trasladar')
@@ -163,7 +163,7 @@ export class ComisionesController {
   /**
    * Agrega un horario a una comisión (requiere rol profesor o admin)
    * @param idComision - ID de la comisión
-   * @param dto - Datos del horario a crear
+   * @param datos - Datos del horario a crear
    * @returns Horario creado
    * @throws NotFoundException si no existe la comisión
    */
@@ -171,14 +171,14 @@ export class ComisionesController {
   @Roles('profesor', 'admin')
   @ApiOperation({ summary: 'Agregar un horario a la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
-  @ApiBody({ type: CreateHorarioDto })
+  @ApiBody({ type: CrearHorarioDto })
   @ApiResponse({ status: 201, description: 'Horario creado' })
   @ApiResponse({ status: 404, description: 'Comisión no encontrada' })
   agregarHorario(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() dto: CreateHorarioDto,
+    @Body() datos: CrearHorarioDto,
   ) {
-    return this.comisionesService.agregarHorario(idComision, dto);
+    return this.comisionesService.agregarHorario(idComision, datos);
   }
 
   /**
@@ -229,7 +229,7 @@ export class ComisionesController {
   /**
    * Agrega un evento a una comisión (requiere rol profesor o admin)
    * @param idComision - ID de la comisión
-   * @param dto - Datos del evento a crear
+   * @param datos - Datos del evento a crear
    * @returns Evento creado
    * @throws NotFoundException si no existe la comisión
    */
@@ -237,21 +237,21 @@ export class ComisionesController {
   @Roles('profesor', 'admin')
   @ApiOperation({ summary: 'Agregar un evento a la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
-  @ApiBody({ type: CreateEventoDto })
+  @ApiBody({ type: CrearEventoDto })
   @ApiResponse({ status: 201, description: 'Evento creado' })
   @ApiResponse({ status: 404, description: 'Comisión no encontrada' })
   agregarEvento(
     @Param('id_comision', ParseIntPipe) idComision: number,
-    @Body() dto: CreateEventoDto,
+    @Body() datos: CrearEventoDto,
   ) {
-    return this.comisionesService.agregarEvento(idComision, dto);
+    return this.comisionesService.agregarEvento(idComision, datos);
   }
 
   /**
    * Modifica un evento existente de una comisión (requiere rol profesor o admin)
    * @param idComision - ID de la comisión
    * @param idEvento - ID del evento a modificar
-   * @param dto - Datos parcial del evento a actualizar
+   * @param datos - Datos parcial del evento a actualizar
    * @returns Evento modificado
    * @throws NotFoundException si no existe el evento
    */
@@ -260,15 +260,15 @@ export class ComisionesController {
   @ApiOperation({ summary: 'Modificar un evento de la comisión' })
   @ApiParam({ name: 'id_comision', type: Number })
   @ApiParam({ name: 'id_evento', type: Number })
-  @ApiBody({ type: UpdateEventoDto })
+  @ApiBody({ type: ActualizarEventoDto })
   @ApiResponse({ status: 200, description: 'Evento modificado' })
   @ApiResponse({ status: 404, description: 'Evento no encontrado' })
   modificarEvento(
     @Param('id_comision', ParseIntPipe) idComision: number,
     @Param('id_evento', ParseIntPipe) idEvento: number,
-    @Body() dto: UpdateEventoDto,
+    @Body() datos: ActualizarEventoDto,
   ) {
-    return this.comisionesService.modificarEvento(idComision, idEvento, dto);
+    return this.comisionesService.modificarEvento(idComision, idEvento, datos);
   }
 
   /**

@@ -18,7 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { IntercambiosService } from './intercambios.service';
-import { CreateIntercambioDto } from './dto/create-intercambio.dto';
+import { CrearIntercambioDto } from './dto/crear-intercambio.dto';
 import { CandidatosIntercambioDto } from './dto/candidatos-intercambio.dto';
 import {
   CurrentUser,
@@ -46,7 +46,7 @@ export class IntercambiosController {
 
   /**
    * Busca candidatos válidos para intercambiar con el solicitante
-   * @param dto - Comisión origen y usuario solicitante (se excluye de los resultados)
+   * @param consulta - Comisión origen y usuario solicitante (se excluye de los resultados)
    * @returns Lista de candidatos con su comisión actual
    */
   @Get('candidatos')
@@ -55,8 +55,8 @@ export class IntercambiosController {
   @ApiQuery({ name: 'id_usuario_solicitante', required: true, type: Number })
   @ApiResponse({ status: 200, description: 'Lista de candidatos con su comisión actual' })
   @ApiResponse({ status: 404, description: 'La comisión origen no existe' })
-  obtenerCandidatos(@Query() dto: CandidatosIntercambioDto) {
-    return this.intercambiosService.obtenerCandidatos(dto);
+  obtenerCandidatos(@Query() consulta: CandidatosIntercambioDto) {
+    return this.intercambiosService.obtenerCandidatos(consulta);
   }
 
   /**
@@ -76,18 +76,18 @@ export class IntercambiosController {
 
   /**
    * Crea un nuevo intercambio en estado PENDIENTE
-   * @param dto - Datos del intercambio (IDs de usuarios y comisiones)
+   * @param datos - Datos del intercambio (IDs de usuarios y comisiones)
    * @returns El intercambio creado
    */
   @Post()
   @Roles('estudiante', 'profesor')
   @ApiOperation({ summary: 'Crear un intercambio de comisión' })
-  @ApiBody({ type: CreateIntercambioDto })
+  @ApiBody({ type: CrearIntercambioDto })
   @ApiResponse({ status: 201, description: 'Intercambio creado en estado PENDIENTE' })
   @ApiResponse({ status: 400, description: 'Inscripciones inactivas' })
   @ApiResponse({ status: 409, description: 'Ya existe un intercambio pendiente' })
-  crearIntercambio(@Body() dto: CreateIntercambioDto) {
-    return this.intercambiosService.crearIntercambio(dto);
+  crearIntercambio(@Body() datos: CrearIntercambioDto) {
+    return this.intercambiosService.crearIntercambio(datos);
   }
 
   /**

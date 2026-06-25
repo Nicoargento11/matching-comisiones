@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { BadRequestError, ForbiddenError } from '../../common/errors/business-error';
 import { ColumnasRepository } from './repositories/columnas.repository';
-import { CreateColumnaDto } from './dto/create-columna.dto';
+import { CrearColumnaDto } from './dto/crear-columna.dto';
 import { ColumnaResponseDto } from './dto/columna-response.dto';
 
 @Injectable()
@@ -20,27 +20,27 @@ export class ColumnasService {
     );
   }
 
-  async crearColumna(idUsuario: number, dto: CreateColumnaDto): Promise<ColumnaResponseDto> {
-    const global = await this.columnasRepository.obtenerGlobalPorNombre(dto.nombre);
+  async crearColumna(idUsuario: number, datos: CrearColumnaDto): Promise<ColumnaResponseDto> {
+    const global = await this.columnasRepository.obtenerGlobalPorNombre(datos.nombre);
     if (global) {
       throw new BadRequestError(
         'COLUMNA_NOMBRE_RESERVADO',
-        `"${dto.nombre}" es el nombre de una columna global y no puede usarse`,
+        `"${datos.nombre}" es el nombre de una columna global y no puede usarse`,
       );
     }
 
-    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(idUsuario, dto.nombre);
+    const existente = await this.columnasRepository.obtenerUsuarioPorNombre(idUsuario, datos.nombre);
     if (existente) {
       throw new BadRequestError(
         'COLUMNA_DUPLICADA',
-        `Ya existe una columna con el nombre "${dto.nombre}"`,
+        `Ya existe una columna con el nombre "${datos.nombre}"`,
       );
     }
 
     const maxOrden = await this.columnasRepository.maxOrdenUsuario(idUsuario);
     const orden = Math.max(maxOrden, 3) + 1;
 
-    const columna = await this.columnasRepository.crearColumna(idUsuario, dto.nombre, orden);
+    const columna = await this.columnasRepository.crearColumna(idUsuario, datos.nombre, orden);
     return plainToInstance(
       ColumnaResponseDto,
       { ...columna, es_global: false },
@@ -49,8 +49,8 @@ export class ColumnasService {
   }
 
   async eliminarColumna(idColumna: number, idUsuario: number): Promise<void> {
-    const result = await this.columnasRepository.eliminarColumna(idColumna, idUsuario);
-    if (result.count === 0) {
+    const resultado = await this.columnasRepository.eliminarColumna(idColumna, idUsuario);
+    if (resultado.count === 0) {
       throw new ForbiddenError(
         'COLUMNA_NO_AUTORIZADA',
         'No tenés permiso para eliminar esta columna o no existe',

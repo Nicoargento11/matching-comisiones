@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsInt, IsPositive } from 'class-validator';
 
-export class CreateConversacionDto {
+export class CrearConversacionDto {
   @ApiProperty({ example: 1, description: 'ID del primer usuario' })
   @IsInt()
   @IsPositive()

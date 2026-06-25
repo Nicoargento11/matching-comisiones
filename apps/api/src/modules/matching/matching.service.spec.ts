@@ -63,7 +63,7 @@ describe('MatchingService', () => {
   });
 
   describe('ejecutarMatching', () => {
-    it('crea un Intercambio real remapeando los campos del DTO de simulación a CreateIntercambioDto', async () => {
+    it('crea un Intercambio real remapeando los campos del DTO de simulación a CrearIntercambioDto', async () => {
       await service.ejecutarMatching(buildDto());
 
       expect(intercambiosService.crearIntercambio).toHaveBeenCalledWith({

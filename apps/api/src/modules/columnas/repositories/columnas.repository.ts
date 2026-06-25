@@ -27,11 +27,11 @@ export class PrismaColumnasRepository extends ColumnasRepository {
   }
 
   async maxOrdenUsuario(idUsuario: number): Promise<number> {
-    const result = await this.prisma.columnaTablero.aggregate({
+    const resultado = await this.prisma.columnaTablero.aggregate({
       where: { id_usuario: idUsuario },
       _max: { orden_columna: true },
     });
-    return result._max.orden_columna ?? 3;
+    return resultado._max.orden_columna ?? 3;
   }
 
   async crearColumna(idUsuario: number, nombre: string, orden: number) {

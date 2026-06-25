@@ -18,8 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { MensajesService } from './mensajes.service';
-import { CreateMensajeDto } from './dto/create-mensaje.dto';
-import { CreateConversacionDto } from './dto/create-conversacion.dto';
+import { CrearMensajeDto } from './dto/crear-mensaje.dto';
+import { CrearConversacionDto } from './dto/crear-conversacion.dto';
 import { MarcarLeidoDto } from './dto/marcar-leido.dto';
 import {
   CurrentUser,
@@ -35,20 +35,20 @@ export class MensajesController {
 
   /**
    * Crea una nueva conversación entre dos usuarios
-   * @param dto - Datos de la conversación a crear (IDs de los participantes)
+   * @param datos - Datos de la conversación a crear (IDs de los participantes)
    * @returns Conversación creada con sus participantes
    * @throws ConflictException si ya existe una conversación entre estos usuarios
    */
   @Post('conversaciones')
   @ApiOperation({ summary: 'Crear una conversación entre dos usuarios' })
-  @ApiBody({ type: CreateConversacionDto })
+  @ApiBody({ type: CrearConversacionDto })
   @ApiResponse({ status: 201, description: 'Conversación creada' })
   @ApiResponse({
     status: 409,
     description: 'Ya existe una conversación entre estos usuarios',
   })
-  crearConversacion(@Body() dto: CreateConversacionDto) {
-    return this.mensajesService.crearConversacion(dto);
+  crearConversacion(@Body() datos: CrearConversacionDto) {
+    return this.mensajesService.crearConversacion(datos);
   }
 
   /**
@@ -102,7 +102,7 @@ export class MensajesController {
   /**
    * Marca los mensajes de una conversación como leídos
    * @param idConversacion - ID de la conversación
-   * @param dto - Datos del último mensaje leído
+   * @param datos - Datos del último mensaje leído
    * @returns Último leído actualizado
    * @throws NotFoundException si no existe el participante en la conversación
    */
@@ -117,9 +117,9 @@ export class MensajesController {
   })
   marcarLeido(
     @Param('id_conversacion', ParseIntPipe) idConversacion: number,
-    @Body() dto: MarcarLeidoDto,
+    @Body() datos: MarcarLeidoDto,
   ) {
-    return this.mensajesService.marcarLeido(idConversacion, dto);
+    return this.mensajesService.marcarLeido(idConversacion, datos);
   }
 
   /**
@@ -144,16 +144,16 @@ export class MensajesController {
 
   /**
    * Envía un mensaje en una conversación
-   * @param dto - Datos del mensaje a enviar (conversación, remitente, contenido)
+   * @param datos - Datos del mensaje a enviar (conversación, remitente, contenido)
    * @returns Mensaje enviado
    * @throws NotFoundException si no existe la conversación
    */
   @Post('mensajes')
   @ApiOperation({ summary: 'Enviar un mensaje' })
-  @ApiBody({ type: CreateMensajeDto })
+  @ApiBody({ type: CrearMensajeDto })
   @ApiResponse({ status: 201, description: 'Mensaje enviado' })
   @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
-  enviarMensaje(@Body() dto: CreateMensajeDto) {
-    return this.mensajesService.enviarMensaje(dto);
+  enviarMensaje(@Body() datos: CrearMensajeDto) {
+    return this.mensajesService.enviarMensaje(datos);
   }
 }

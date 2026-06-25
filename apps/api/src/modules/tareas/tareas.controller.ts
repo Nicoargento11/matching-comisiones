@@ -13,9 +13,9 @@ import {
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, CurrentUserClaims } from '../../common/decorators/current-user.decorator';
 import { TareasService } from './tareas.service';
-import { CreateTareaDto } from './dto/create-tarea.dto';
+import { CrearTareaDto } from './dto/crear-tarea.dto';
 import { UpdateTareaDto } from './dto/update-tarea.dto';
-import { UpdateEstadoDto } from './dto/update-estado.dto';
+import { ActualizarEstadoDto } from './dto/actualizar-estado.dto';
 
 @ApiTags('Tareas')
 @Controller('tareas')
@@ -38,9 +38,9 @@ export class TareasController {
   @ApiOperation({ summary: 'Crear una nueva tarea' })
   @ApiResponse({ status: 201, description: 'Tarea creada' })
   @ApiResponse({ status: 400, description: 'Columna no encontrada o datos inválidos' })
-  crearTarea(@Body() dto: CreateTareaDto, @CurrentUser() user: CurrentUserClaims) {
+  crearTarea(@Body() datos: CrearTareaDto, @CurrentUser() user: CurrentUserClaims) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.crearTarea(user.id_usuario, dto);
+    return this.tareasService.crearTarea(user.id_usuario, datos);
   }
 
   @Patch(':idTarea')
@@ -50,11 +50,11 @@ export class TareasController {
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
   actualizarTarea(
     @Param('idTarea', ParseIntPipe) idTarea: number,
-    @Body() dto: UpdateTareaDto,
+    @Body() datos: UpdateTareaDto,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.actualizarTarea(idTarea, user.id_usuario, dto);
+    return this.tareasService.actualizarTarea(idTarea, user.id_usuario, datos);
   }
 
   @Patch(':idTarea/estado')
@@ -65,11 +65,11 @@ export class TareasController {
   @ApiResponse({ status: 403, description: 'Tarea no pertenece al usuario' })
   moverAColumna(
     @Param('idTarea', ParseIntPipe) idTarea: number,
-    @Body() dto: UpdateEstadoDto,
+    @Body() datos: ActualizarEstadoDto,
     @CurrentUser() user: CurrentUserClaims,
   ) {
     if (!user.id_usuario) throw new UnauthorizedException('Usuario no autenticado');
-    return this.tareasService.moverAColumna(idTarea, dto.estado, user.id_usuario);
+    return this.tareasService.moverAColumna(idTarea, datos.estado, user.id_usuario);
   }
 
   @Delete(':idTarea')

@@ -4,7 +4,7 @@ import { BadRequestError } from '../../common/errors/business-error';
 import { TareasRepository } from './repositories/tareas.repository';
 import { mapearTareaTableroResponse, ESTADO_A_COLUMNA } from './tareas.mapper';
 import { TareaTableroResponseDto } from './dto/tarea-response.dto';
-import { CreateTareaDto } from './dto/create-tarea.dto';
+import { CrearTareaDto } from './dto/crear-tarea.dto';
 import { UpdateTareaDto } from './dto/update-tarea.dto';
 import { ForbiddenError } from '../../common/errors/business-error';
 
@@ -17,8 +17,8 @@ export class TareasService {
     return tareas.map(mapearTareaTableroResponse);
   }
 
-  async crearTarea(idUsuario: number, dto: CreateTareaDto): Promise<TareaTableroResponseDto> {
-    const nombreColumna = ESTADO_A_COLUMNA[dto.estado] ?? dto.estado;
+  async crearTarea(idUsuario: number, datos: CrearTareaDto): Promise<TareaTableroResponseDto> {
+    const nombreColumna = ESTADO_A_COLUMNA[datos.estado] ?? datos.estado;
     const columna = await this.tareasRepository.obtenerColumnaPorNombre(nombreColumna, idUsuario);
 
     if (!columna) {
@@ -29,14 +29,14 @@ export class TareasService {
     }
 
     const tarea = await this.tareasRepository.crearTarea(idUsuario, {
-      titulo: dto.titulo,
-      prioridad: dto.prioridad as PrioridadTarea,
+      titulo: datos.titulo,
+      prioridad: datos.prioridad as PrioridadTarea,
       id_columna: columna.id_columna,
-      descripcion: dto.descripcion,
-      estimacion_min: dto.estimacion_min,
-      id_materia: dto.id_materia,
-      id_evento: dto.id_evento,
-      fecha_vencimiento: dto.fecha_vencimiento ? new Date(dto.fecha_vencimiento) : undefined,
+      descripcion: datos.descripcion,
+      estimacion_min: datos.estimacion_min,
+      id_materia: datos.id_materia,
+      id_evento: datos.id_evento,
+      fecha_vencimiento: datos.fecha_vencimiento ? new Date(datos.fecha_vencimiento) : undefined,
     });
 
     return mapearTareaTableroResponse(tarea);
@@ -57,13 +57,13 @@ export class TareasService {
       );
     }
 
-    const result = await this.tareasRepository.moverAColumna(
+    const resultado = await this.tareasRepository.moverAColumna(
       idTarea,
       idUsuario,
       columna.id_columna,
     );
 
-    if (result.count === 0) {
+    if (resultado.count === 0) {
       throw new ForbiddenError(
         'TAREA_NO_AUTORIZADA',
         'No tenés permiso para modificar esta tarea',
@@ -74,17 +74,17 @@ export class TareasService {
     return mapearTareaTableroResponse(actualizada!);
   }
 
-  async actualizarTarea(idTarea: number, idUsuario: number, dto: UpdateTareaDto): Promise<TareaTableroResponseDto> {
-    const result = await this.tareasRepository.actualizarTarea(idTarea, idUsuario, {
-      titulo: dto.titulo,
-      prioridad: dto.prioridad as PrioridadTarea,
-      descripcion: dto.descripcion ?? null,
-      estimacion_min: dto.estimacion_min ?? null,
-      id_materia: dto.id_materia ?? null,
-      id_evento: dto.id_evento ?? null,
+  async actualizarTarea(idTarea: number, idUsuario: number, datos: UpdateTareaDto): Promise<TareaTableroResponseDto> {
+    const resultado = await this.tareasRepository.actualizarTarea(idTarea, idUsuario, {
+      titulo: datos.titulo,
+      prioridad: datos.prioridad as PrioridadTarea,
+      descripcion: datos.descripcion ?? null,
+      estimacion_min: datos.estimacion_min ?? null,
+      id_materia: datos.id_materia ?? null,
+      id_evento: datos.id_evento ?? null,
     });
 
-    if (result.count === 0) {
+    if (resultado.count === 0) {
       throw new ForbiddenError(
         'TAREA_NO_AUTORIZADA',
         'No tenés permiso para modificar esta tarea',
@@ -96,9 +96,9 @@ export class TareasService {
   }
 
   async eliminarTarea(idTarea: number, idUsuario: number): Promise<void> {
-    const result = await this.tareasRepository.eliminarTarea(idTarea, idUsuario);
+    const resultado = await this.tareasRepository.eliminarTarea(idTarea, idUsuario);
 
-    if (result.count === 0) {
+    if (resultado.count === 0) {
       throw new ForbiddenError(
         'TAREA_NO_AUTORIZADA',
         'No tenés permiso para eliminar esta tarea',

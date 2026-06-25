@@ -1,7 +1,7 @@
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateTareaDto {
+export class CrearTareaDto {
   @ApiProperty({ example: 'Leer apuntes de Análisis' })
   @IsString()
   @IsNotEmpty()

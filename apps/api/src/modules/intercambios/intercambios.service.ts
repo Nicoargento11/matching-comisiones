@@ -7,7 +7,7 @@ import {
 import { IntercambiosRepository } from './repositories/intercambios.repository';
 import { mapearIntercambioResponse } from './intercambios.mapper';
 import { IntercambioResponseDto } from './dto/intercambio-response.dto';
-import { CreateIntercambioDto } from './dto/create-intercambio.dto';
+import { CrearIntercambioDto } from './dto/crear-intercambio.dto';
 import { CandidatosIntercambioDto } from './dto/candidatos-intercambio.dto';
 import { IntercambioCompletadoSubject } from './observers/intercambio-completado.subject';
 import { IntercambioCompletadoEvent } from './events/intercambio-completado.event';
@@ -55,14 +55,14 @@ export class IntercambiosService {
   /**
    * Busca candidatos válidos para intercambiar con el solicitante: alumnos con
    * inscripción activa en otras comisiones de la misma materia que la comisión origen
-   * @param dto - Comisión origen y usuario solicitante (se excluye de los resultados)
+   * @param consulta - Comisión origen y usuario solicitante (se excluye de los resultados)
    * @returns Lista de candidatos (usuario + su comisión)
    * @throws NotFoundException si la comisión origen no existe
    */
-  async obtenerCandidatos(dto: CandidatosIntercambioDto) {
+  async obtenerCandidatos(consulta: CandidatosIntercambioDto) {
     const candidatos = await this.intercambiosRepository.obtenerCandidatos(
-      dto.id_comision_origen,
-      dto.id_usuario_solicitante,
+      consulta.id_comision_origen,
+      consulta.id_usuario_solicitante,
     );
     if (candidatos === null) {
       throw new NotFoundError('COMISION_NO_ENCONTRADA', 'La comisión origen no existe');
@@ -72,14 +72,14 @@ export class IntercambiosService {
 
   /**
    * Crea un intercambio en estado PENDIENTE entre dos usuarios
-   * @param dto - Datos del intercambio (quién ofrece y quién es el destino)
+   * @param datos - Datos del intercambio (quién ofrece y quién es el destino)
    * @returns El intercambio creado
    * @throws BadRequestError si alguna inscripción no está activa
    * @throws ConflictError si ya existe un intercambio pendiente igual
    */
-  async crearIntercambio(dto: CreateIntercambioDto): Promise<IntercambioResponseDto> {
+  async crearIntercambio(datos: CrearIntercambioDto): Promise<IntercambioResponseDto> {
     const inscripcionesActivas =
-      await this.intercambiosRepository.verificarInscripcionesActivas(dto);
+      await this.intercambiosRepository.verificarInscripcionesActivas(datos);
     if (!inscripcionesActivas) {
       throw new BadRequestError(
         'INTERCAMBIO_INSCRIPCIONES_INACTIVAS',
@@ -88,8 +88,8 @@ export class IntercambiosService {
     }
 
     const mismaMateria = await this.intercambiosRepository.verificarMismaMateria(
-      dto.id_comision_ofrece,
-      dto.id_comision_destino,
+      datos.id_comision_ofrece,
+      datos.id_comision_destino,
     );
     if (!mismaMateria) {
       throw new BadRequestError(
@@ -98,7 +98,7 @@ export class IntercambiosService {
       );
     }
 
-    const pendiente = await this.intercambiosRepository.buscarIntercambioPendiente(dto);
+    const pendiente = await this.intercambiosRepository.buscarIntercambioPendiente(datos);
     if (pendiente) {
       throw new ConflictError(
         'INTERCAMBIO_YA_EXISTE',
@@ -115,7 +115,7 @@ export class IntercambiosService {
       );
     }
 
-    const intercambio = await this.intercambiosRepository.crearIntercambio(dto, estadoPendiente.id_estado);
+    const intercambio = await this.intercambiosRepository.crearIntercambio(datos, estadoPendiente.id_estado);
     return mapearIntercambioResponse(intercambio);
   }
 
@@ -147,13 +147,13 @@ export class IntercambiosService {
    * @throws ConflictError si el intercambio no está en estado PENDIENTE
    */
   async completar(idIntercambio: number): Promise<CompletarResultado> {
-    const datos = await this.intercambiosRepository.obtenerDatosCompletos(idIntercambio);
-    if (!datos) {
+    const datosIntercambio = await this.intercambiosRepository.obtenerDatosCompletos(idIntercambio);
+    if (!datosIntercambio) {
       throw new NotFoundError('INTERCAMBIO_NO_ENCONTRADO', 'Intercambio no encontrado');
     }
 
     const estadoPendiente = await this.intercambiosRepository.buscarEstadoPorNombre('PENDIENTE');
-    if (!estadoPendiente || datos.id_estado !== estadoPendiente.id_estado) {
+    if (!estadoPendiente || datosIntercambio.id_estado !== estadoPendiente.id_estado) {
       throw new ConflictError(
         'INTERCAMBIO_ESTADO_INVALIDO',
         'Solo se pueden completar intercambios en estado PENDIENTE',
@@ -171,21 +171,21 @@ export class IntercambiosService {
     await this.intercambiosRepository.completarIntercambio(
       idIntercambio,
       {
-        id_usuario_ofrece: datos.ofrece.usuario.id_usuario,
-        id_comision_ofrece: datos.id_comision_ofrece,
-        id_usuario_destino: datos.destino.usuario.id_usuario,
-        id_comision_destino: datos.id_comision_destino,
+        id_usuario_ofrece: datosIntercambio.ofrece.usuario.id_usuario,
+        id_comision_ofrece: datosIntercambio.id_comision_ofrece,
+        id_usuario_destino: datosIntercambio.destino.usuario.id_usuario,
+        id_comision_destino: datosIntercambio.id_comision_destino,
       },
       estadoCompletado.id_estado,
     );
 
     const evento: IntercambioCompletadoEvent = {
       id_intercambio: idIntercambio,
-      id_comision_ofrece: datos.id_comision_ofrece,
-      id_comision_destino: datos.id_comision_destino,
+      id_comision_ofrece: datosIntercambio.id_comision_ofrece,
+      id_comision_destino: datosIntercambio.id_comision_destino,
       completadoEn: new Date(),
-      ofrece: datos.ofrece,
-      destino: datos.destino,
+      ofrece: datosIntercambio.ofrece,
+      destino: datosIntercambio.destino,
     };
 
     try {
@@ -196,10 +196,10 @@ export class IntercambiosService {
         idIntercambio,
         estadoPendiente.id_estado,
         {
-          id_usuario_ofrece: datos.ofrece.usuario.id_usuario,
-          id_comision_ofrece: datos.id_comision_ofrece,
-          id_usuario_destino: datos.destino.usuario.id_usuario,
-          id_comision_destino: datos.id_comision_destino,
+          id_usuario_ofrece: datosIntercambio.ofrece.usuario.id_usuario,
+          id_comision_ofrece: datosIntercambio.id_comision_ofrece,
+          id_usuario_destino: datosIntercambio.destino.usuario.id_usuario,
+          id_comision_destino: datosIntercambio.id_comision_destino,
         },
       );
       throw error;

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SimularMatchingDto } from './dto/simular-matching.dto';
 import { SimularMatchingResponseDto } from './dto/simular-matching-response.dto';
 import { IntercambiosService } from '../intercambios/intercambios.service';
-import { CreateIntercambioDto } from '../intercambios/dto/create-intercambio.dto';
+import { CrearIntercambioDto } from '../intercambios/dto/crear-intercambio.dto';
 
 /**
  * Orquesta la simulación de un matching de comisiones creando un `Intercambio`
@@ -21,15 +21,15 @@ import { CreateIntercambioDto } from '../intercambios/dto/create-intercambio.dto
 export class MatchingService {
   constructor(private readonly intercambiosService: IntercambiosService) {}
 
-  async ejecutarMatching(dto: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
-    const dtoCreacion: CreateIntercambioDto = {
-      id_usuario_ofrece: dto.usuarioSolicitanteId,
-      id_comision_ofrece: dto.comisionOrigenId,
-      id_usuario_destino: dto.usuarioReceptorId,
-      id_comision_destino: dto.comisionDestinoId,
+  async ejecutarMatching(datos: SimularMatchingDto): Promise<SimularMatchingResponseDto> {
+    const datosCreacion: CrearIntercambioDto = {
+      id_usuario_ofrece: datos.usuarioSolicitanteId,
+      id_comision_ofrece: datos.comisionOrigenId,
+      id_usuario_destino: datos.usuarioReceptorId,
+      id_comision_destino: datos.comisionDestinoId,
     };
 
-    const intercambioCreado = await this.intercambiosService.crearIntercambio(dtoCreacion);
+    const intercambioCreado = await this.intercambiosService.crearIntercambio(datosCreacion);
     const { comprobante_url } = await this.intercambiosService.completar(intercambioCreado.id_intercambio);
 
     return {

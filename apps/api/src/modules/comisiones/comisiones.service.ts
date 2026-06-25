@@ -9,10 +9,10 @@ import { ComisionesRepository } from './repositories/comisiones.repository';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { mapearComisionResponse } from './comisiones.mapper';
 import { ComisionResponseDto } from './dto/comision-response.dto';
-import { AddEstudianteDto } from './dto/add-estudiante.dto';
-import { CreateHorarioDto } from './dto/create-horario.dto';
-import { CreateEventoDto } from './dto/create-evento.dto';
-import { UpdateEventoDto } from './dto/update-evento.dto';
+import { AgregarEstudianteDto } from './dto/agregar-estudiante.dto';
+import { CrearHorarioDto } from './dto/crear-horario.dto';
+import { CrearEventoDto } from './dto/crear-evento.dto';
+import { ActualizarEventoDto } from './dto/actualizar-evento.dto';
 import { PaginacionDto } from '../../common/dto/paginacion.dto';
 import { verificarOExcepcion } from '../../common/helpers/verificar-existencia';
 import {
@@ -41,12 +41,12 @@ export class ComisionesService {
       'nombre_comision',
       'cupo_maximo',
     ]);
-    const [raw, total] = await Promise.all([
+    const [comisionesRaw, total] = await Promise.all([
       this.comisionesRepository.obtenerTodas(paginacion),
       this.comisionesRepository.contar(),
     ]);
     return {
-      data: raw.map(mapearComisionResponse),
+      data: comisionesRaw.map(mapearComisionResponse),
       meta: construirMetaPaginacion(total, paginacionDto),
     };
   }
@@ -100,16 +100,16 @@ export class ComisionesService {
   /**
    * Incorpora un estudiante a una comisión
    * @param idComision - ID de la comisión
-   * @param dto - Datos del estudiante a incorporar
+   * @param datos - Datos del estudiante a incorporar
    * @returns La inscripción creada o reactivada
    * @throws NotFoundException si no existe la comisión
    * @throws ConflictException si el estudiante ya está activo en la comisión
    */
-  async agregarEstudiante(idComision: number, dto: AddEstudianteDto) {
+  async agregarEstudiante(idComision: number, datos: AgregarEstudianteDto) {
     const comision = await this.verificarComision(idComision);
 
     const esEstudiante = await this.comisionesRepository.verificarEsEstudiante(
-      dto.id_usuario,
+      datos.id_usuario,
     );
     if (!esEstudiante) {
       throw new ForbiddenError(
@@ -119,11 +119,11 @@ export class ComisionesService {
     }
 
     // Verificar primero si ya está en ESTA comisión (error más específico)
-    const existing = await this.comisionesRepository.buscarInscripcion(
-      dto.id_usuario,
+    const inscripcionExistente = await this.comisionesRepository.buscarInscripcion(
+      datos.id_usuario,
       idComision,
     );
-    if (existing && existing.estado === 'ACTIVO') {
+    if (inscripcionExistente && inscripcionExistente.estado === 'ACTIVO') {
       throw new ConflictError(
         'COMISION_YA_INSCRITO',
         'El estudiante ya está activo en la comisión',
@@ -133,7 +133,7 @@ export class ComisionesService {
     // Luego verificar si está en OTRA comisión de la misma materia
     const conflicto =
       await this.comisionesRepository.buscarInscripcionActivaEnMateria(
-        dto.id_usuario,
+        datos.id_usuario,
         comision.id_materia,
       );
     if (conflicto && conflicto.id_comision !== idComision) {
@@ -145,13 +145,13 @@ export class ComisionesService {
         `El alumno ya está inscripto en "${nombre}" de esta materia`,
       );
     }
-    if (existing) {
+    if (inscripcionExistente) {
       const inscripcion = await this.comisionesRepository.reactivarInscripcion(
-        dto.id_usuario,
+        datos.id_usuario,
         idComision,
       );
       await this.notificacionesService.crearNotificacion({
-        id_usuario: dto.id_usuario,
+        id_usuario: datos.id_usuario,
         tipo: 'SISTEMA',
         titulo: 'Fuiste agregado a una comisión',
         mensaje: `El profesor te inscribió en "${comision.nombre_comision ?? `Comisión ${idComision}`}"`,
@@ -164,11 +164,11 @@ export class ComisionesService {
       return inscripcion;
     }
     const inscripcion = await this.comisionesRepository.crearInscripcion(
-      dto.id_usuario,
+      datos.id_usuario,
       idComision,
     );
     await this.notificacionesService.crearNotificacion({
-      id_usuario: dto.id_usuario,
+      id_usuario: datos.id_usuario,
       tipo: 'SISTEMA',
       titulo: 'Fuiste agregado a una comisión',
       mensaje: `El profesor te inscribió en "${comision.nombre_comision ?? `Comisión ${idComision}`}"`,
@@ -211,12 +211,12 @@ export class ComisionesService {
   /**
    * Agrega un horario a una comisión
    * @param idComision - ID de la comisión
-   * @param dto - Datos del horario a crear
+   * @param datos - Datos del horario a crear
    * @returns El horario creado con relaciones
    * @throws NotFoundException si no existe la comisión, el día o la modalidad
    */
-  async agregarHorario(idComision: number, dto: CreateHorarioDto) {
-    if (dto.hora_fin <= dto.hora_inicio) {
+  async agregarHorario(idComision: number, datos: CrearHorarioDto) {
+    if (datos.hora_fin <= datos.hora_inicio) {
       throw new BadRequestError(
         'HORARIO_HORA_INVALIDA',
         'hora_fin debe ser posterior a hora_inicio',
@@ -225,22 +225,22 @@ export class ComisionesService {
     await this.verificarComision(idComision);
 
     const dia = await this.comisionesRepository.buscarDiaPorNombre(
-      dto.nombre_dia,
+      datos.nombre_dia,
     );
     if (!dia) {
       throw new NotFoundError(
         'COMISION_DIA_NO_ENCONTRADO',
-        `No existe el día "${dto.nombre_dia}"`,
+        `No existe el día "${datos.nombre_dia}"`,
       );
     }
 
     const modalidad = await this.comisionesRepository.buscarModalidadPorNombre(
-      dto.nombre_modalidad,
+      datos.nombre_modalidad,
     );
     if (!modalidad) {
       throw new NotFoundError(
         'COMISION_MODALIDAD_NO_ENCONTRADA',
-        `No existe la modalidad "${dto.nombre_modalidad}"`,
+        `No existe la modalidad "${datos.nombre_modalidad}"`,
       );
     }
 
@@ -250,7 +250,7 @@ export class ComisionesService {
         dia.numero_dia,
       );
     for (const h of horariosExistentes) {
-      if (dto.hora_inicio < h.hora_fin && dto.hora_fin > h.hora_inicio) {
+      if (datos.hora_inicio < h.hora_fin && datos.hora_fin > h.hora_inicio) {
         throw new ConflictError(
           'HORARIO_SOLAPAMIENTO',
           `El horario se solapa con uno existente (${h.hora_inicio}-${h.hora_fin})`,
@@ -260,20 +260,20 @@ export class ComisionesService {
 
     return this.comisionesRepository.ejecutarTransaccion(async (tx) => {
       let id_aula: number | undefined;
-      if (dto.nombre_aula?.trim()) {
+      if (datos.nombre_aula?.trim()) {
         const aula = await this.comisionesRepository.upsertAula(
           tx,
-          dto.nombre_aula.trim(),
+          datos.nombre_aula.trim(),
         );
         id_aula = aula.id_aula;
       }
 
       return this.comisionesRepository.crearHorario(tx, {
-        hora_inicio: dto.hora_inicio,
-        hora_fin: dto.hora_fin,
+        hora_inicio: datos.hora_inicio,
+        hora_fin: datos.hora_fin,
         numero_dia: dia.numero_dia,
         id_modalidad: modalidad.id_modalidad,
-        formato: dto.formato ?? 'TEORICO_PRACTICO',
+        formato: datos.formato ?? 'TEORICO_PRACTICO',
         id_comision: idComision,
         ...(id_aula !== undefined && { id_aula }),
       });
@@ -324,38 +324,38 @@ export class ComisionesService {
   /**
    * Agrega un evento a una comisión
    * @param idComision - ID de la comisión
-   * @param dto - Datos del evento a crear
+   * @param datos - Datos del evento a crear
    * @returns El evento creado
    * @throws NotFoundException si no existe la comisión
    */
-  async agregarEvento(idComision: number, dto: CreateEventoDto) {
-    if (new Date(dto.fecha_fin) <= new Date(dto.fecha_inicio)) {
+  async agregarEvento(idComision: number, datos: CrearEventoDto) {
+    if (new Date(datos.fecha_fin) <= new Date(datos.fecha_inicio)) {
       throw new BadRequestError(
         'EVENTO_FECHA_INVALIDA',
         'fecha_fin debe ser posterior a fecha_inicio',
       );
     }
     await this.verificarComision(idComision);
-    return this.comisionesRepository.crearEvento(idComision, dto);
+    return this.comisionesRepository.crearEvento(idComision, datos);
   }
 
   /**
    * Modifica un evento existente de una comisión
    * @param idComision - ID de la comisión
    * @param idEvento - ID del evento a modificar
-   * @param dto - Datos parciales a actualizar
+   * @param datos - Datos parciales a actualizar
    * @returns El evento actualizado
    * @throws NotFoundException si el evento no pertenece a la comisión
    */
   async modificarEvento(
     idComision: number,
     idEvento: number,
-    dto: UpdateEventoDto,
+    datos: ActualizarEventoDto,
   ) {
     if (
-      dto.fecha_inicio &&
-      dto.fecha_fin &&
-      new Date(dto.fecha_fin) <= new Date(dto.fecha_inicio)
+      datos.fecha_inicio &&
+      datos.fecha_fin &&
+      new Date(datos.fecha_fin) <= new Date(datos.fecha_inicio)
     ) {
       throw new BadRequestError(
         'EVENTO_FECHA_INVALIDA',
@@ -372,7 +372,7 @@ export class ComisionesService {
         'Evento no encontrado en esta comisión',
       );
     }
-    return this.comisionesRepository.modificarEvento(idEvento, dto);
+    return this.comisionesRepository.modificarEvento(idEvento, datos);
   }
 
   /**

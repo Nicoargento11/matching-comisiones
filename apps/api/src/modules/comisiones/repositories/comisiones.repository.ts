@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PaginacionParams } from '../../../common/helpers/paginacion';
-import { CreateEventoDto } from '../dto/create-evento.dto';
+import { CrearEventoDto } from '../dto/crear-evento.dto';
 import { FormatoClase, Prisma } from '@prisma/client';
 
 /** Select completo para consultas de comisión con relaciones */
@@ -144,7 +144,7 @@ export abstract class ComisionesRepository {
   ): ReturnType<PrismaComisionesRepository['reactivarHorario']>;
   abstract crearEvento(
     idComision: number,
-    dto: CreateEventoDto,
+    dto: CrearEventoDto,
   ): ReturnType<PrismaComisionesRepository['crearEvento']>;
   abstract buscarEvento(
     idEvento: number,
@@ -465,7 +465,7 @@ export class PrismaComisionesRepository extends ComisionesRepository {
    * @param dto - Datos del evento a crear
    * @returns El evento creado
    */
-  async crearEvento(idComision: number, dto: CreateEventoDto) {
+  async crearEvento(idComision: number, dto: CrearEventoDto) {
     return this.prisma.evento.create({
       data: {
         ...dto,

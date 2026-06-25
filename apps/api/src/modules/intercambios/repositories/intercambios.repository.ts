@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { CreateIntercambioDto } from '../dto/create-intercambio.dto';
+import { CrearIntercambioDto } from '../dto/crear-intercambio.dto';
 
 const INTERCAMBIO_SELECT = {
   id_intercambio: true,
@@ -25,14 +25,14 @@ export abstract class IntercambiosRepository {
   abstract obtenerPorId(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerPorId']>;
   abstract obtenerPorUsuario(idUsuario: number): ReturnType<PrismaIntercambiosRepository['obtenerPorUsuario']>;
   abstract buscarEstadoPorNombre(nombreEstado: string): ReturnType<PrismaIntercambiosRepository['buscarEstadoPorNombre']>;
-  abstract verificarInscripcionesActivas(dto: CreateIntercambioDto): Promise<boolean>;
+  abstract verificarInscripcionesActivas(dto: CrearIntercambioDto): Promise<boolean>;
   abstract verificarMismaMateria(idComisionOfrece: number, idComisionDestino: number): Promise<boolean>;
   abstract obtenerCandidatos(
     idComisionOrigen: number,
     idUsuarioSolicitante: number,
   ): ReturnType<PrismaIntercambiosRepository['obtenerCandidatos']>;
-  abstract buscarIntercambioPendiente(dto: CreateIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
-  abstract crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crearIntercambio']>;
+  abstract buscarIntercambioPendiente(dto: CrearIntercambioDto): ReturnType<PrismaIntercambiosRepository['buscarIntercambioPendiente']>;
+  abstract crearIntercambio(dto: CrearIntercambioDto, idEstadoPendiente: number): ReturnType<PrismaIntercambiosRepository['crearIntercambio']>;
   abstract obtenerDatosCompletos(idIntercambio: number): ReturnType<PrismaIntercambiosRepository['obtenerDatosCompletos']>;
   abstract completarIntercambio(
     idIntercambio: number,
@@ -125,7 +125,7 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
    * @param dto - Datos del intercambio
    * @returns true si ambas están activas
    */
-  async verificarInscripcionesActivas(dto: CreateIntercambioDto): Promise<boolean> {
+  async verificarInscripcionesActivas(dto: CrearIntercambioDto): Promise<boolean> {
     const [ofrece, destino] = await Promise.all([
       this.prisma.usuarioComision.findUnique({
         where: {
@@ -209,7 +209,7 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
    * @param dto - Datos del intercambio
    * @returns El intercambio existente o null
    */
-  async buscarIntercambioPendiente(dto: CreateIntercambioDto) {
+  async buscarIntercambioPendiente(dto: CrearIntercambioDto) {
     return this.prisma.intercambio.findFirst({
       where: {
         id_usuario_ofrece: dto.id_usuario_ofrece,
@@ -228,7 +228,7 @@ export class PrismaIntercambiosRepository extends IntercambiosRepository {
    * @param idEstadoPendiente - ID del estado PENDIENTE
    * @returns El intercambio creado con relaciones
    */
-  async crearIntercambio(dto: CreateIntercambioDto, idEstadoPendiente: number) {
+  async crearIntercambio(dto: CrearIntercambioDto, idEstadoPendiente: number) {
     return this.prisma.intercambio.create({
       data: {
         id_estado: idEstadoPendiente,
