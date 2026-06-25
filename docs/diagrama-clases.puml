@@ -1,0 +1,176 @@
+@startuml diagrama-clases
+
+title Diagrama de Clases — Sistema de Intercambio de Comisiones
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+
+class Usuario {
+    -id_usuario: Int
+    -dni: Int
+    -nombre_usuario: String
+    -apellido_usuario: String
+    -correo: String
+    -activo: Boolean
+    -fecha_registro: Date
+    +obtenerPorDni(dni: Int)
+}
+
+class Estudiante {
+    +obtenerEstudiante(idUsuario: Int)
+    +obtenerEstudiantes(paginacion)
+    +buscar(q: String, idUsuarioActual: Int, idComision?: Int)
+    +obtenerComisiones(idUsuario: Int)
+}
+
+class Profesor {
+    +obtenerComisiones(idUsuario: Int)
+    +obtenerComision(idUsuario: Int)
+}
+
+class Comision {
+    -id_comision: Int
+    -numero_comision: Int
+    -nombre_comision: String
+    -cupo_maximo: Int
+    -fecha_fin: Date
+    +obtenerTodas(paginacion)
+    +obtenerDetalleComision(idComision: Int)
+    +obtenerComisionesDeUsuario(idUsuario: Int)
+    +agregarEstudiante(idComision: Int, datosEstudiante: AgregarEstudianteDto)
+    +darBajaEstudiante(idComision: Int, idUsuario: Int)
+    +trasladarEstudiante(idComisionDestino: Int, idUsuario: Int)
+    +agregarHorario(idComision: Int, datosHorario: CrearHorarioDto)
+    +eliminarHorario(idComision: Int, idHorario: Int)
+    +reactivarHorario(idComision: Int, idHorario: Int)
+    +agregarEvento(idComision: Int, datosEvento: CrearEventoDto)
+    +modificarEvento(idComision: Int, idEvento: Int, datosActualizacion: ActualizarEventoDto)
+    +eliminarEvento(idComision: Int, idEvento: Int)
+    +reactivarEvento(idComision: Int, idEvento: Int)
+}
+
+class Intercambio {
+    -id_intercambio: Int
+    -fecha_solicitud: Date
+    -estado: String
+    +obtenerPorUsuario(idUsuario: Int)
+    +obtenerPorId(idIntercambio: Int)
+    +obtenerCandidatos(datosBusqueda: CandidatosIntercambioDto)
+    +crearIntercambio(datosIntercambio: CrearIntercambioDto)
+    +completar(idIntercambio: Int)
+}
+
+class Comprobante {
+    -id_comprobante: Int
+    -archivo_pdf_url: String
+    -fecha_generacion: Date
+    +crearComprobante(idIntercambio: Int, archivoPdfUrl: String)
+    +generarPdf(datosComprobante)
+    +subirPdf(idIntercambio: Int, pdf: Buffer)
+}
+
+class Notificacion {
+    -id_notificacion: Int
+    -tipo: TipoNotificacion
+    -titulo: String
+    -mensaje: String
+    -leida: Boolean
+    -creada_en: Date
+    +crearNotificacion(datosNotificacion)
+    +obtenerPorUsuario(idUsuario: Int)
+    +marcarSoloLeida(idNotificacion: Int, idUsuario: Int)
+    +marcarTodasLeidas(idUsuario: Int)
+}
+
+class Mensaje {
+    -contenido: String
+    -creado_en: Date
+    +crearConversacion(datosConversacion: CrearConversacionDto)
+    +obtenerConversacion(idConversacion: Int)
+    +obtenerMisConversaciones(supabaseAuthId: String, paginacion)
+    +marcarLeido(idConversacion: Int, datosLectura: MarcarLeidoDto)
+    +obtenerMensajes(idConversacion: Int)
+    +enviarMensaje(datosMensaje: CrearMensajeDto)
+}
+
+class Tarea {
+    -id_tarea: Int
+    -titulo: String
+    -descripcion: String
+    -prioridad: Prioridad
+    -fecha_vencimiento: Date
+    +obtenerPorUsuario(idUsuario: Int)
+    +crearTarea(idUsuario: Int, datosTarea: CrearTareaDto)
+    +moverAColumna(idTarea: Int, estado: String, idUsuario: Int)
+    +eliminarTarea(idTarea: Int, idUsuario: Int)
+}
+
+class ColumnaTablero {
+    -id_columna: Int
+    -nombre: String
+    -orden_columna: Int
+    +obtenerParaUsuario(idUsuario: Int)
+    +crearColumna(idUsuario: Int, datosColumna: CrearColumnaDto)
+    +eliminarColumna(idColumna: Int, idUsuario: Int)
+}
+
+package "Observer Pattern — IntercambioCompletado" #E3F2FD {
+
+    interface IIntercambioObserver <<Observer>> {
+        +failureMode: ObserverFailureMode
+        +onIntercambioCompletado(evento): ObserverResultado | void
+    }
+
+    class IntercambioCompletadoSubject <<Subject>> {
+        -observers: IIntercambioObserver[]
+        +registrarObserver(observer: IIntercambioObserver)
+        +notificar(evento): NotificarResultado
+    }
+
+    class ComprobanteObserver <<critical>> {
+        -comprobantePdf: ComprobantePdfService
+        -comprobantesStorage: ComprobantesStorageService
+        -comprobantesRepository: ComprobantesRepository
+        +onIntercambioCompletado(evento): ObserverResultado
+    }
+
+    class NotificacionObserver <<best-effort>> {
+        -notificacionesRepository: NotificacionesRepository
+        +onIntercambioCompletado(evento): void
+    }
+
+    class EmailObserver <<best-effort>> {
+        -email: EmailService
+        -comprobantePdf: ComprobantePdfService
+        +onIntercambioCompletado(evento): void
+    }
+
+}
+
+' Herencia — especialización de roles
+Estudiante --|> Usuario
+Profesor --|> Usuario
+
+' Relaciones de dominio
+Profesor "1" --> "*" Comision : enseña
+Estudiante "*" --> "*" Comision : inscripto en
+Comision "*" --> "*" Intercambio : involucrada en
+Intercambio "1" --> "0..1" Comprobante : genera
+Estudiante "1" --> "*" Intercambio : solicita
+Usuario "1" --> "*" Notificacion : recibe
+Usuario "1" --> "*" Mensaje : participa en conversacion
+Estudiante "1" --> "*" Tarea : tiene
+Estudiante "1" --> "*" ColumnaTablero : organiza
+ColumnaTablero "1" --> "*" Tarea : contiene
+
+' Relaciones Observer Pattern
+IIntercambioObserver <|.. ComprobanteObserver : implements
+IIntercambioObserver <|.. NotificacionObserver : implements
+IIntercambioObserver <|.. EmailObserver : implements
+IntercambioCompletadoSubject "1" o-- "*" IIntercambioObserver : observers
+
+' Conexión observers — dominio
+ComprobanteObserver ..> Comprobante : persiste
+NotificacionObserver ..> Notificacion : crea
+
+@enduml
